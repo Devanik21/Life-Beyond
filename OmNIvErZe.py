@@ -1387,44 +1387,53 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
 
             with vitals_col2:
                 st.markdown("#### Architectural Evolution")
+                
+                # --- DEDICATED CONTROLS ---
+                evo_col1, evo_col2 = st.columns(2)
+                with evo_col1:
+                    max_gens = st.slider("Max Evolution Generations", 10, 500, 100, 10, key="max_evo_gens")
+                with evo_col2:
+                    anim_speed = st.select_slider("Animation Speed", ["Slow", "Normal", "Fast"], "Normal", key="anim_speed")
+                
+                delay_map = {"Slow": 0.2, "Normal": 0.05, "Fast": 0.01}
+                animation_delay = delay_map[anim_speed]
+
                 blueprint_placeholder = st.empty()
                 
-                # --- ANIMATED ARCHITECTURAL EVOLUTION ---
-                stages = {
-                    "Origin (Gen 0)": {'nodes': 3, 'connection_prob': 0.2},
-                    "Mid-Evolution (Gen 50)": {'nodes': int(3 + (final_fitness / 100) * 5), 'connection_prob': 0.4},
-                    "Final Form (Gen 100)": {'nodes': int(3 + (final_fitness / 100) * 10), 'connection_prob': final_fitness / 100},
-                }
-
-                for stage_name, params in stages.items():
-                    with blueprint_placeholder.container():
-                        st.markdown(f"**Visualizing:** `{stage_name}`")
-                        graph = graphviz.Digraph('Genotype', graph_attr={'bgcolor': 'transparent'})
-                        graph.attr('node', shape='circle', style='filled', fontname='Exo 2', color='#00BCD4', fillcolor='#2D3748', fontcolor='#E2E8F0')
-                        graph.attr('edge', color='#A0AEC0')
-                        
-                        nodes = [f"G{i}" for i in range(params['nodes'])]
-                        
-                        # Add nodes with increasing complexity
-                        for i, node in enumerate(nodes):
-                            if stage_name == "Final Form (Gen 100)" and i > stages["Mid-Evolution (Gen 50)"]['nodes']:
-                                graph.node(node, fillcolor='#B7791F') # Highlight new nodes
-                            else:
-                                graph.node(node)
-                        
-                        # Add connections
-                        for i in range(params['nodes']):
-                            if np.random.random() < params['connection_prob']:
-                                target_node = np.random.choice(nodes)
-                                if nodes[i] != target_node:
-                                    # Highlight new connections in the final form
-                                    edge_color = '#FFD700' if stage_name == "Final Form (Gen 100)" else '#A0AEC0'
-                                    graph.edge(nodes[i], target_node, color=edge_color)
-                        
-                        st.graphviz_chart(graph, use_container_width=True)
+                if st.button("Animate Architectural Evolution", key="animate_architecture"):
+                    # --- DYNAMIC ANIMATED EVOLUTION ---
+                    base_nodes = 3
+                    max_additional_nodes = int(20 * (final_fitness / 100))
                     
-                    if stage_name != "Final Form (Gen 100)":
-                        time.sleep(1.5) # Pause to show the stage
+                    for gen in range(0, max_gens + 1, 5):
+                        progress = gen / max_gens
+                        
+                        # Interpolate parameters based on generation
+                        current_nodes = int(base_nodes + progress * max_additional_nodes)
+                        connection_prob = 0.2 + progress * (final_fitness / 100 - 0.2)
+                        
+                        with blueprint_placeholder.container():
+                            st.markdown(f"**Visualizing Generation:** `{gen}/{max_gens}`")
+                            graph = graphviz.Digraph('Genotype', graph_attr={'bgcolor': 'transparent'})
+                            graph.attr('node', shape='circle', style='filled', fontname='Exo 2', color='#00BCD4', fillcolor='#2D3748', fontcolor='#E2E8F0')
+                            graph.attr('edge', color='#A0AEC0')
+                            
+                            nodes = [f"G{i}" for i in range(current_nodes)]
+                            
+                            # Add nodes
+                            for node in nodes:
+                                graph.node(node)
+                            
+                            # Add connections
+                            for i in range(current_nodes):
+                                if np.random.random() < connection_prob:
+                                    target_node = np.random.choice(nodes)
+                                    if nodes[i] != target_node:
+                                        graph.edge(nodes[i], target_node)
+                            
+                            st.graphviz_chart(graph, use_container_width=True)
+                        
+                        time.sleep(animation_delay)
 
 
         # --- TAB 2: Genealogy & Ancestry ---
