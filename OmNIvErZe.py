@@ -989,6 +989,37 @@ if st.session_state.current_wing == "Home":
             with gen_col3:
                 adv_food_competition = st.slider("Food Competition", 0, 100, 40, key="adv_food_comp")
                 adv_sentience_potential = st.slider("Sentience Potential", 0, 100, 10, key="adv_sentience")
+            
+            # --- DEEP GENETIC & QUANTUM MANIPULATION ---
+            with st.expander("🧬 Deep Genetic & Quantum Manipulation (Warning: Unstable Results)"):
+                st.markdown("##### Sub-Cellular Machinery")
+                deep_col1, deep_col2, deep_col3 = st.columns(3)
+                with deep_col1:
+                    deep_ribosome_eff = st.slider("Ribosome Efficiency", 0, 100, 50, key="deep_ribo")
+                    deep_membrane_fluid = st.slider("Membrane Fluidity", 0, 100, 50, key="deep_mem")
+                with deep_col2:
+                    deep_energy_storage = st.selectbox("Energy Molecule", ["ATP", "GTP", "XTP", "Photonic Crystal"], key="deep_energy")
+                    deep_error_correction = st.slider("Genetic Error Correction", 0, 100, 70, key="deep_error")
+                with deep_col3:
+                    deep_waste_recycling = st.slider("Waste Recycling", 0, 100, 30, key="deep_waste")
+                    deep_quantum_tunneling = st.slider("Enzyme Quantum Tunneling", 0, 100, 5, help="Speeds up reactions, but increases instability", key="deep_quantum")
+
+                st.markdown("##### Raw Genetic Code (1000+ parameters)")
+                st.info("Directly edit the organism's base genetic code. Each character is a parameter. Small changes can have massive, unpredictable effects.")
+                
+                # Generate a long, deterministic genetic code based on other params
+                seed_text = f"{sim_gravity}{sim_temp}{sim_pressure}{adv_solvent}{adv_genetic_material}"
+                np.random.seed(hash(seed_text) & 0xffffffff)
+                
+                genetic_bases = list("GATTACA" * 100) # Use bases from DNA
+                if adv_genetic_material == "XNA": genetic_bases = list("XENOS" * 100)
+                if adv_genetic_material == "PNA": genetic_bases = list("PEPTIDE" * 100)
+                if adv_genetic_material == "GNA": genetic_bases = list("GLYCOL" * 100)
+                
+                base_code = "".join(np.random.choice(genetic_bases, 2000))
+                
+                raw_genetic_code = st.text_area("Edit Genetic Sequence:", value=base_code, height=200, key="raw_code")
+
 
 
         if st.button("🧬 Generate Organism", key="generate_organism"):
@@ -996,6 +1027,9 @@ if st.session_state.current_wing == "Home":
             # Base traits from simple sliders
             base_mass = 50 * sim_gravity
             base_metabolism = sim_temp / 300
+
+            # --- HASH OF RAW GENETIC CODE ---
+            code_hash = hash(raw_genetic_code)
 
             # Drastic weights from advanced parameters
             # Body Mass: Affected by gravity, minerals, and food competition
@@ -1005,15 +1039,20 @@ if st.session_state.current_wing == "Home":
             limb_count = max(2, int(4 * sim_gravity**0.5 + adv_volcanism/25 - sim_pressure/50))
             
             # Senses: Low light (from CH4) or high predation needs better senses.
-            eye_count = 2 + int(adv_ch4/20) + int(adv_predator_pressure/30)
+            # Raw code can cause mutations like extra eyes
+            eye_count = 2 + int(adv_ch4/20) + int(adv_predator_pressure/30) + (code_hash % 5)
             
             # Defenses: Radiation, predators, and temperature extremes require thick skin.
+            # Membrane fluidity and ribosome efficiency affect skin integrity.
             skin_thickness = (sim_radiation/10) * (1 + adv_magnetic_field/200) + (adv_predator_pressure/20) + abs(sim_temp - 300)/50
+            skin_thickness *= (1 + (50 - deep_membrane_fluid)/100) * (deep_ribosome_eff / 50)
             
             # Metabolism & Lifespan: Base metabolism modified by solvent and geothermal heat. Lifespan is inverse of this.
             solvent_multiplier = {"Water": 1.0, "Ammonia": 0.7, "Methane": 0.2, "Formaldehyde": 1.2}[adv_solvent]
-            metabolism_rate = base_metabolism * solvent_multiplier * (1 + adv_geothermal/300)
-            lifespan = (adv_base_lifespan / max(0.1, metabolism_rate)) * (adv_mutation_stability / 100)
+            energy_molecule_mult = {"ATP": 1.0, "GTP": 1.1, "XTP": 1.5, "Photonic Crystal": 3.0}[deep_energy_storage]
+            metabolism_rate = base_metabolism * solvent_multiplier * (1 + adv_geothermal/300) * energy_molecule_mult * (1 + deep_quantum_tunneling/100)
+            # Lifespan is heavily impacted by error correction and raw code stability
+            lifespan = (adv_base_lifespan / max(0.1, metabolism_rate)) * (adv_mutation_stability / 100) * (deep_error_correction / 80) * (1 - abs(code_hash % 100) / 500)
             
             col_a, col_b = st.columns(2)
             st.session_state.organism_generated = True
@@ -1036,7 +1075,7 @@ if st.session_state.current_wing == "Home":
                 # Survival rating
                 survival_score = (
                     (100 - abs(sim_temp - 300)) * 0.3 +
-                    (100 - sim_radiation) * (adv_magnetic_field / 100) * 0.25 +
+                    (100 - sim_radiation) * (adv_magnetic_field / 100) * (deep_error_correction / 100) * 0.25 +
                     (adv_o2 + adv_n2/5) * 0.2 +
                     (["None", "Trace", "Moderate", "Abundant"].index(sim_water) * 25) * 0.25
                 )
@@ -1053,7 +1092,7 @@ if st.session_state.current_wing == "Home":
                         (150 / body_mass) * (100 / sim_gravity),
                         adv_sentience_potential * (metabolism_rate * 0.5),
                         (eye_count * 10) + (100 - adv_food_competition)/5,
-                        skin_thickness * 5 + adv_base_lifespan/10,
+                        skin_thickness * 5 + lifespan/10,
                         100 - adv_mutation_stability
                     ]
                 })
