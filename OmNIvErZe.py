@@ -1046,8 +1046,9 @@ if st.session_state.current_wing == "Home":
 
             for step in range(sim_steps):
                 # Find closest source
-                distances = np.sqrt(np.sum((sources[['x', 'y']].values - organism_pos)**2, axis=1))
-                closest_source = sources.iloc[np.argmin(distances)][['x', 'y']].values
+                source_coords = sources[['x', 'y']].values
+                distances = np.sqrt(np.sum((source_coords - organism_pos)**2, axis=1))
+                closest_source = source_coords[np.argmin(distances)]
                 
                 # Move towards source
                 direction = (closest_source - organism_pos) / np.linalg.norm(closest_source - organism_pos)
