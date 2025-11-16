@@ -918,6 +918,7 @@ if st.session_state.current_wing == "Home":
         st.subheader("🧪 Alien Life Form Simulator")
         st.markdown("*Design your own alien organism based on environmental parameters*")
         
+        st.markdown("#### Quick Simulation")
         col1, col2, col3 = st.columns(3)
         
         with col1:
@@ -952,13 +953,67 @@ if st.session_state.current_wing == "Home":
                 key="sim_energy"
             )
         
+        # --- ADVANCED PARAMETERS ---
+        with st.expander("🔬 Advanced Genetic & Environmental Fine-Tuning"):
+            st.markdown("##### Planetary & Geochemical Factors")
+            adv_col1, adv_col2, adv_col3 = st.columns(3)
+            with adv_col1:
+                adv_geothermal = st.slider("Geothermal Activity", 0, 100, 20, key="adv_geo")
+                adv_volcanism = st.slider("Volcanism Level", 0, 100, 30, key="adv_volc")
+            with adv_col2:
+                adv_mineral_density = st.slider("Surface Mineral Density", 0, 100, 50, key="adv_mineral")
+                adv_solvent = st.selectbox("Primary Solvent", ["Water", "Ammonia", "Methane", "Formaldehyde"], key="adv_solvent")
+            with adv_col3:
+                adv_magnetic_field = st.slider("Magnetic Field Strength", 0, 100, 50, key="adv_mag_field")
+                adv_axial_tilt = st.slider("Axial Tilt (Seasonality)", 0, 90, 23, key="adv_tilt")
+
+            st.markdown("##### Detailed Atmospheric Composition")
+            atm_col1, atm_col2, atm_col3, atm_col4 = st.columns(4)
+            with atm_col1:
+                adv_o2 = st.slider("Oxygen (%)", 0, 100, 21, key="adv_o2")
+            with atm_col2:
+                adv_n2 = st.slider("Nitrogen (%)", 0, 100, 78, key="adv_n2")
+            with atm_col3:
+                adv_co2 = st.slider("CO2 (%)", 0, 100, 1, key="adv_co2")
+            with atm_col4:
+                adv_ch4 = st.slider("Methane (%)", 0, 100, 0, key="adv_ch4")
+
+            st.markdown("##### Genetic & Evolutionary Directives")
+            gen_col1, gen_col2, gen_col3 = st.columns(3)
+            with gen_col1:
+                adv_genetic_material = st.selectbox("Genetic Material", ["DNA", "XNA", "PNA", "GNA"], key="adv_genetic")
+                adv_mutation_stability = st.slider("Mutation Stability", 0, 100, 80, help="Higher = fewer mutations", key="adv_mut_stab")
+            with gen_col2:
+                adv_base_lifespan = st.slider("Base Lifespan Potential", 1, 1000, 80, help="Base potential before environmental factors", key="adv_lifespan")
+                adv_predator_pressure = st.slider("Predator Pressure", 0, 100, 20, key="adv_predator")
+            with gen_col3:
+                adv_food_competition = st.slider("Food Competition", 0, 100, 40, key="adv_food_comp")
+                adv_sentience_potential = st.slider("Sentience Potential", 0, 100, 10, key="adv_sentience")
+
+
         if st.button("🧬 Generate Organism", key="generate_organism"):
-            # Calculate organism traits
-            body_mass = 50 * sim_gravity
-            limb_count = max(2, int(8 / sim_gravity))
-            eye_count = 2 if "Oxygen" in sim_atmosphere else 4
-            skin_thickness = sim_radiation / 10
-            metabolism_rate = sim_temp / 300
+            # --- COMPLEX TRAIT CALCULATION ---
+            # Base traits from simple sliders
+            base_mass = 50 * sim_gravity
+            base_metabolism = sim_temp / 300
+
+            # Drastic weights from advanced parameters
+            # Body Mass: Affected by gravity, minerals, and food competition
+            body_mass = base_mass * (1 + adv_mineral_density/200) * (1 - adv_food_competition/150)
+            
+            # Limb Count: High gravity needs more support, but high pressure streamlines.
+            limb_count = max(2, int(4 * sim_gravity**0.5 + adv_volcanism/25 - sim_pressure/50))
+            
+            # Senses: Low light (from CH4) or high predation needs better senses.
+            eye_count = 2 + int(adv_ch4/20) + int(adv_predator_pressure/30)
+            
+            # Defenses: Radiation, predators, and temperature extremes require thick skin.
+            skin_thickness = (sim_radiation/10) * (1 + adv_magnetic_field/200) + (adv_predator_pressure/20) + abs(sim_temp - 300)/50
+            
+            # Metabolism & Lifespan: Base metabolism modified by solvent and geothermal heat. Lifespan is inverse of this.
+            solvent_multiplier = {"Water": 1.0, "Ammonia": 0.7, "Methane": 0.2, "Formaldehyde": 1.2}[adv_solvent]
+            metabolism_rate = base_metabolism * solvent_multiplier * (1 + adv_geothermal/300)
+            lifespan = (adv_base_lifespan / max(0.1, metabolism_rate)) * (adv_mutation_stability / 100)
             
             col_a, col_b = st.columns(2)
             st.session_state.organism_generated = True
@@ -973,7 +1028,7 @@ if st.session_state.current_wing == "Home":
                         f"{eye_count}",
                         f"{skin_thickness:.1f} cm",
                         f"{metabolism_rate:.2f}x Earth",
-                        f"{int(100/metabolism_rate)} years"
+                        f"{int(lifespan)} years"
                     ]
                 })
                 st.table(organism_stats)
@@ -981,8 +1036,8 @@ if st.session_state.current_wing == "Home":
                 # Survival rating
                 survival_score = (
                     (100 - abs(sim_temp - 300)) * 0.3 +
-                    (100 - sim_radiation) * 0.25 +
-                    (len(sim_atmosphere) * 10) * 0.2 +
+                    (100 - sim_radiation) * (adv_magnetic_field / 100) * 0.25 +
+                    (adv_o2 + adv_n2/5) * 0.2 +
                     (["None", "Trace", "Moderate", "Abundant"].index(sim_water) * 25) * 0.25
                 )
                 
@@ -994,12 +1049,12 @@ if st.session_state.current_wing == "Home":
                 trait_comparison = pd.DataFrame({
                     'Trait': ['Strength', 'Speed', 'Intelligence', 'Senses', 'Endurance', 'Adaptability'],
                     'Value': [
-                        sim_gravity * 30,
-                        100 / sim_gravity,
-                        metabolism_rate * 50,
-                        eye_count * 15,
-                        (100 - sim_radiation) * 0.8,
-                        len(sim_atmosphere) * 15
+                        body_mass * sim_gravity * 0.5,
+                        (150 / body_mass) * (100 / sim_gravity),
+                        adv_sentience_potential * (metabolism_rate * 0.5),
+                        (eye_count * 10) + (100 - adv_food_competition)/5,
+                        skin_thickness * 5 + adv_base_lifespan/10,
+                        100 - adv_mutation_stability
                     ]
                 })
                 
@@ -1395,7 +1450,7 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
                 with evo_col2:
                     anim_speed = st.select_slider("Animation Speed", ["Slow", "Normal", "Fast"], "Normal", key="anim_speed")
                 
-                delay_map = {"Slow": 0.9, "Normal": 0.7, "Fast": 0.3}
+                delay_map = {"Slow": 0.2, "Normal": 0.05, "Fast": 0.01}
                 animation_delay = delay_map[anim_speed]
 
                 blueprint_placeholder = st.empty()
