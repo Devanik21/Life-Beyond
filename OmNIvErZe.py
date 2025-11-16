@@ -5,6 +5,7 @@ import plotly.io as pio
 import numpy as np
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
+import time
 import graphviz
 
 # Page config
@@ -953,6 +954,7 @@ if st.session_state.current_wing == "Home":
             metabolism_rate = sim_temp / 300
             
             col_a, col_b = st.columns(2)
+            st.session_state.organism_generated = True
             
             with col_a:
                 st.markdown("### 👾 Generated Organism Profile")
@@ -1008,6 +1010,74 @@ if st.session_state.current_wing == "Home":
                     height=400
                 )
                 st.plotly_chart(fig, use_container_width=True, key="organism_traits")
+        
+        if 'organism_generated' in st.session_state and st.session_state.organism_generated:
+            st.markdown("---")
+            st.subheader("🛰️ Behavioral Simulation")
+            st.markdown("*Watch the organism move in a simulated environment based on its traits.*")
+
+            # Simulation parameters
+            sim_steps = 50
+            space_size = 100
+            
+            # Organism speed is inversely proportional to gravity
+            speed = np.clip(5 / st.session_state.sim_gravity, 1, 10)
+            energy_source_type = st.session_state.sim_energy
+
+            # Setup energy sources
+            if energy_source_type == "Photosynthesis":
+                sources = pd.DataFrame([{'x': 50, 'y': 100, 'label': 'Light Source'}])
+                source_color = 'yellow'
+            else:
+                np.random.seed(42)
+                num_sources = 3
+                sources = pd.DataFrame({
+                    'x': np.random.randint(0, space_size, num_sources),
+                    'y': np.random.randint(0, space_size, num_sources),
+                    'label': [f'{energy_source_type} Source'] * num_sources
+                })
+                source_color = 'purple' if energy_source_type == 'Radiation' else 'red'
+
+            # Simulation loop
+            organism_pos = np.array([space_size / 2, space_size / 2])
+            trail = [organism_pos.copy()]
+            
+            sim_placeholder = st.empty()
+
+            for step in range(sim_steps):
+                # Find closest source
+                distances = np.sqrt(np.sum((sources[['x', 'y']].values - organism_pos)**2, axis=1))
+                closest_source = sources.iloc[np.argmin(distances)][['x', 'y']].values
+                
+                # Move towards source
+                direction = (closest_source - organism_pos) / np.linalg.norm(closest_source - organism_pos)
+                organism_pos += direction * speed
+                organism_pos = np.clip(organism_pos, 0, space_size) # Stay within bounds
+                trail.append(organism_pos.copy())
+
+                # Create plot for this step
+                fig = go.Figure()
+                
+                # Add energy sources
+                fig.add_trace(go.Scatter(x=sources['x'], y=sources['y'], mode='markers',
+                                         marker=dict(size=20, color=source_color, symbol='star'),
+                                         name='Energy Source', text=sources['label'], hoverinfo='text'))
+                
+                # Add organism trail
+                trail_arr = np.array(trail)
+                fig.add_trace(go.Scatter(x=trail_arr[:, 0], y=trail_arr[:, 1], mode='lines',
+                                         line=dict(color='#00BCD4', width=2, dash='dot'), name='Trail'))
+                
+                # Add organism
+                fig.add_trace(go.Scatter(x=[organism_pos[0]], y=[organism_pos[1]], mode='markers',
+                                         marker=dict(size=15, color='#48BB78'), name='Organism'))
+                
+                fig.update_layout(title=f"Simulation Step: {step+1}/{sim_steps}",
+                                  xaxis=dict(range=[0, space_size], showgrid=False, zeroline=False),
+                                  yaxis=dict(range=[0, space_size], showgrid=False, zeroline=False),
+                                  height=500, showlegend=True)
+                sim_placeholder.plotly_chart(fig, use_container_width=True)
+                time.sleep(0.05)
     
     with research_tab2:
         st.subheader("🌡️ Planetary Habitability Calculator")
