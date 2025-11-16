@@ -1508,10 +1508,15 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
                             key="layout_engine"
                         )
                     
-                    if st.session_state.final_graph_source is not None:
+                    # Re-render image data on every run if the source exists, to ensure download buttons are always valid.
+                    if st.session_state.final_graph_source:
+                        graph_obj = graphviz.Source(st.session_state.final_graph_source)
+                        png_data = graph_obj.pipe(format='png')
+                        jpg_data = graph_obj.pipe(format='jpg')
+
                         with export_cols[1]:
-                            st.download_button("⬇️ Download PNG", st.session_state.final_graph_png, file_name="architecture.png", mime="image/png")
-                            st.download_button("⬇️ Download JPG", st.session_state.final_graph_jpg, file_name="architecture.jpg", mime="image/jpeg")
+                            st.download_button("⬇️ Download PNG", png_data, file_name="architecture.png", mime="image/png")
+                            st.download_button("⬇️ Download JPG", jpg_data, file_name="architecture.jpg", mime="image/jpeg")
                         with export_cols[2]:
                             st.download_button("⬇️ Download DOT Source", st.session_state.final_graph_source, file_name="architecture.dot", mime="text/vnd.graphviz")
 
@@ -1554,9 +1559,6 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
                     
                     # After animation, store final graph for download
                     st.session_state.final_graph_source = graph.source
-                    # Render to image bytes for download
-                    st.session_state.final_graph_png = graph.pipe(format='png')
-                    st.session_state.final_graph_jpg = graph.pipe(format='jpg')
 
 
         # --- TAB 2: Genealogy & Ancestry ---
