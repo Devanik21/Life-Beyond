@@ -1129,7 +1129,7 @@ elif param_mode == "God Mode (10000+ params)":
         with col3:
             st.markdown("**Gene Expression**")
             transcription_rate = st.slider("Transcription Rate", 0.1, 10.0, 1.0, key="transcription")
-            translation_fidelity = st.slider("Translation Fidelity ", 90, 100, 99, 1.0, key="translation")
+            translation_fidelity = st.slider("Translation Fidelity", 90, 100, 99, 1.0, key="translation")
             epigenetic_inheritance = st.checkbox("Epigenetic Inheritance", True, key="epigenetic")
             
         with col4:
