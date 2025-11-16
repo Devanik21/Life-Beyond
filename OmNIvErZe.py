@@ -1125,6 +1125,9 @@ if st.session_state.current_wing == "Home":
             
             if st.button("🧬 Run Evolution Simulation", key="run_evolution"):
                 st.session_state.evolution_run = True
+                # Store sim settings for deep dive
+                st.session_state.sim_selection_pressure = selection_pressure
+                st.session_state.sim_env_stress = environmental_stress
         
         with col2:
             if 'evolution_run' in st.session_state and st.session_state.evolution_run:
@@ -1312,6 +1315,7 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
     # Use final values from the simulation
     final_fitness = st.session_state.final_fitness
     final_diversity = st.session_state.final_diversity
+    np.random.seed(int(final_fitness + final_diversity)) # Seed for deterministic randomness
     
     expander_title = f"**Rank 1:** Final Dominant Genotype | Fitness: `{final_fitness:.2f}`"
     with st.expander(expander_title, expanded=True):
@@ -1328,16 +1332,35 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
             with vitals_col1:
                 st.markdown("#### Evolved Trait Profile")
                 
+                # --- DYNAMIC TRAIT GENERATION ---
+                trait_pool = {
+                    "High Radiation": ["Radiation Shielding", "DNA Repair"],
+                    "Temperature Extremes": ["Thermal Regulation", "Structural Stability"],
+                    "Predation": ["Stealth", "Defensive Plating"],
+                    "Food Scarcity": ["Energy Storage", "Metabolic Efficiency"],
+                    "Disease": ["Immune Response", "Cellular Purity"],
+                    "pressure": ["Competitive Edge", "Resource Acquisition"],
+                }
+                
+                # Select traits based on simulation inputs
+                selected_traits = trait_pool['pressure']
+                for stress in st.session_state.sim_env_stress:
+                    selected_traits.extend(trait_pool[stress])
+                
+                # Pick 5-7 unique traits for the chart
+                num_traits_to_show = min(len(selected_traits), np.random.randint(5, 8))
+                display_traits = np.random.choice(selected_traits, num_traits_to_show, replace=False)
+                
+                # Assign values based on fitness and diversity
+                trait_values = [
+                    np.clip(final_fitness * np.random.uniform(0.8, 1.2) + np.random.randint(-10, 10), 0, 100)
+                    for _ in display_traits
+                ]
+
                 # Create a radar chart for evolved traits
                 evolved_traits = pd.DataFrame({
-                    'Trait': ['Resilience', 'Efficiency', 'Adaptability', 'Complexity', 'Specialization'],
-                    'Value': [
-                        final_fitness * 0.8 + (100 - final_diversity) * 0.2, # High fitness, low diversity = resilient
-                        final_fitness, # Efficiency is fitness
-                        final_diversity, # Adaptability is diversity
-                        (final_fitness + (100 - final_diversity)) / 2, # Complex if fit and specialized
-                        100 - final_diversity # Specialization is inverse of diversity
-                    ]
+                    'Trait': display_traits,
+                    'Value': trait_values
                 })
                 
                 fig = go.Figure()
@@ -1356,27 +1379,46 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
                 st.plotly_chart(fig, use_container_width=True, key="evolved_trait_radar")
 
             with vitals_col2:
-                st.markdown("#### Architectural Blueprint")
+                st.markdown("#### Architectural Evolution")
+                blueprint_placeholder = st.empty()
                 
-                # Create a fictional genotype graph
-                graph = graphviz.Digraph('Genotype', graph_attr={'bgcolor': 'transparent'})
-                graph.attr('node', shape='circle', style='filled', fontname='Exo 2', color='#00BCD4', fillcolor='#2D3748', fontcolor='#E2E8F0')
-                graph.attr('edge', color='#A0AEC0')
-                
-                num_nodes = int(3 + (final_fitness / 100) * 10)
-                nodes = [f"G{i}" for i in range(num_nodes)]
-                
-                for node in nodes:
-                    graph.node(node)
-                
-                # More connections for higher fitness
-                for i in range(num_nodes):
-                    if np.random.random() < final_fitness / 100:
-                        target = np.random.choice(nodes)
-                        if i != target:
-                            graph.edge(nodes[i], target)
-                
-                st.graphviz_chart(graph, use_container_width=True)
+                # --- ANIMATED ARCHITECTURAL EVOLUTION ---
+                stages = {
+                    "Origin (Gen 0)": {'nodes': 3, 'connection_prob': 0.2},
+                    "Mid-Evolution (Gen 50)": {'nodes': int(3 + (final_fitness / 100) * 5), 'connection_prob': 0.4},
+                    "Final Form (Gen 100)": {'nodes': int(3 + (final_fitness / 100) * 10), 'connection_prob': final_fitness / 100},
+                }
+
+                for stage_name, params in stages.items():
+                    with blueprint_placeholder.container():
+                        st.markdown(f"**Visualizing:** `{stage_name}`")
+                        graph = graphviz.Digraph('Genotype', graph_attr={'bgcolor': 'transparent'})
+                        graph.attr('node', shape='circle', style='filled', fontname='Exo 2', color='#00BCD4', fillcolor='#2D3748', fontcolor='#E2E8F0')
+                        graph.attr('edge', color='#A0AEC0')
+                        
+                        nodes = [f"G{i}" for i in range(params['nodes'])]
+                        
+                        # Add nodes with increasing complexity
+                        for i, node in enumerate(nodes):
+                            if stage_name == "Final Form (Gen 100)" and i > stages["Mid-Evolution (Gen 50)"]['nodes']:
+                                graph.node(node, fillcolor='#B7791F') # Highlight new nodes
+                            else:
+                                graph.node(node)
+                        
+                        # Add connections
+                        for i in range(params['nodes']):
+                            if np.random.random() < params['connection_prob']:
+                                target_node = np.random.choice(nodes)
+                                if nodes[i] != target_node:
+                                    # Highlight new connections in the final form
+                                    edge_color = '#FFD700' if stage_name == "Final Form (Gen 100)" else '#A0AEC0'
+                                    graph.edge(nodes[i], target_node, color=edge_color)
+                        
+                        st.graphviz_chart(graph, use_container_width=True)
+                    
+                    if stage_name != "Final Form (Gen 100)":
+                        time.sleep(1.5) # Pause to show the stage
+
 
         # --- TAB 2: Genealogy & Ancestry ---
         with tab_ancestry:
