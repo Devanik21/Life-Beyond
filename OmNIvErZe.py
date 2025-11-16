@@ -1508,7 +1508,7 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
                             key="layout_engine"
                         )
                     
-                    if 'final_graph_source' in st.session_state and st.session_state.final_graph_source:
+                    if st.session_state.final_graph_source is not None:
                         with export_cols[1]:
                             st.download_button("⬇️ Download PNG", st.session_state.final_graph_png, file_name="architecture.png", mime="image/png")
                             st.download_button("⬇️ Download JPG", st.session_state.final_graph_jpg, file_name="architecture.jpg", mime="image/jpeg")
