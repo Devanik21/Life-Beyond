@@ -1422,17 +1422,37 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
     with st.expander(expander_title, expanded=True):
         
         # Define tabs for the deep dive
-        tab_vitals, tab_ancestry = st.tabs([
-            "🌐 Vitals & Architecture", 
-            "🌳 Genealogy & Ancestry",
+        tab_arch, tab_ancestry = st.tabs([
+            "🌐 Architectural Evolution", 
+            "🌳 Genealogy & Traits",
         ])
         
-        # --- TAB 1: Vitals & Architecture ---
-        with tab_vitals:
-            vitals_col1, vitals_col2 = st.columns([1, 1])
-            with vitals_col1:
-                st.markdown("#### Evolved Trait Profile")
+        # --- TAB 2: Genealogy & Traits ---
+        with tab_ancestry:
+            ancestry_col1, ancestry_col2 = st.columns(2)
+            with ancestry_col1:
+                st.markdown("#### Evolutionary Lineage")
+            
+                # Create a simple ancestry tree
+                tree = graphviz.Digraph('Ancestry', graph_attr={'bgcolor': 'transparent'})
+                tree.attr('node', shape='box', style='rounded,filled', fontname='Exo 2', color='#00BCD4', fillcolor='#2D3748', fontcolor='#E2E8F0')
+                tree.attr('edge', fontname='Exo 2', fontsize='10', color='#A0AEC0', fontcolor='#A0AEC0')
+                tree.attr(rankdir='BT')
+
+                tree.node('Final', 'Final Dominant Genotype', fillcolor='#B7791F', fontcolor='white')
+                tree.node('Ancestor1', 'Ancestor (Gen -50)')
+                tree.node('Ancestor2', 'Ancestor (Gen -80)')
+                tree.node('Origin', 'Origin Population')
                 
+                tree.edge('Ancestor1', 'Final', label=' Strong Selection')
+                tree.edge('Ancestor2', 'Ancestor1', label=' Beneficial Mutation')
+                tree.edge('Origin', 'Ancestor2', label=' Initial Adaptation')
+                
+                st.graphviz_chart(tree, use_container_width=True)
+                st.info("This chart traces the key evolutionary steps that led to the emergence of the final dominant genotype.")
+
+            with ancestry_col2:
+                st.markdown("#### Evolved Trait Profile")
                 # --- DYNAMIC TRAIT GENERATION ---
                 trait_pool = {
                     "High Radiation": ["Radiation Shielding", "DNA Repair"],
@@ -1479,9 +1499,9 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
                 )
                 st.plotly_chart(fig, use_container_width=True, key="evolved_trait_radar")
 
-            with vitals_col2:
+        # --- TAB 1: Architectural Evolution ---
+        with tab_arch:
                 st.markdown("#### Architectural Evolution")
-                
                 # --- DEDICATED CONTROLS ---
                 evo_col1, evo_col2 = st.columns(2)
                 with evo_col1:
@@ -1529,28 +1549,6 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
                         
                         time.sleep(animation_delay)
 
-
-        # --- TAB 2: Genealogy & Ancestry ---
-        with tab_ancestry:
-            st.markdown("#### Evolutionary Lineage")
-            
-            # Create a simple ancestry tree
-            tree = graphviz.Digraph('Ancestry', graph_attr={'bgcolor': 'transparent'})
-            tree.attr('node', shape='box', style='rounded,filled', fontname='Exo 2', color='#00BCD4', fillcolor='#2D3748', fontcolor='#E2E8F0')
-            tree.attr('edge', fontname='Exo 2', fontsize='10', color='#A0AEC0', fontcolor='#A0AEC0')
-            tree.attr(rankdir='BT')
-
-            tree.node('Final', 'Final Dominant Genotype', fillcolor='#B7791F', fontcolor='white')
-            tree.node('Ancestor1', 'Ancestor (Gen -50)')
-            tree.node('Ancestor2', 'Ancestor (Gen -80)')
-            tree.node('Origin', 'Origin Population')
-            
-            tree.edge('Ancestor1', 'Final', label=' Strong Selection')
-            tree.edge('Ancestor2', 'Ancestor1', label=' Beneficial Mutation')
-            tree.edge('Origin', 'Ancestor2', label=' Initial Adaptation')
-            
-            st.graphviz_chart(tree, use_container_width=True)
-            st.info("This chart traces the key evolutionary steps that led to the emergence of the final dominant genotype from the origin population.")
 
 
 # Interactive Timeline Feature
