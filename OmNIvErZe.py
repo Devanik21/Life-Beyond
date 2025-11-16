@@ -1395,7 +1395,7 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
                 with evo_col2:
                     anim_speed = st.select_slider("Animation Speed", ["Slow", "Normal", "Fast"], "Normal", key="anim_speed")
                 
-                delay_map = {"Slow": 0.2, "Normal": 0.05, "Fast": 0.01}
+                delay_map = {"Slow": 0.8, "Normal": 0.05, "Fast": 0.01}
                 animation_delay = delay_map[anim_speed]
 
                 blueprint_placeholder = st.empty()
