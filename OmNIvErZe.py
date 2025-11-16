@@ -40,7 +40,7 @@ import copy
 import zipfile
 import io
 import matplotlib
-import matplotlib.pyplot asplt # We'll need this for the GRN plots
+import matplotlib.pyplot as plt # We'll need this for the GRN plots
 
 # Set a non-interactive backend for Streamlit
 matplotlib.use('Agg')
