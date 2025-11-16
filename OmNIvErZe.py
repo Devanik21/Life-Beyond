@@ -1011,80 +1011,6 @@ if st.session_state.current_wing == "Home":
                 )
                 st.plotly_chart(fig, use_container_width=True, key="organism_traits")
         
-        if 'organism_generated' in st.session_state and st.session_state.organism_generated:
-            st.markdown("---")
-            st.subheader("🛰️ Behavioral Simulation")
-            st.markdown("*Watch the organism move in a simulated environment based on its traits.*")
-            
-            sim_col1, sim_col2 = st.columns(2)
-            with sim_col1:
-                sim_steps = st.slider("Simulation Steps", 10, 200, 50, 10, key="sim_steps_slider")
-            with sim_col2:
-                animation_delay = st.slider("Animation Delay (s)", 0.0, 0.5, 0.05, 0.01, key="sim_speed_slider")
-                
-            # Simulation parameters
-            space_size = 100
-            
-            # Organism speed is inversely proportional to gravity
-            speed = np.clip(5 / st.session_state.sim_gravity, 1, 10)
-            energy_source_type = st.session_state.sim_energy
-
-            # Setup energy sources
-            if energy_source_type == "Photosynthesis":
-                sources = pd.DataFrame([{'x': 50, 'y': 100, 'label': 'Light Source'}])
-                source_color = 'yellow'
-            else:
-                np.random.seed(42)
-                num_sources = 3
-                sources = pd.DataFrame({
-                    'x': np.random.randint(0, space_size, num_sources),
-                    'y': np.random.randint(0, space_size, num_sources),
-                    'label': [f'{energy_source_type} Source'] * num_sources
-                })
-                source_color = 'purple' if energy_source_type == 'Radiation' else 'red'
-
-            # Simulation loop
-            organism_pos = np.array([space_size / 2, space_size / 2])
-            trail = [organism_pos.copy()]
-            
-            sim_placeholder = st.empty()
-
-            for step in range(sim_steps):
-                # Find closest source
-                source_coords = sources[['x', 'y']].values
-                distances = np.sqrt(np.sum((source_coords - organism_pos)**2, axis=1))
-                closest_source = source_coords[np.argmin(distances)]
-                
-                # Move towards source
-                direction = (closest_source - organism_pos) / np.linalg.norm(closest_source - organism_pos)
-                organism_pos += direction * speed
-                organism_pos = np.clip(organism_pos, 0, space_size) # Stay within bounds
-                trail.append(organism_pos.copy())
-
-                # Create plot for this step
-                fig = go.Figure()
-                
-                # Add energy sources
-                fig.add_trace(go.Scatter(x=sources['x'], y=sources['y'], mode='markers',
-                                         marker=dict(size=20, color=source_color, symbol='star'),
-                                         name='Energy Source', text=sources['label'], hoverinfo='text'))
-                
-                # Add organism trail
-                trail_arr = np.array(trail)
-                fig.add_trace(go.Scatter(x=trail_arr[:, 0], y=trail_arr[:, 1], mode='lines',
-                                         line=dict(color='#00BCD4', width=2, dash='dot'), name='Trail'))
-                
-                # Add organism
-                fig.add_trace(go.Scatter(x=[organism_pos[0]], y=[organism_pos[1]], mode='markers',
-                                         marker=dict(size=15, color='#48BB78'), name='Organism'))
-                
-                fig.update_layout(title=f"Simulation Step: {step+1}/{sim_steps}",
-                                  xaxis=dict(range=[0, space_size], showgrid=False, zeroline=False),
-                                  yaxis=dict(range=[0, space_size], showgrid=False, zeroline=False),
-                                  height=500, showlegend=True)
-                sim_placeholder.plotly_chart(fig, use_container_width=True)
-                time.sleep(animation_delay)
-    
     with research_tab2:
         st.subheader("🌡️ Planetary Habitability Calculator")
         st.markdown("*Calculate the habitability score of any exoplanet*")
@@ -1265,6 +1191,10 @@ if st.session_state.current_wing == "Home":
                 with col_c:
                     total_mutations = sum(evo_df['Beneficial_Mutations'])
                     st.metric("Total Beneficial Mutations", f"{total_mutations:.1f}")
+                
+                # Store final results for deep dive
+                st.session_state.final_fitness = fitness
+                st.session_state.final_diversity = genetic_diversity
     
     with research_tab4:
         st.subheader("📊 Exoplanet Database Explorer")
@@ -1372,6 +1302,104 @@ if st.session_state.current_wing == "Home":
                 filtered_data[['Name', 'Mass', 'Radius', 'Temperature', 'Star_Type', 'Habitable']].head(50),
                 use_container_width=True
             )
+
+# Deep Dive section for Evolution Lab
+if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_state and st.session_state.evolution_run:
+    st.markdown("---")
+    st.header("🏛️ Elite Evolved Architectures: A Deep Dive")
+    st.markdown("This section provides a multi-faceted analysis of the top-performing genotypes from the final population, deconstructing the architectural, causal, and evolutionary properties that contributed to their success.")
+
+    # Use final values from the simulation
+    final_fitness = st.session_state.final_fitness
+    final_diversity = st.session_state.final_diversity
+    
+    expander_title = f"**Rank 1:** Final Dominant Genotype | Fitness: `{final_fitness:.2f}`"
+    with st.expander(expander_title, expanded=True):
+        
+        # Define tabs for the deep dive
+        tab_vitals, tab_ancestry = st.tabs([
+            "🌐 Vitals & Architecture", 
+            "🌳 Genealogy & Ancestry",
+        ])
+        
+        # --- TAB 1: Vitals & Architecture ---
+        with tab_vitals:
+            vitals_col1, vitals_col2 = st.columns([1, 1])
+            with vitals_col1:
+                st.markdown("#### Evolved Trait Profile")
+                
+                # Create a radar chart for evolved traits
+                evolved_traits = pd.DataFrame({
+                    'Trait': ['Resilience', 'Efficiency', 'Adaptability', 'Complexity', 'Specialization'],
+                    'Value': [
+                        final_fitness * 0.8 + (100 - final_diversity) * 0.2, # High fitness, low diversity = resilient
+                        final_fitness, # Efficiency is fitness
+                        final_diversity, # Adaptability is diversity
+                        (final_fitness + (100 - final_diversity)) / 2, # Complex if fit and specialized
+                        100 - final_diversity # Specialization is inverse of diversity
+                    ]
+                })
+                
+                fig = go.Figure()
+                fig.add_trace(go.Scatterpolar(
+                    r=evolved_traits['Value'],
+                    theta=evolved_traits['Trait'],
+                    fill='toself',
+                    line_color='#00BCD4',
+                    fillcolor='rgba(0, 188, 212, 0.3)'
+                ))
+                fig.update_layout(
+                    polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+                    title="Dominant Genotype Trait Profile",
+                    height=400
+                )
+                st.plotly_chart(fig, use_container_width=True, key="evolved_trait_radar")
+
+            with vitals_col2:
+                st.markdown("#### Architectural Blueprint")
+                
+                # Create a fictional genotype graph
+                graph = graphviz.Digraph('Genotype', graph_attr={'bgcolor': 'transparent'})
+                graph.attr('node', shape='circle', style='filled', fontname='Exo 2', color='#00BCD4', fillcolor='#2D3748', fontcolor='#E2E8F0')
+                graph.attr('edge', color='#A0AEC0')
+                
+                num_nodes = int(3 + (final_fitness / 100) * 10)
+                nodes = [f"G{i}" for i in range(num_nodes)]
+                
+                for node in nodes:
+                    graph.node(node)
+                
+                # More connections for higher fitness
+                for i in range(num_nodes):
+                    if np.random.random() < final_fitness / 100:
+                        target = np.random.choice(nodes)
+                        if i != target:
+                            graph.edge(nodes[i], target)
+                
+                st.graphviz_chart(graph, use_container_width=True)
+
+        # --- TAB 2: Genealogy & Ancestry ---
+        with tab_ancestry:
+            st.markdown("#### Evolutionary Lineage")
+            
+            # Create a simple ancestry tree
+            tree = graphviz.Digraph('Ancestry', graph_attr={'bgcolor': 'transparent'})
+            tree.attr('node', shape='box', style='rounded,filled', fontname='Exo 2', color='#00BCD4', fillcolor='#2D3748', fontcolor='#E2E8F0')
+            tree.attr('edge', fontname='Exo 2', fontsize='10', color='#A0AEC0', fontcolor='#A0AEC0')
+            tree.attr(rankdir='BT')
+
+            tree.node('Final', 'Final Dominant Genotype', fillcolor='#B7791F', fontcolor='white')
+            tree.node('Ancestor1', 'Ancestor (Gen -50)')
+            tree.node('Ancestor2', 'Ancestor (Gen -80)')
+            tree.node('Origin', 'Origin Population')
+            
+            tree.edge('Ancestor1', 'Final', label=' Strong Selection')
+            tree.edge('Ancestor2', 'Ancestor1', label=' Beneficial Mutation')
+            tree.edge('Origin', 'Ancestor2', label=' Initial Adaptation')
+            
+            st.graphviz_chart(tree, use_container_width=True)
+            st.info("This chart traces the key evolutionary steps that led to the emergence of the final dominant genotype from the origin population.")
+
 
 # Interactive Timeline Feature
 if st.session_state.current_wing == "Wing 1: Life As We Know It":
