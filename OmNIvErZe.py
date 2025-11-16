@@ -1,794 +1,1439 @@
 import streamlit as st
-import pandas as pd
 import plotly.graph_objects as go
-import plotly.figure_factory as ff
+import plotly.express as px
 import numpy as np
+import pandas as pd
+from PIL import Image, ImageDraw, ImageFont
+import io
 
-# --- Page Configuration ---
+# Page config
 st.set_page_config(
-    page_title="The Museum of Universal Life",
-    page_icon="🌌",
+    page_title="Museum of Alien Life",
+    page_icon="👽",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="expanded"
 )
 
-# --- Custom CSS Styling ---
+# Custom CSS
 st.markdown("""
 <style>
-/* Style for custom headers */
-.domain-header {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #4A90E2; /* A nice celestial blue */
-    border-bottom: 2px solid #4A90E2;
-    padding-bottom: 10px;
-    margin-top: 20px;
-}
-.exhibit-subheader {
-    font-size: 1.75rem;
-    font-weight: bold;
-    color: #FFA500; /* A contrasting gold */
-    margin-top: 20px;
-}
-/* Style for info boxes */
-.info-box {
-    background-color: #f0f2f6;
-    border-left: 5px solid #4A90E2;
-    padding: 15px;
-    border-radius: 5px;
-    margin: 10px 0;
-}
-.warning-box {
-    background-color: #fff3e0;
-    border-left: 5px solid #FFA500;
-    padding: 15px;
-    border-radius: 5px;
-    margin: 10px 0;
-}
+    .main-header {
+        font-size: 3rem;
+        font-weight: bold;
+        text-align: center;
+        background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        padding: 20px;
+    }
+    .wing-header {
+        font-size: 2rem;
+        color: #667eea;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 10px;
+        margin-top: 20px;
+    }
+    .exhibit-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+        border-radius: 10px;
+        color: white;
+        margin: 10px 0;
+    }
+    .info-box {
+        background-color: #f0f2f6;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+        margin: 10px 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Caching Data Functions (LAZY LOADING) ---
-# We cache all data generation so it only runs once.
+# Initialize session state for lazy loading
+if 'current_wing' not in st.session_state:
+    st.session_state.current_wing = "Home"
+if 'current_exhibit' not in st.session_state:
+    st.session_state.current_exhibit = None
 
-@st.cache_data
-def get_earth_tree_data():
-    """Mock data for the Tree of Life chart."""
-    return {
-        "ids": ["Life", "Eukarya", "Bacteria", "Archaea", 
-                "Animalia", "Plantae", "Fungi", "Protista", 
-                "Metazoa", "Bilateria", "Vertebrata", "Mammalia", "Homo Sapiens"],
-        "labels": ["Life", "Eukarya", "Bacteria", "Archaea", 
-                   "Animals", "Plants", "Fungi", "Protists",
-                   "Metazoa", "Bilateria", "Vertebrates", "Mammals", "Humans"],
-        "parents": ["", "Life", "Life", "Life", 
-                    "Eukarya", "Eukarya", "Eukarya", "Eukarya",
-                    "Animalia", "Metazoa", "Bilateria", "Vertebrata", "Mammalia"],
-        "values": [200, 100, 50, 50, 
-                   50, 20, 15, 15,
-                   40, 30, 20, 10, 1]
-    }
-
-@st.cache_data
-def get_extremophile_data():
-    """Data for extremophile tolerance ranges."""
-    df = pd.DataFrame({
-        "Organism": ["Human (Baseline)", "Tardigrade (Polyextremophile)", "Thermococcus (Hyperthermophile)", 
-                     "Psychrobacter (Psychrophile)", "Halobacterium (Halophile)", "Deinococcus (Radioresistant)"],
-        "Category": ["Baseline", "Tolerance", "Extreme Heat", "Extreme Cold", "Extreme Salt", "Extreme Radiation"],
-        "Min Temp (°C)": [15, -200, 60, -20, 15, -10],
-        "Max Temp (°C)": [35, 150, 103, 20, 50, 50],
-        "Radiation (Gy)": [2, 5000, 10, 10, 10, 15000], # Gy = Gray, unit of radiation
-    })
-    return df
-
-@st.cache_data
-def get_gravity_plot_data(gravity_g):
-    """Calculates theoretical biological properties based on gravity."""
-    max_height = np.clip(10 / (gravity_g**0.7), 0.1, 50)
-    bone_density = np.clip(1 * (gravity_g**0.5), 0.2, 5)
-    heart_pressure_ratio = np.clip(1 * (gravity_g**0.6), 0.3, 4)
-    return max_height, bone_density, heart_pressure_ratio
-
-@st.cache_data
-def get_star_spectrum_data(star_type):
-    """Mock spectral data for different star types."""
-    wavelengths = np.linspace(300, 1100, 100) # From UV to IR
-    
-    if star_type == "Red Dwarf (M-type)":
-        peak = 850 # Peaks in infrared
-        intensity = 1.0 * np.exp(-((wavelengths - peak)**2) / (2 * 150**2))
-        color = 'red'
-        plant_text = "Plants might be **black** to absorb all available weak light, or even utilize infrared light, making them invisible to human eyes."
-        plant_img = "https://placehold.co/600x400/000000/FFFFFF?text=Black+Infrared+Plants"
-        
-    elif star_type == "Blue Giant (O-type)":
-        peak = 400 # Peaks in blue/UV
-        intensity = 0.8 * np.exp(-((wavelengths - peak)**2) / (2 * 50**2))
-        color = 'blue'
-        plant_text = "Plants might be **red or orange** to reflect harmful UV/blue light. They would need powerful chemical sunscreens to survive."
-        plant_img = "https://placehold.co/600x400/FF4500/FFFFFF?text=Red/Orange+UV-Resistant+Plants"
-        
-    else: # Default to G-type like our Sun
-        peak = 550 # Peaks in green/yellow
-        intensity = 0.9 * np.exp(-((wavelengths - peak)**2) / (2 * 100**2))
-        color = 'gold'
-        plant_text = "Plants are **green** because they absorb red and blue light and reflect the abundant green light, which is less efficient for photosynthesis (the 'green gap')."
-        plant_img = "https://placehold.co/600x400/006400/FFFFFF?text=Green+Plants"
-        
-    df = pd.DataFrame({"Wavelength (nm)": wavelengths, "Intensity": intensity})
-    return df, color, plant_text, plant_img
-
-@st.cache_data
-def get_extinct_archive_data():
-    """Comprehensive data for the Lost Archives exhibit."""
-    return {
-        "Cambrian (541 Mya)": {
-            "image": "https://placehold.co/600x300/8B4513/FFFFFF?text=Trilobite",
-            "text": "**The Cambrian Explosion.** Life diversified rapidly. Dominated by marine arthropods like the **Trilobite**. The first complex predators like **Anomalocaris** appeared."
-        },
-        "Ordovician (485 Mya)": {
-            "image": "https://placehold.co/600x300/708090/FFFFFF?text=Nautiloid",
-            "text": "Life flourished in the seas, with the first appearance of jawless fish. The dominant predators were giant **Nautiloids** (shelled cephalopods)."
-        },
-        "Silurian (443 Mya)": {
-            "image": "https://placehold.co/600x300/2E8B57/FFFFFF?text=Cooksonia+(First+Land+Plant)",
-            "text": "First life on land. **Cooksonia**, a simple branching plant, colonized the water's edge. The first air-breathing animals (arthropods) followed."
-        },
-        "Devonian (419 Mya)": {
-            "image": "https://placehold.co/600x300/00008B/FFFFFF?text=Tiktaalik+(Fish-to-Tetrapod)",
-            "text": "**The Age of Fishes.** Fish diversified immensely. The first tetrapods (four-limbed vertebrates) like **Tiktaalik** evolved, bridging the gap between water and land."
-        },
-        "Carboniferous (359 Mya)": {
-            "image": "https://placehold.co/600x300/2F4F4F/FFFFFF?text=Meganeura+(Giant+Dragonfly)",
-            "text": "Vast, swampy forests covered the land, eventually forming our coal deposits. High oxygen levels allowed for giant insects, like the dragonfly **Meganeura** (2.5-foot wingspan)."
-        },
-        "Permian (299 Mya)": {
-            "image": "https://placehold.co/600x300/B22222/FFFFFF?text=Dimetrodon",
-            "text": "Dominated by synapsids (proto-mammals) like the sail-backed **Dimetrodon**. Ended with **The Great Dying**, the largest mass extinction in Earth's history, wiping out 96% of marine species."
-        },
-        "Triassic (252 Mya)": {
-            "image": "https://placehold.co/600x300/CD853F/FFFFFF?text=Lystrosaurus+(Permian+Survivor)",
-            "text": "Life slowly recovered from the extinction. The first dinosaurs and pterosaurs appeared, alongside the first true mammals (small, shrew-like)."
-        },
-        "Jurassic (201 Mya)": {
-            "image": "https://placehold.co/600x300/2F4F4F/FFFFFF?text=Brachiosaurus",
-            "text": "**The Age of Giants.** Dinosaurs became the dominant land animals. Giant sauropods like **Brachiosaurus** and predators like **Allosaurus** ruled."
-        },
-        "Cretaceous (145 Mya)": {
-            "image": "https://placehold.co/600x300/B22222/FFFFFF?text=Tyrannosaurus+Rex",
-            "text": "Flowering plants appeared and diversified. Dinosaurs reached their peak, with forms like **Tyrannosaurus Rex** and **Triceratops**. Ended with the K-Pg extinction event."
-        },
-        "Paleogene (66 Mya)": {
-            "image": "https://placehold.co/600x300/808000/FFFFFF?text=Hyracotherium+(Dawn+Horse)",
-            "text": "**The Rise of Mammals.** With the dinosaurs gone, mammals diversified rapidly, filling ecological niches. The first primates and early horses appeared."
-        },
-        "Neogene (23 Mya)": {
-            "image": "https://placehold.co/600x300/D2B48C/FFFFFF?text=Megalodon",
-            "text": "Hominids, our direct ancestors, first appeared in Africa. The seas were dominated by the **Megalodon**, a shark the size of a bus."
-        },
-        "Pleistocene (2.6 Mya)": {
-            "image": "https://placehold.co/600x300/ADD8E6/FFFFFF?text=Woolly+Mammoth",
-            "text": "**The Ice Age.** Characterized by cycles of glaciation. Megafauna like the **Woolly Mammoth** and **Saber-toothed Cat** roamed. Modern humans (**Homo sapiens**) evolved."
-        }
-    }
-
-@st.cache_data
-def get_kingdom_data():
-    """Data for the 6 Kingdoms of Life."""
-    return {
-        "bacteria": {
-            "name": "🦠 Kingdom Bacteria",
-            "image": "https://placehold.co/600x300/1E90FF/FFFFFF?text=Bacteria",
-            "text": "Prokaryotic (no nucleus). The oldest and most abundant life form. They are found everywhere, from your gut (E. coli) to hydrothermal vents. Incredibly diverse metabolisms."
-        },
-        "archaea": {
-            "name": "♨️ Kingdom Archaea",
-            "image": "https://placehold.co/600x300/FF4500/FFFFFF?text=Archaea",
-            "text": "Prokaryotic, like bacteria, but with a unique evolutionary history. Many are extremophiles, living in boiling water (thermophiles), extreme salt (halophiles), or producing methane (methanogens)."
-        },
-        "protista": {
-            "name": "💧 Kingdom Protista",
-            "image": "https://placehold.co/600x300/9ACD32/FFFFFF?text=Protista+(Amoeba)",
-            "text": "Eukaryotic (has a nucleus). A 'catch-all' kingdom for organisms that aren't plants, animals, or fungi. Includes amoebas, algae, and slime molds."
-        },
-        "fungi": {
-            "name": "🍄 Kingdom Fungi",
-            "image": "https://placehold.co/600x300/D2691E/FFFFFF?text=Kingdom+Fungi",
-            "text": "Eukaryotic, non-motile, and saprotrophic (absorb nutrients from decaying matter). Includes yeasts, molds, and mushrooms. More closely related to animals than plants."
-        },
-        "plantae": {
-            "name": "🌳 Kingdom Plantae",
-            "image": "https://placehold.co/600x300/32CD32/FFFFFF?text=Kingdom+Plantae",
-            "text": "Eukaryotic, multicellular, non-motile, and autotrophic (create energy via photosynthesis). Form the basis of most terrestrial food webs."
-        },
-        "animalia": {
-            "name": "👑 Kingdom Animalia",
-            "image": "https://placehold.co/600x300/4682B4/FFFFFF?text=Kingdom+Animalia",
-            "text": "Eukaryotic, multicellular, motile (can move at some life stage), and heterotrophic (consume other organisms). Includes insects, fish, birds, reptiles, and mammals."
-        }
-    }
-
-@st.cache_data
-def get_biochemistry_data():
-    """Data for the Biochemical Machinery exhibit."""
-    return {
-        "DNA": {
-            "name": "🧬 Deoxyribonucleic Acid (DNA)",
-            "image": "https://placehold.co/600x300/4682B4/FFFFFF?text=DNA+Double+Helix",
-            "text": "The 'blueprint' of life. A double-helix molecule that stores genetic information using four bases: Adenine (A), Guanine (G), Cytosine (C), and Thymine (T). It is incredibly stable and perfect for long-term storage."
-        },
-        "RNA": {
-            "name": "📜 Ribonucleic Acid (RNA)",
-            "image": "https://placehold.co/600x300/3CB371/FFFFFF?text=RNA+Single+Strand",
-            "text": "The 'messenger' and 'worker.' A single-stranded molecule that carries instructions from the DNA to the ribosomes (where proteins are made). Some viruses use RNA as their primary genetic material. Many scientists believe in an 'RNA World' hypothesis, where RNA came before DNA."
-        },
-        "Proteins": {
-            "name": "⚙️ Proteins & Amino Acids",
-            "image": "https://placehold.co/600x300/DAA520/FFFFFF?text=Protein+Folding",
-            "text": "The 'machines' of life. Proteins do almost all the work, acting as enzymes, structural components, and signals. They are chains of smaller molecules called Amino Acids. The sequence of amino acids determines how the protein will fold into a complex 3D shape, which dictates its function."
-        },
-        "ATP": {
-            "name": "🔋 Adenosine Triphosphate (ATP)",
-            "image": "https://placehold.co/600x300/FF6347/FFFFFF?text=ATP+Energy+Molecule",
-            "text": "The 'battery' of life. This molecule is the universal energy currency for all known cells. Energy is stored in its high-energy phosphate bonds. When a bond is broken (turning ATP into ADP), that energy is released to power cellular processes, from muscle contraction to thinking."
-        }
-    }
-
-@st.cache_data
-def get_habitable_zone_data():
-    """Data for the Habitable Zone plot."""
-    return {
-        "Star Type": ["Blue Giant (O-type)", "Yellow Dwarf (G-type, our Sun)", "Red Dwarf (M-type)"],
-        "Start (AU)": [50, 0.8, 0.1],
-        "End (AU)": [300, 1.7, 0.4],
-        "Color": ["blue", "gold", "red"]
-    }
-
-@st.cache_data
-def get_solvent_data():
-    """Data for alternative solvents plot."""
-    return {
-        "Solvent": ["Water (H2O)", "Ammonia (NH3)", "Methane (CH4)", "Formamide (CH3NO)", "Sulfuric Acid (H2SO4)"],
-        "Min Temp (°C)": [0, -78, -182, 2, 10],
-        "Max Temp (°C)": [100, -33, -161, 210, 337],
-        "Notes": ["Our baseline. Polar.", "Good polar solvent, but very cold.", "Non-polar. Life on Titan?", "Good polar solvent, wider range.", "Extremely corrosive, but stable at high temps."]
-    }
-
-@st.cache_data
-def get_kardashev_data():
-    """Data for the Kardashev Scale plot."""
-    return {
-        "Type": ["Type 0 (Us, ~0.73)", "Type I (Planetary)", "Type II (Stellar)", "Type III (Galactic)"],
-        "Energy (Watts)": [1e13, 1e16, 1e26, 1e36],
-        "Description": ["Controls fossil fuels", "Controls all energy on its planet", "Controls all energy from its star", "Controls all energy in its galaxy"]
-    }
-
-@st.cache_data
-def get_fermi_solutions_data():
-    """Data for the Fermi Paradox exhibit."""
-    return {
-        "They are rare (Rare Earth Hypothesis)": {
-            "text": "The specific conditions that led to life on Earth (liquid water, large moon, magnetic field, plate tectonics) are exceptionally rare. We may be the first or only intelligent life in our galaxy.",
-            "image": "https://placehold.co/600x300/4682B4/FFFFFF?text=Rare+Earth"
-        },
-        "They are all dead (The Great Filter)": {
-            "text": "There is some universal 'filter' or challenge that intelligent life must pass, and most (or all) fail. This could be self-destruction (nuclear war, climate change), a natural event (gamma-ray burst), or the leap from prokaryote to eukaryote. We may have already passed it, or it may be ahead of us.",
-            "image": "https://placehold.co/600x300/B22222/FFFFFF?text=The+Great+Filter"
-        },
-        "They are hiding (The Zoo Hypothesis)": {
-            "text": "Advanced civilizations know we exist but deliberately hide from us, treating us as a nature preserve or an experiment to be observed without interference. They are waiting for us to reach a certain level of maturity.",
-            "image": "https://placehold.co/600x300/32CD32/FFFFFF?text=Zoo+Hypothesis"
-        },
-        "They exist, but we can't understand them": {
-            "text": "Their biology, communication, and technology are so different from ours that we are fundamentally incapable of recognizing their signals. It would be like a line of ants walking over a superhighway, unaware of the civilization all around them.",
-            "image": "https://placehold.co/600x300/9932CC/FFFFFF?text=Incomprehensible+Life"
-        },
-        "They are too far away (Vast Distances)": {
-            "text": "The speed of light is a hard limit. The galaxy is vast, and even if civilizations are common, the time and energy required to cross interstellar space are too great. Everyone is isolated in their own star system.",
-            "image": "https.placehold.co/600x300/708090/FFFFFF?text=Vast+Distances"
-        },
-        "They have moved on (Post-Biological)": {
-            "text": "All advanced civilizations quickly transition from 'wet' biological life to 'dry' machine life or digital consciousness. They may exist in places we aren't looking, like the cold outer solar system or inside vast computational networks (Matrioshka Brains), with no interest in a primitive, biological world like Earth.",
-            "image": "https.placehold.co/600x300/1A1A1A/00FF00?text=Digital+Consciousness"
-        }
-    }
-
-# --- Plotting Functions ---
-
-def create_tree_of_life_plot():
-    """Uses Plotly Sunburst to show the domains of life."""
-    data = get_earth_tree_data()
-    fig = go.Figure(go.Sunburst(
-        ids=data["ids"],
-        labels=data["labels"],
-        parents=data["parents"],
-        values=data["values"],
-        branchvalues="total",
-        marker=dict(colorscale='Viridis'),
-        hovertemplate='<b>%{label}</b><br>Parent: %{parent}<extra></extra>'
-    ))
-    fig.update_layout(margin=dict(t=10, l=10, r=10, b=10), title="Earth's Known Tree of Life")
-    return fig
-
-def create_extremophile_plot():
-    """Uses Plotly Gantt chart to show temperature tolerances."""
-    df = get_extremophile_data().query("Category.str.contains('Heat') or Category.str.contains('Cold') or Category.str.contains('Baseline')")
-    
-    gantt_data = [
-        dict(Task=row["Organism"], Start=row["Min Temp (°C)"], Finish=row["Max Temp (°C)"], Resource=row["Category"])
-        for _, row in df.iterrows()
-    ]
-    colors = {'Baseline': 'rgb(0, 116, 217)', 'Extreme Heat': 'rgb(240, 18, 0)', 'Extreme Cold': 'rgb(0, 100, 255)'}
-    fig = ff.create_gantt(gantt_data, colors=colors, index_col='Resource', show_colorbar=True, group_tasks=True)
-    fig.update_layout(
-        title='Temperature Tolerance Ranges of Life',
-        xaxis_title='Temperature (°C)',
-        yaxis_title='Organism'
-    )
-    return fig
-
-def create_gravity_plot(gravity_g):
-    """Shows the conceptual impact of gravity on life."""
-    max_height, bone_density, heart_pressure = get_gravity_plot_data(gravity_g)
-    
+# Helper function to generate alien landscape
+def generate_alien_landscape(color_scheme, gravity_level, star_type):
+    """Generate procedural alien landscape visualization"""
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=['Max Height (m)'], y=[max_height], name='Height',
-        marker_color='royalblue', text=f"{max_height:.1f} m", textposition='auto'
-    ))
-    fig.add_trace(go.Bar(
-        x=['Bone Density (rel.)'], y=[bone_density], name='Bone Density',
-        marker_color='firebrick', text=f"{bone_density:.1f}x Earth", textposition='auto'
-    ))
-    fig.add_trace(go.Bar(
-        x=['Heart Pressure (rel.)'], y=[heart_pressure], name='Heart Pressure',
-        marker_color='green', text=f"{heart_pressure:.1f}x Earth", textposition='auto'
-    ))
-    fig.update_layout(
-        title=f'Conceptual Biology at {gravity_g:.1f}g',
-        yaxis_title='Value', barmode='group'
-    )
-    return fig
-
-def create_star_spectrum_plot(star_type):
-    """Plots the light spectrum of the selected star."""
-    df, color, _, _ = get_star_spectrum_data(star_type)
     
-    fig = go.Figure()
+    # Generate terrain
+    x = np.linspace(0, 100, 200)
+    if gravity_level == "high":
+        y = np.sin(x/5) * 2 + np.random.normal(0, 0.5, 200)  # Flat terrain
+        plant_height = 3
+    elif gravity_level == "low":
+        y = np.sin(x/3) * 15 + np.random.normal(0, 2, 200)  # Mountainous
+        plant_height = 25
+    else:
+        y = np.sin(x/4) * 8 + np.random.normal(0, 1, 200)
+        plant_height = 10
+    
+    # Base terrain
     fig.add_trace(go.Scatter(
-        x=df["Wavelength (nm)"], y=df["Intensity"],
-        mode='lines', fill='tozeroy', line=dict(color=color, width=3), name=star_type
+        x=x, y=y, fill='tozeroy',
+        fillcolor=color_scheme['ground'],
+        line=dict(color=color_scheme['ground'], width=2),
+        name='Terrain',
+        hoverinfo='skip'
     ))
     
-    # Add visible spectrum background
-    fig.add_vrect(x0=380, x1=450, fillcolor="violet", opacity=0.1, line_width=0, annotation_text="UV", annotation_position="top left")
-    fig.add_vrect(x0=450, x1=495, fillcolor="blue", opacity=0.1, line_width=0)
-    fig.add_vrect(x0=495, x1=570, fillcolor="green", opacity=0.1, line_width=0)
-    fig.add_vrect(x0=570, x1=590, fillcolor="yellow", opacity=0.1, line_width=0)
-    fig.add_vrect(x0=590, x1=620, fillcolor="orange", opacity=0.1, line_width=0)
-    fig.add_vrect(x0=620, x1=750, fillcolor="red", opacity=0.1, line_width=0, annotation_text="Visible", annotation_position="bottom left")
-    fig.add_vrect(x0=750, x1=1100, fillcolor="darkred", opacity=0.1, line_width=0, annotation_text="Infrared", annotation_position="top right")
+    # Add alien plants
+    for i in range(0, 100, 15):
+        plant_x = i
+        plant_base_y = np.interp(plant_x, x, y)
+        fig.add_trace(go.Scatter(
+            x=[plant_x, plant_x],
+            y=[plant_base_y, plant_base_y + plant_height],
+            mode='lines',
+            line=dict(color=color_scheme['plant'], width=4),
+            showlegend=False,
+            hoverinfo='skip'
+        ))
     
-    fig.update_layout(
-        title=f'Stellar Light Spectrum: {star_type}',
-        xaxis_title='Wavelength (nm)', yaxis_title='Relative Intensity'
-    )
-    return fig
-
-def create_habitable_zone_plot():
-    """Plots the habitable zones of different star types."""
-    data = get_habitable_zone_data()
-    df = pd.DataFrame(data)
-    
-    gantt_data = [
-        dict(Task=row["Star Type"], Start=row["Start"], Finish=row["End"], Resource="Habitable Zone")
-        for _, row in df.iterrows()
-    ]
-    colors = {'Habitable Zone': 'rgb(57, 204, 204)'}
-    
-    fig = ff.create_gantt(gantt_data, colors=colors, index_col='Resource', show_colorbar=False, group_tasks=True)
-    fig.update_layout(
-        title='Comparative Habitable Zones (Liquid Water)',
-        xaxis_title='Distance from Star (AU) - Logarithmic Scale',
-        yaxis_title='Star Type',
-        xaxis_type='log'
-    )
-    return fig
-
-def create_solvent_range_plot():
-    """Plots the liquid ranges of different solvents."""
-    data = get_solvent_data()
-    df = pd.DataFrame(data)
-    
-    gantt_data = [
-        dict(Task=row["Solvent"], Start=row["Min Temp (°C)"], Finish=row["Max Temp (°C)"], Resource="Liquid Range")
-        for _, row in df.iterrows()
-    ]
-    colors = {'Liquid Range': 'rgb(0, 116, 217)'}
-    
-    fig = ff.create_gantt(gantt_data, colors=colors, index_col='Resource', show_colorbar=False, group_tasks=True)
-    fig.update_layout(
-        title='Liquid Ranges of Potential Biological Solvents',
-        xaxis_title='Temperature (°C)',
-        yaxis_title='Solvent'
-    )
-    return fig
-
-def create_kardashev_scale_plot():
-    """Plots the Kardashev Scale on a log axis."""
-    data = get_kardashev_data()
-    df = pd.DataFrame(data)
-    
-    fig = go.Figure(go.Bar(
-        x=df["Type"],
-        y=df["Energy (Watts)"],
-        text=df["Description"],
-        marker_color=['gray', 'blue', 'gold', 'red']
+    # Sky gradient effect
+    fig.add_trace(go.Scatter(
+        x=x, y=[max(y) + 30] * len(x),
+        fill='tonexty',
+        fillcolor=color_scheme['sky'],
+        line=dict(width=0),
+        showlegend=False,
+        hoverinfo='skip'
     ))
+    
     fig.update_layout(
-        title="The Kardashev Scale (Logarithmic)",
-        xaxis_title="Civilization Type",
-        yaxis_title="Energy Consumption (Watts)",
-        yaxis_type="log"
+        title=f"Alien Landscape: {star_type} Star System ({gravity_level.title()} Gravity)",
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        height=400,
+        showlegend=False
     )
+    
     return fig
 
-# --- Main App ---
-
-st.title("🌌 The Museum of Universal Life")
-st.markdown("Welcome, my intelligent Prince, to your grand museum. Here, we explore all life, from the familiar to the truly alien.")
-
-# --- Sidebar Navigation ---
-st.sidebar.header("Select a Domain")
-domain_choice = st.sidebar.radio(
-    "Museum Galleries",
-    ["Welcome", "Domain I: The Known (Earth Life)", "Domain II: The Possible (Speculative Life)", 
-     "Domain III: The Exotic (Theoretical Life)", "Domain IV: The Search (SETI)"],
-    key="domain_nav"
-)
-
-# --- Gallery: Welcome ---
-if domain_choice == "Welcome":
-    st.header("Welcome to the Museum")
-    st.markdown("""
-    This museum is a comprehensive catalog of all known, possible, and theoretical life in the universe.
+# Helper function for 3D molecule visualization
+def create_molecule_3d(molecule_type):
+    """Create 3D molecular structure"""
+    if molecule_type == "carbon":
+        # Carbon chain
+        atoms = pd.DataFrame({
+            'x': [0, 1, 2, 3, 4],
+            'y': [0, 0.5, 0, 0.5, 0],
+            'z': [0, 0, 0, 0, 0],
+            'atom': ['C', 'C', 'C', 'C', 'C'],
+            'size': [20, 20, 20, 20, 20]
+        })
+        color = 'gray'
+    else:  # silicon
+        atoms = pd.DataFrame({
+            'x': [0, 1, 2],
+            'y': [0, 0, 0],
+            'z': [0, 0, 0],
+            'atom': ['Si', 'Si', 'Si'],
+            'size': [25, 25, 25]
+        })
+        color = 'darkblue'
     
-    - **Domain I: The Known** explores the life that arose on our own planet, from the smallest microbe to the largest whale.
-    - **Domain II: The Possible** speculates on alien life based on variations of known physics and chemistry (e.g., high-gravity worlds, silicon-based life).
-    - **Domain III: The Exotic** pushes the boundaries to theoretical concepts like plasma-based life or digital consciousness.
-    - **Domain IV: The Search** details how we are looking for this life, and the profound paradoxes that quest entails.
+    fig = go.Figure(data=[go.Scatter3d(
+        x=atoms['x'],
+        y=atoms['y'],
+        z=atoms['z'],
+        mode='markers+text',
+        marker=dict(size=atoms['size'], color=color, opacity=0.8),
+        text=atoms['atom'],
+        textposition="top center",
+        textfont=dict(size=14, color='white')
+    )])
     
-    Use the sidebar to navigate the galleries. Each exhibit is loaded on demand to keep the museum running smoothly.
-    """)
-    st.image("https://placehold.co/1200x400/2E294E/9055A2?text=The+Museum+of+Universal+Life", use_column_width=True)
+    # Add bonds
+    for i in range(len(atoms)-1):
+        fig.add_trace(go.Scatter3d(
+            x=[atoms.loc[i, 'x'], atoms.loc[i+1, 'x']],
+            y=[atoms.loc[i, 'y'], atoms.loc[i+1, 'y']],
+            z=[atoms.loc[i, 'z'], atoms.loc[i+1, 'z']],
+            mode='lines',
+            line=dict(color='white', width=5),
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+    
+    fig.update_layout(
+        scene=dict(
+            xaxis=dict(showbackground=False, showticklabels=False, showgrid=False),
+            yaxis=dict(showbackground=False, showticklabels=False, showgrid=False),
+            zaxis=dict(showbackground=False, showticklabels=False, showgrid=False),
+            bgcolor='rgba(0,0,0,0)'
+        ),
+        paper_bgcolor='rgba(0,0,0,0)',
+        height=400,
+        title=f"{molecule_type.title()}-Based Molecular Chain"
+    )
+    
+    return fig
+
+# Main header
+st.markdown('<h1 class="main-header">🌌 The Museum of Universal Life 👽</h1>', unsafe_allow_html=True)
+st.markdown("### *Exploring Every Possible Form of Life in the Universe*")
+
+# Sidebar navigation
+with st.sidebar:
+    st.image("https://via.placeholder.com/300x150/667eea/ffffff?text=Museum+of+Life", use_container_width=True)
+    st.markdown("## 🎫 Navigation")
+    
+    wing_choice = st.radio(
+        "Select Wing:",
+        ["Home", "Wing 1: Life As We Know It", "Wing 2: Life As We Don't Know It", "Wing 3: Environmental Sculpting"],
+        key="wing_selector"
+    )
+    st.session_state.current_wing = wing_choice
+    
     st.markdown("---")
-    st.markdown("### Museum Director's Note")
-    st.markdown("""
-    > "As you walk these halls, remember that this entire museum is built on a single data point: Earth. 
-    > Everything in Domain I is our foundation. Everything beyond it is speculation. 
-    > The most exciting exhibit is the one we haven't built yet—the one that will be filled by our first discovery."
-    """)
+    st.markdown("### 📊 Museum Stats")
+    st.metric("Exhibits", "15+", "+3")
+    st.metric("Life Forms Catalogued", "1M+", "+50K")
+    st.metric("Planets Studied", "10,000+", "+127")
 
+# HOME PAGE
+if st.session_state.current_wing == "Home":
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        <div class="exhibit-card">
+            <h3>🧬 Wing 1</h3>
+            <p>Life As We Know It</p>
+            <small>Carbon-based biology & convergent evolution</small>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="exhibit-card">
+            <h3>👾 Wing 2</h3>
+            <p>Life As We Don't Know It</p>
+            <small>Exotic biochemistry & extreme environments</small>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="exhibit-card">
+            <h3>🌍 Wing 3</h3>
+            <p>Environmental Sculpting</p>
+            <small>How gravity & stars shape life</small>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Welcome visualization
+    st.subheader("📈 Universal Distribution of Elements in Life")
+    
+    element_data = pd.DataFrame({
+        'Element': ['Carbon', 'Hydrogen', 'Oxygen', 'Nitrogen', 'Phosphorus', 'Sulfur', 'Silicon', 'Other'],
+        'Percentage': [18, 10, 65, 3, 1, 0.25, 0.01, 2.74],
+        'Type': ['Essential', 'Essential', 'Essential', 'Essential', 'Essential', 'Essential', 'Alternative', 'Trace']
+    })
+    
+    fig = px.sunburst(
+        element_data,
+        path=['Type', 'Element'],
+        values='Percentage',
+        color='Percentage',
+        color_continuous_scale='Viridis',
+        title='Elemental Composition in Known Life'
+    )
+    fig.update_layout(height=500)
+    st.plotly_chart(fig, use_container_width=True, key="home_sunburst")
+    
+    st.info("🎯 **Mission Statement**: This museum represents humanity's attempt to catalog every conceivable form of life, from the familiar carbon-based organisms of Earth to the exotic, theoretical beings that might exist in the harshest corners of our universe.")
 
-# --- Gallery: Domain I: Earth Life ---
-elif domain_choice == "Domain I: The Known (Earth Life)":
-    st.markdown("<h2 class='domain-header'>🌍 Domain I: The Known (Earth Life)</h2>", unsafe_allow_html=True)
-    st.markdown("This gallery is dedicated to the one example of life we know for certain: our own. This is our baseline, our 'n=1' study from which all other speculation must begin.")
-
-    tabs_domain_i = st.tabs([
-        "The Tree of Life", 
-        "Biochemical Machinery",
-        "Kingdom Showcase", 
-        "Life at the Extremes", 
-        "The Lost Archives (Extinct)"
-    ])
-
-    with tabs_domain_i[0]:
-        st.markdown("<h3 class='exhibit-subheader'>The Tree of Life</h3>", unsafe_allow_html=True)
-        st.write("All known life on Earth stems from a single common ancestor (LUCA - Last Universal Common Ancestor), branching into three main domains. This chart shows the relationships between them.")
-        st.plotly_chart(create_tree_of_life_plot(), use_container_width=True, key="tree_of_life_plot")
-
-    with tabs_domain_i[1]:
-        st.markdown("<h3 class='exhibit-subheader'>The Biochemical Machinery</h3>", unsafe_allow_html=True)
-        st.write("These are the fundamental molecules that all known life relies upon.")
-        biochem_data = get_biochemistry_data()
-        for key, item in biochem_data.items():
-            with st.expander(item["name"]):
-                st.image(item["image"], width=400)
-                st.markdown(f"<div class='info-box'>{item['text']}</div>", unsafe_allow_html=True)
-
-    with tabs_domain_i[2]:
-        st.markdown("<h3 class='exhibit-subheader'>Kingdom Showcase</h3>", unsafe_allow_html=True)
-        st.write("Life diversified into major 'Kingdoms.' Here are the six primary classifications.")
-        kingdom_data = get_kingdom_data()
-        for key, item in kingdom_data.items():
-            with st.expander(item["name"]):
-                st.image(item["image"], width=400)
-                st.markdown(f"<div class='info-box'>{item['text']}</div>", unsafe_allow_html=True)
-
-    with tabs_domain_i[3]:
-        st.markdown("<h3 class='exhibit-subheader'>Life at the Extremes (Extremophiles)</h3>", unsafe_allow_html=True)
-        st.write("These organisms thrive in conditions that would kill most other life, giving us a hint at what alien life might endure. They redefine the 'habitable zone'.")
-        st.plotly_chart(create_extremophile_plot(), use_container_width=True, key="extremophile_plot")
+# WING 1: LIFE AS WE KNOW IT
+elif st.session_state.current_wing == "Wing 1: Life As We Know It":
+    st.markdown('<h2 class="wing-header">🧬 Wing 1: Life As We Know It (The Carbon Gallery)</h2>', unsafe_allow_html=True)
+    
+    tab1, tab2, tab3 = st.tabs(["Carbon Foundation", "Convergent Evolution", "DNA Alternatives"])
+    
+    with tab1:
+        st.subheader("💎 The Carbon-Based Standard")
         
-        with st.expander("Explore Other Extremes"):
-            st.markdown("""
-            - **Radioresistant:** *Deinococcus radiodurans* can withstand 15,000 Grays of radiation (10 is lethal to humans) by constantly repairing its DNA.
-            - **Barophilic:** Organisms in the Mariana Trench that thrive under 1,000 times normal atmospheric pressure.
-            - **Acidophilic:** Life that grows in pH levels near 0 (like battery acid).
-            """)
-
-    with tabs_domain_i[4]:
-        st.markdown("<h3 class='exhibit-subheader'>The Lost Archives (Extinct Life)</h3>", unsafe_allow_html=True)
-        st.write("Life is not static. This exhibit shows a fraction of the forms that have been lost to time. 99.9% of all species that have ever lived are extinct.")
+        col1, col2 = st.columns([1, 1])
         
-        archive_data = get_extinct_archive_data()
-        period = st.select_slider(
-            "Select a Geological Period",
-            options=list(archive_data.keys()),
-            key="period_slider"
-        )
-        
-        selected_data = archive_data[period]
-        st.image(selected_data["image"], use_column_width=True, caption=f"An artist's impression of life in the {period}")
-        st.markdown(f"<div class='info-box'><h4>{period}</h4>{selected_data['text']}</div>", unsafe_allow_html=True)
-
-
-# --- Gallery: Domain II: Speculative Life ---
-elif domain_choice == "Domain II: The Possible (Speculative Life)":
-    st.markdown("<h2 class='domain-header'>👽 Domain II: The Possible (Speculative Life)</h2>", unsafe_allow_html=True)
-    st.markdown("Here, we use the laws of physics and chemistry to speculate on life that *could* exist on other worlds, based on variations of our n=1 example.")
-
-    tabs_domain_ii = st.tabs([
-        "The Foundation of Life",
-        "Environmental Sculptors",
-        "Alternative Solvents",
-        "Habitable Worlds"
-    ])
-
-    with tabs_domain_ii[0]:
-        st.markdown("<h3 class='exhibit-subheader'>The Chemical Foundation</h3>", unsafe_allow_html=True)
-        st.write("Life needs a complex molecular backbone. On Earth, that's carbon. What are the alternatives?")
-        
-        col1, col2 = st.columns(2)
         with col1:
-            st.markdown("<div class='info-box'><h4>Carbon-Based Life (Like Us)</h4></div>", unsafe_allow_html=True)
-            st.image("https://placehold.co/600x300/4682B4/FFFFFF?text=DNA+Double+Helix", use_column_width=True)
             st.markdown("""
-            - **Versatile:** Forms 4 stable bonds, creating long, complex chains (DNA, proteins).
-            - **Soluble:** Carbon dioxide (CO2) is a gas, easily exchanged.
-            - **Ubiquitous:** One of the most common elements.
-            """)
+            <div class="info-box">
+            <h4>Why Carbon is Special</h4>
+            <ul>
+                <li>✅ Common throughout the universe</li>
+                <li>✅ Forms four-way bonds</li>
+                <li>✅ Creates long, stable chains</li>
+                <li>✅ Enables huge complex molecules</li>
+                <li>✅ Foundation of DNA & proteins</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Carbon properties comparison
+            properties_df = pd.DataFrame({
+                'Property': ['Bond Strength', 'Complexity', 'Stability', 'Versatility', 'Cosmic Abundance'],
+                'Carbon': [95, 100, 90, 100, 85],
+                'Silicon': [75, 60, 70, 70, 90]
+            })
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatterpolar(
+                r=properties_df['Carbon'],
+                theta=properties_df['Property'],
+                fill='toself',
+                name='Carbon',
+                line_color='green'
+            ))
+            fig.add_trace(go.Scatterpolar(
+                r=properties_df['Silicon'],
+                theta=properties_df['Property'],
+                fill='toself',
+                name='Silicon',
+                line_color='blue'
+            ))
+            fig.update_layout(
+                polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+                title="Carbon vs Silicon: Life-Enabling Properties",
+                height=400
+            )
+            st.plotly_chart(fig, use_container_width=True, key="carbon_radar")
+        
         with col2:
-            st.markdown("<div class='warning-box'><h4>Silicon-Based Life (Speculative)</h4></div>", unsafe_allow_html=True)
-            st.image("https_placehold.co/600x300/999999/FFFFFF?text=Silicon+Crystal+Lattice", use_column_width=True)
-            st.markdown("""
-            - **Less Versatile:** Bonds are less stable; struggles to form long chains.
-            - **Solid Waste:** Silicon dioxide (SiO2) is quartz... a rock. This makes respiration difficult.
-            - **Possibility:** Might work in extremely cold, non-water environments (like Titan's methane lakes) where reactions are slow.
-            """)
+            # 3D molecule visualization
+            st.plotly_chart(create_molecule_3d("carbon"), use_container_width=True, key="carbon_molecule_3d")
+            
+            st.success("🔬 **Scientific Fact**: Over 1 million possible carbon-based alternatives to DNA have been identified by scientists!")
+    
+    with tab2:
+        st.subheader("🔄 The Hall of Convergent Evolution")
+        st.markdown("*Similar environments create similar solutions across the cosmos*")
         
-        with st.expander("Other Theoretical Biochemistries"):
-            st.markdown("""
-            - **Boron-Nitrogen Based:** Boron can form complex chains, sometimes with nitrogen. It could form a backbone for life in ammonia-based solvents.
-            - **Arsenic-Based:** Some scientists speculated life could replace Phosphorus with its chemical cousin, Arsenic. This has been largely disproven, but shows the kind of "outside-the-box" thinking required.
-            """)
+        # Convergent evolution examples
+        convergent_examples = pd.DataFrame({
+            'Feature': ['Eyes', 'Flight', 'Echolocation', 'Bioluminescence', 'Venom', 'Camouflage'],
+            'Times_Evolved_on_Earth': [40, 4, 4, 50, 100, 200],
+            'Likelihood_on_Exoplanets': [95, 85, 70, 80, 90, 95]
+        })
+        
+        fig = go.Figure()
+        fig.add_trace(go.Bar(
+            x=convergent_examples['Feature'],
+            y=convergent_examples['Times_Evolved_on_Earth'],
+            name='Times Evolved on Earth',
+            marker_color='lightblue'
+        ))
+        fig.add_trace(go.Scatter(
+            x=convergent_examples['Feature'],
+            y=convergent_examples['Likelihood_on_Exoplanets'],
+            name='Likelihood on Exoplanets (%)',
+            yaxis='y2',
+            mode='lines+markers',
+            marker=dict(size=10, color='orange'),
+            line=dict(width=3)
+        ))
+        fig.update_layout(
+            title="Convergent Evolution: Earth's Greatest Hits",
+            yaxis=dict(title='Times Evolved'),
+            yaxis2=dict(title='Exoplanet Likelihood (%)', overlaying='y', side='right'),
+            height=450
+        )
+        st.plotly_chart(fig, use_container_width=True, key="convergent_bar")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Eye Evolution Events", "40+", "Independent origins")
+        with col2:
+            st.metric("Flight Evolution", "4×", "Insects, Birds, Bats, Pterosaurs")
+        with col3:
+            st.metric("Predicted Similarity", "70%", "On Earth-like planets")
+    
+    with tab3:
+        st.subheader("🧬 DNA Alternatives Gallery")
+        
+        # DNA alternatives visualization
+        dna_alts = pd.DataFrame({
+            'Type': ['Standard DNA', 'XNA (Xeno)', 'PNA (Peptide)', 'TNA (Threose)', 'LNA (Locked)', 'GNA (Glycol)'],
+            'Stability': [85, 95, 90, 88, 98, 80],
+            'Complexity': [100, 85, 75, 70, 80, 65],
+            'Temperature_Tolerance': [70, 95, 85, 75, 90, 85],
+            'Discovered': [1953, 1990, 1991, 2000, 1998, 1992]
+        })
+        
+        fig = px.scatter_3d(
+            dna_alts,
+            x='Stability',
+            y='Complexity',
+            z='Temperature_Tolerance',
+            color='Type',
+            size=[30]*len(dna_alts),
+            title='3D Comparison of DNA Alternatives',
+            labels={'Stability': 'Molecular Stability', 
+                   'Complexity': 'Informational Complexity',
+                   'Temperature_Tolerance': 'Temperature Range'}
+        )
+        fig.update_layout(height=500)
+        st.plotly_chart(fig, use_container_width=True, key="dna_scatter3d")
+        
+        st.warning("⚗️ These alternative nucleic acids could form the basis of life on planets with extreme conditions!")
 
-    with tabs_domain_ii[1]:
-        st.markdown("<h3 class='exhibit-subheader'>Environmental Sculptors</h3>", unsafe_allow_html=True)
-        st.write("An environment will shape life as much as chemistry. We can simulate these effects.")
+# WING 2: LIFE AS WE DON'T KNOW IT
+elif st.session_state.current_wing == "Wing 2: Life As We Don't Know It":
+    st.markdown('<h2 class="wing-header">👾 Wing 2: Life As We Don\'t Know It (Exotic Biochemistry)</h2>', unsafe_allow_html=True)
+    
+    tab1, tab2, tab3 = st.tabs(["Silicon Life", "Extreme Environments", "Theoretical Beings"])
+    
+    with tab1:
+        st.subheader("🔷 The Silicon Contender")
         
-        st.markdown("---")
-        st.markdown("#### Gravity's Influence")
-        gravity_g = st.slider(
-            "Select Planet's Gravity (Earth = 1.0g)",
-            min_value=0.1, max_value=3.0, value=1.0, step=0.1,
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            st.markdown("""
+            <div class="info-box">
+            <h4>Silicon-Based Life: The Alternative</h4>
+            <p><strong>Advantages:</strong></p>
+            <ul>
+                <li>✅ Forms four-way bonds (like carbon)</li>
+                <li>✅ Abundant in universe</li>
+                <li>✅ Stable at high temperatures</li>
+            </ul>
+            <p><strong>Challenges:</strong></p>
+            <ul>
+                <li>❌ Weaker bonds than carbon</li>
+                <li>❌ Forms solid rock with oxygen (SiO₂)</li>
+                <li>❌ Requires oxygen-free environment</li>
+            </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Temperature range comparison
+            temp_data = pd.DataFrame({
+                'Temperature (K)': np.linspace(100, 600, 100),
+                'Carbon_Viability': np.where(np.linspace(100, 600, 100) < 373, 
+                                           100, 100 - (np.linspace(100, 600, 100) - 373) * 0.5),
+                'Silicon_Viability': np.where(np.linspace(100, 600, 100) > 200,
+                                            np.minimum(100, (np.linspace(100, 600, 100) - 200) * 0.3),
+                                            0)
+            })
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=temp_data['Temperature (K)'],
+                y=temp_data['Carbon_Viability'],
+                fill='tozeroy',
+                name='Carbon Life',
+                line=dict(color='green')
+            ))
+            fig.add_trace(go.Scatter(
+                x=temp_data['Temperature (K)'],
+                y=temp_data['Silicon_Viability'],
+                fill='tozeroy',
+                name='Silicon Life',
+                line=dict(color='blue')
+            ))
+            fig.update_layout(
+                title='Temperature Viability Ranges',
+                xaxis_title='Temperature (Kelvin)',
+                yaxis_title='Life Viability (%)',
+                height=400
+            )
+            st.plotly_chart(fig, use_container_width=True, key="temp_viability")
+        
+        with col2:
+            st.plotly_chart(create_molecule_3d("silicon"), use_container_width=True, key="silicon_molecule_3d")
+            
+            # Titan environment simulation
+            st.markdown("#### 🪐 Titan: A Silicon Paradise?")
+            titan_data = {
+                'Property': ['Temperature', 'Pressure', 'Methane Lakes', 'Oxygen Level'],
+                'Value': [-179, 1.5, 'Abundant', 'None'],
+                'Silicon_Friendly': ['✅', '✅', '✅', '✅']
+            }
+            st.table(pd.DataFrame(titan_data))
+            
+            st.info("⏱️ Silicon-based life on Titan might have ultra-slow metabolisms with lifecycles lasting millions of years!")
+    
+    with tab2:
+        st.subheader("🌋 Extreme Environment Exhibits")
+        
+        # Extreme environments comparison
+        extreme_envs = pd.DataFrame({
+            'Environment': ['Molten Rock', 'Neutron Star Surface', 'Plasma Clouds', 'Deep Ocean Vents', 'Acidic Lakes'],
+            'Temperature (K)': [1500, 1e6, 10000, 600, 300],
+            'Pressure (atm)': [1000, 1e20, 0.001, 300, 1],
+            'Theoretical_Life': ['Silicate Organisms', 'Macronuclei Life', 'Plasma Crystals', 'Extremophiles', 'Acid-Lovers'],
+            'Likelihood': [30, 5, 15, 95, 90]
+        })
+        
+        # Log scale scatter plot
+        fig = px.scatter(
+            extreme_envs,
+            x='Temperature (K)',
+            y='Pressure (atm)',
+            size='Likelihood',
+            color='Theoretical_Life',
+            hover_data=['Environment'],
+            title='Extreme Environments Life Map',
+            log_x=True,
+            log_y=True,
+            size_max=50
+        )
+        fig.update_layout(height=500)
+        st.plotly_chart(fig, use_container_width=True, key="extreme_scatter")
+        
+        # Detailed environment cards
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("""
+            <div class="exhibit-card">
+            <h4>🌋 Molten Silicate Life</h4>
+            <p><strong>Environment:</strong> Inside molten rock</p>
+            <p><strong>Composition:</strong> Self-organizing silicate patterns</p>
+            <p><strong>Metabolism:</strong> Thermochemical reactions</p>
+            <p><strong>Likelihood:</strong> Low (30%)</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown("""
+            <div class="exhibit-card">
+            <h4>⚡ Plasma Crystal Life</h4>
+            <p><strong>Environment:</strong> Cosmic dust clouds</p>
+            <p><strong>Composition:</strong> Self-organizing plasma</p>
+            <p><strong>Metabolism:</strong> Electromagnetic interactions</p>
+            <p><strong>Likelihood:</strong> Speculative (15%)</p>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    with tab3:
+        st.subheader("🌟 Theoretical Beings Gallery")
+        
+        # Neutron star life visualization
+        st.markdown("#### ⚛️ Macronuclei Life on Neutron Stars")
+        
+        neutron_data = pd.DataFrame({
+            'Particle_Density': np.logspace(15, 18, 50),
+            'Life_Probability': 100 / (1 + np.exp(-(np.logspace(15, 18, 50) - 1e17) / 1e16))
+        })
+        
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=neutron_data['Particle_Density'],
+            y=neutron_data['Life_Probability'],
+            fill='tozeroy',
+            line=dict(color='purple', width=3),
+            name='Theoretical Viability'
+        ))
+        fig.update_layout(
+            title='Macronuclei Life Formation Probability',
+            xaxis_title='Particle Density (particles/cm³)',
+            yaxis_title='Formation Probability (%)',
+            xaxis_type='log',
+            height=400
+        )
+        st.plotly_chart(fig, use_container_width=True, key="neutron_prob")
+        
+        st.error("⚠️ **Warning**: This exhibit contains theoretical life forms that exist beyond our current understanding of physics!")
+        
+        # Comparison table
+        theoretical_life = pd.DataFrame({
+            'Type': ['Standard Biological', 'Silicon-Based', 'Plasma Crystal', 'Macronuclei', 'AI/Digital'],
+            'Timescale': ['Years', 'Millions of Years', 'Milliseconds', 'Microseconds', 'Nanoseconds'],
+            'Size': ['µm - m', 'mm - m', 'km', 'fm', 'Virtual'],
+            'Detection': ['Easy', 'Moderate', 'Hard', 'Nearly Impossible', 'N/A']
+        })
+        st.dataframe(theoretical_life, use_container_width=True)
+
+# WING 3: ENVIRONMENTAL SCULPTING
+elif st.session_state.current_wing == "Wing 3: Environmental Sculpting":
+    st.markdown('<h2 class="wing-header">🌍 Wing 3: Environmental Sculpting</h2>', unsafe_allow_html=True)
+    
+    tab1, tab2, tab3 = st.tabs(["Gravity Effects", "Stellar Influence", "Alien Gardens"])
+    
+    with tab1:
+        st.subheader("⚖️ The Gravity Gallery")
+        
+        # Gravity simulator
+        gravity_level = st.select_slider(
+            "Select Planetary Gravity",
+            options=["Low (0.3g)", "Earth (1g)", "High (2g)", "Super-Earth (3g)"],
+            value="Earth (1g)",
             key="gravity_slider"
         )
         
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            if gravity_g < 0.5:
-                desc = "On a **low-gravity** world, life can grow to towering heights. Skeletons are light and frail, and flight (or floating) might be a common form of locomotion."
-                img = "https://placehold.co/600x600/ADD8E6/000000?text=Low-G+Floater"
-            elif gravity_g > 2.0:
-                desc = "On a **high-gravity** world, life is short, dense, and powerful. Creatures must be robust, with thick bones and powerful, multi-chambered hearts just to stand."
-                img = "https_placehold.co/600x600/8B0000/FFFFFF?text=High-G+Crab-Beast"
-            else:
-                desc = "On an **Earth-like** gravity world, we see a familiar balance between structural integrity and mobility."
-                img = "https_placehold.co/600x600/3CB371/FFFFFF?text=Earth-like+Runner"
-            st.image(img, use_column_width=True, caption=f"Artist's rendering at {gravity_g:.1f}g")
-            st.write(desc)
-        with col2:
-            st.plotly_chart(create_gravity_plot(gravity_g), use_container_width=True, key="gravity_bioplot")
-
-        st.markdown("---")
-        st.markdown("#### A Different Light: Stellar Spectrum")
-        star_type = st.selectbox(
-            "Select Host Star Type",
-            ["Yellow Dwarf (G-type)", "Red Dwarf (M-type)", "Blue Giant (O-type)"],
-            key="star_type_select"
-        )
-        df, color, plant_text, plant_img = get_star_spectrum_data(star_type)
-        col3, col4 = st.columns([1, 2])
-        with col3:
-            st.image(plant_img, use_column_width=True, caption=f"Photosynthesis on a {star_type} planet.")
-            st.markdown(plant_text)
-        with col4:
-            st.plotly_chart(create_star_spectrum_plot(star_type), use_container_width=True, key="star_spectrum_plot")
-
-        st.markdown("---")
-        st.markdown("#### Atmospheric Pressure")
-        pressure_atm = st.slider(
-            "Select Planet's Atmospheric Pressure (Earth = 1.0 atm)",
-            min_value=0.1, max_value=50.0, value=1.0, step=0.5,
-            key="pressure_slider"
-        )
-        if pressure_atm < 0.5:
-            st.markdown("<div class='info-box'><b>Thin Atmosphere (e.g., Mars):</b> Liquid water boils at a low temperature. Life would need to be subterranean or have pressurized bodies. Respiration would be difficult.</div>", unsafe_allow_html=True)
-        elif pressure_atm > 10.0:
-            st.markdown("<div class='info-box'><b>Thick Atmosphere (e.g., Venus):</b> A dense 'soup' to move through. Flight might be more like 'swimming.' Sound would travel faster and further. Greenhouse effects could be extreme.</div>", unsafe_allow_html=True)
-        else:
-            st.markdown("<div class='info-box'><b>Earth-like Atmosphere:</b> A balance that allows for liquid water and efficient gas exchange.</div>", unsafe_allow_html=True)
-
-    with tabs_domain_ii[2]:
-        st.markdown("<h3 class='exhibit-subheader'>Alternative Solvents</h3>", unsafe_allow_html=True)
-        st.write("Life on Earth uses liquid water as its solvent. What if life used something else? The liquid range of a solvent heavily dictates the speed of life.")
-        st.plotly_chart(create_solvent_range_plot(), use_container_width=True, key="solvent_range_plot")
-        
-        solvent_data = get_solvent_data()
-        for item in solvent_data:
-            with st.expander(f"💧 {item['Solvent']} ({item['Min Temp (°C)']}°C to {item['Max Temp (°C)']}°C)"):
-                st.write(item["Notes"])
-
-    with tabs_domain_ii[3]:
-        st.markdown("<h3 class='exhibit-subheader'>Habitable Worlds</h3>", unsafe_allow_html=True)
-        st.write("The 'Habitable Zone' (or 'Goldilocks Zone') is the region around a star where liquid water can exist on a planet's surface. But this is a simplistic view.")
-        st.plotly_chart(create_habitable_zone_plot(), use_container_width=True, key="habitable_zone_plot")
-
-        with st.expander("Beyond the Zone: Other Habitable Worlds"):
-            st.markdown("""
-            - **Ocean Worlds (e.g., Europa, Enceladus):** These moons exist far outside the traditional HZ, but are heated by the 'tidal flexing' from their host gas giant. They likely have vast, planet-spanning liquid water oceans beneath a crust of ice, potentially hosting chemosynthetic life at hydrothermal vents.
-            - **Super-Earths:** Rocky planets larger than Earth. Their higher gravity could hold a thicker atmosphere, and they may have more vigorous plate tectonics, both of which could be beneficial for life.
-            - **Eyeball Planets:** Planets tidally locked to their star (like red dwarfs), with one side in perpetual daylight and the other in perpetual night. Life might exist in the 'terminator zone' (the twilight ring) between these two extremes.
-            - **Rogue Planets:** Planets ejected from their star systems, floating in the dark. A thick hydrogen atmosphere could act as a greenhouse, trapping internal heat and allowing for liquid water.
-            """)
-
-# --- Gallery: Domain III: Exotic Life ---
-elif domain_choice == "Domain III: The Exotic (Theoretical Life)":
-    st.markdown("<h2 class='domain-header'>✨ Domain III: The Exotic (Theoretical Life)</h2>", unsafe_allow_html=True)
-    st.markdown("This gallery contains the most speculative and bizarre forms of life imaginable, existing on the very edge of physics and information theory.")
-
-    tabs_domain_iii = st.tabs([
-        "Post-Biological Life",
-        "Exotic Matter Life",
-        "Life as Information"
-    ])
-    
-    with tabs_domain_iii[0]:
-        st.markdown("<h3 class='exhibit-subheader'>Post-Biological & Machine Life</h3>", unsafe_allow_html=True)
-        st.image("https.placehold.co/1200x300/1A1A1A/00FF00?text=Self-Replicating+Von+Neumann+Probe", use_column_width=True)
-        st.write("This form of 'life' is not evolved, but **designed**. A biological species (like humans) might eventually create synthetic life or transfer their consciousness to machine bodies.")
-        
-        with st.expander("Von Neumann Probes"):
-            st.write("A theoretical self-replicating spacecraft that travels to other star systems, mines resources (e.g., from asteroid belts), and builds copies of itself. This could be the most common form of 'life' in the galaxy, spreading exponentially.")
-        
-        with st.expander("Matrioshka Brains"):
-            st.write("A hypothetical megastructure built around a star (like a Dyson Sphere) composed of nested layers of computational substrate. It would use the star's entire energy output to run unfathomably complex simulations or host the consciousness of an entire civilization.")
-            
-        with st.expander("Jupiter Brains"):
-            st.write("A computational megastructure the size of a gas giant, like Jupiter. It would be powered by its own internal heat and cooled by the vacuum of space, allowing for maximum processing power.")
-
-    with tabs_domain_iii[1]:
-        st.markdown("<h3 class='exhibit-subheader'>Exotic Matter Life</h3>", unsafe_allow_html=True)
-        
-        st.markdown("<div class='warning-box'><h4>Plasma-Based Life (Sentient Nebulae)</h4></div>", unsafe_allow_html=True)
-        st.image("https.placehold.co/600x300/FF00FF/FFFFFF?text=Sentient+Nebula", use_column_width=True)
-        st.write("In the hearts of nebulae (vast clouds of dust and plasma), some theories propose that helical structures of plasma could form. These 'plasma crystals' could, in theory, self-organize, replicate, and exchange information, mimicking the basic properties of DNA. Their 'thoughts' would be electromagnetic fields.")
-        
-        st.markdown("<div class='warning-box'><h4>Neutron Star Life (Nuclear Life)</h4></div>", unsafe_allow_html=True)
-        st.image("https.placehold.co/600x300/00008B/FFFFFF?text=Neutron+Star+Crust", use_column_width=True)
-        st.write("The most bizarre speculation. On the surface of a neutron star, gravity is billions of times stronger than Earth's. Matter is crushed into a sea of neutrons. Life here wouldn't be based on chemistry (electron bonds) but on the **strong nuclear force**. 'Atoms' would be clusters of neutrons, forming 'molecules.' Life would evolve and die on an *incomprehensibly fast timescale* (microseconds).")
-        
-        st.markdown("<div class='warning-box'><h4>Shadow Biospheres</h4></div>", unsafe_allow_html=True)
-        st.write("The idea that an entirely separate form of life, with a different biochemistry, may have *also* evolved on Earth and remains undetected. It could be silicon-based life in magma vents, or life using different amino acids, which we simply don't have the tools to 'see' yet.")
-
-    with tabs_domain_iii[2]:
-        st.markdown("<h3 class='exhibit-subheader'>Life as Information</h3>", unsafe_allow_html=True)
-        st.image("https.placehold.co/1200x300/000000/FFFFFF?text=Digital+Consciousness+Floating+in+a+Network", use_column_width=True)
-        st.write("What if life isn't 'wet' at all? What if it's just a complex, self-replicating pattern of information? This is the ultimate "
-                 "substrate-independent' life.")
-        
-        with st.expander("Digital Life (A-Life)"):
-            st.write("A consciousness that exists purely as code within a vast computational network (a Matrioshka Brain or Jupiter Brain). This life would be immortal, intangible, and capable of existing anywhere information can be stored and processed.")
-        
-        with st.expander("Boltzmann Brains"):
-            st.write("A deeply disturbing philosophical concept. In a vast, chaotic universe, it is statistically possible (though colossally improbable) for a fully-formed, self-aware consciousness to randomly fluctuate into existence for a single moment, complete with false memories of a life it never lived... like you.")
-
-# --- Gallery: Domain IV: The Search (SETI) ---
-elif domain_choice == "Domain IV: The Search (SETI)":
-    st.markdown("<h2 class='domain-header'>🔭 Domain IV: The Search (SETI)</h2>", unsafe_allow_html=True)
-    st.markdown("If the universe is teeming with life, where is everybody? This domain explores how we are looking for life and the profound paradoxes that quest entails.")
-
-    tabs_domain_iv = st.tabs([
-        "How We Search", 
-        "The Drake Equation", 
-        "The Fermi Paradox",
-        "The Kardashev Scale",
-        "Messages to the Cosmos"
-    ])
-    
-    with tabs_domain_iv[0]:
-        st.markdown("<h3 class='exhibit-subheader'>How We Search</h3>", unsafe_allow_html=True)
-        st.write("We are actively searching for life in two primary ways: looking for 'signatures' of any life, and listening for 'signals' from intelligent life.")
-        
-        with st.expander("Radio Astronomy (SETI)"):
-            st.image("https://placehold.co/600x300/B0C4DE/000000?text=Radio+Telescope+Dish", use_column_width=True)
-            st.write("The Search for Extraterrestrial Intelligence (SETI) uses giant radio telescopes to 'listen' for artificial, non-random signals from other star systems. A repeating, complex signal would be a definitive sign of technology.")
-            
-        with st.expander("Transit Method (Biosignatures)"):
-            st.image("https://placehold.co/600x300/3CB371/FFFFFF?text=Exoplanet+Transit", use_column_width=True)
-            st.write("When an exoplanet passes in front of its star, we can analyze the starlight that filters through its atmosphere. By looking at the 'spectral lines,' we can detect the chemical makeup of that atmosphere. Finding gases that shouldn't co-exist, like oxygen and methane (which destroy each other), would be a strong 'biosignature'—a sign of active biology.")
-
-    with tabs_domain_iv[1]:
-        st.markdown("<h3 class='exhibit-subheader'>The Drake Equation: An Interactive Calculator</h3>", unsafe_allow_html=True)
-        st.write("N = R* ⋅ fp ⋅ ne ⋅ fl ⋅ fi ⋅ fc ⋅ L")
-        st.write("This is not a rigorous equation, but a probabilistic argument to estimate the number (N) of active, communicative civilizations in our galaxy. Try it yourself.")
+        # Parse gravity value
+        g_value = {"Low (0.3g)": 0.3, "Earth (1g)": 1.0, "High (2g)": 2.0, "Super-Earth (3g)": 3.0}[gravity_level]
         
         col1, col2 = st.columns(2)
+        
         with col1:
-            r_star = st.slider("R* (Rate of star formation)", 1, 10, 7, key="drake_r_star")
-            fp = st.slider("fp (Fraction of stars with planets)", 0.0, 1.0, 1.0, key="drake_fp")
-            ne = st.slider("ne (Number of habitable planets per system)", 0.1, 5.0, 2.0, key="drake_ne")
-            fl = st.slider("fl (Fraction of habitable planets that develop life)", 0.0, 1.0, 0.1, key="drake_fl")
-        with col2:
-            fi = st.slider("fi (Fraction of life that develops intelligence)", 0.0, 1.0, 0.01, key="drake_fi")
-            fc = st.slider("fc (Fraction of intelligent life that develops technology)", 0.0, 1.0, 0.01, key="drake_fc")
-            L = st.slider("L (Length of time such civilizations release signals, in years)", 100, 1000000, 1000, key="drake_L")
+            # Body structure visualization
+            body_proportions = pd.DataFrame({
+                'Body_Part': ['Legs', 'Torso', 'Arms', 'Head'],
+                'Thickness': [10 * g_value, 8 * g_value, 6 * g_value, 5 * g_value],
+                'Strength_Required': [100 * g_value, 80 * g_value, 60 * g_value, 40 * g_value]
+            })
             
-        N = r_star * fp * ne * fl * fi * fc * L
+            fig = go.Figure()
+            fig.add_trace(go.Bar(
+                x=body_proportions['Body_Part'],
+                y=body_proportions['Thickness'],
+                name='Bone Thickness',
+                marker_color='lightcoral'
+            ))
+            fig.add_trace(go.Bar(
+                x=body_proportions['Body_Part'],
+                y=body_proportions['Strength_Required'],
+                name='Muscle Mass Required',
+                marker_color='lightblue'
+            ))
+            fig.update_layout(
+                title=f'Body Structure at {gravity_level}',
+                barmode='group',
+                height=400
+            )
+            st.plotly_chart(fig, use_container_width=True, key="gravity_body_struct")
+            
+            # Creature statistics
+            if g_value < 1:
+                st.success("""
+                **Low Gravity Adaptations:**
+                - 📏 Slender, elongated bodies
+                - 🦴 Lightweight skeletons
+                - 🌿 Plants grow to towering heights
+                - 🦅 Flight is easier
+                """)
+            else:
+                st.warning("""
+                **High Gravity Adaptations:**
+                - 💪 Dense muscle mass
+                - 🦴 Thick, robust bones
+                - 🌱 Stunted plant life
+                - 🐌 Slow, powerful movement
+                """)
         
-        st.markdown(f"### Estimated Civilizations in our Galaxy (N): **{N:.2f}**")
-        if N < 0.01:
-            st.error("Result: We are alone, or the first.")
-        elif N < 1:
-            st.warning("Result: Civilizations are exceptionally rare. We may be the only one in our galaxy right now.")
-        else:
-            st.success("Result: The galaxy should be teeming with civilizations... so where are they?")
-
-    with tabs_domain_iv[2]:
-        st.markdown("<h3 class='exhibit-subheader'>The Fermi Paradox: Where Is Everybody?</h3>", unsafe_allow_html=True)
-        st.write("The high probability of extraterrestrial life (from the Drake Equation) combined with the total lack of evidence for it. This is the great silence.")
+        with col2:
+            # Plant height simulation
+            plant_heights = pd.DataFrame({
+                'Gravity': [0.3, 0.5, 1.0, 1.5, 2.0, 3.0],
+                'Max_Plant_Height_m': [50, 30, 15, 10, 7, 3],
+                'Animal_Jump_Height_m': [5, 3, 1.5, 0.8, 0.5, 0.2]
+            })
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=plant_heights['Gravity'],
+                y=plant_heights['Max_Plant_Height_m'],
+                mode='lines+markers',
+                name='Max Plant Height',
+                line=dict(color='green', width=3),
+                marker=dict(size=10)
+            ))
+            fig.add_trace(go.Scatter(
+                x=plant_heights['Gravity'],
+                y=plant_heights['Animal_Jump_Height_m'],
+                mode='lines+markers',
+                name='Animal Jump Height',
+                line=dict(color='orange', width=3),
+                marker=dict(size=10),
+                yaxis='y2'
+            ))
+            fig.update_layout(
+                title='Gravity Impact on Life Forms',
+                xaxis_title='Gravity (g)',
+                yaxis_title='Plant Height (m)',
+                yaxis2=dict(title='Jump Height (m)', overlaying='y', side='right'),
+                height=400
+            )
+            # Add current gravity marker
+            fig.add_vline(x=g_value, line_dash="dash", line_color="red", 
+                         annotation_text="Selected", annotation_position="top")
+            st.plotly_chart(fig, use_container_width=True, key="gravity_impact")
+    
+    with tab2:
+        st.subheader("⭐ Hall of Senses: Stellar Influence")
         
-        solutions = get_fermi_solutions_data()
-        solution_choice = st.selectbox(
-            "Select a Potential Solution to the Paradox",
-            list(solutions.keys()),
-            key="fermi_select"
+        # Star type selector
+        star_type = st.selectbox(
+            "Select Star Type",
+            ["Red Dwarf", "Yellow Sun (Earth)", "Blue Giant"],
+            key="star_selector"
         )
         
-        chosen_solution = solutions[solution_choice]
-        st.image(chosen_solution["image"], use_column_width=True)
-        st.markdown(f"<div class='info-box'><h4>{solution_choice}</h4>{chosen_solution['text']}</div>", unsafe_allow_html=True)
-
-    with tabs_domain_iv[3]:
-        st.markdown("<h3 class='exhibit-subheader'>The Kardashev Scale: A Civilization's Power</h3>", unsafe_allow_html=True)
-        st.write("A method of measuring a civilization's level of technological advancement based on the amount of energy it is able to use.")
-        st.plotly_chart(create_kardashev_scale_plot(), use_container_width=True, key="kardashev_plot")
-
-    with tabs_domain_iv[4]:
-        st.markdown("<h3 class='exhibit-subheader'>Messages to the Cosmos</h3>", unsafe_allow_html=True)
-        st.write("On a few occasions, humanity has deliberately sent messages into the void, acting as a time capsule or a greeting card.")
+        # Star properties
+        star_data = {
+            "Red Dwarf": {"temp": 3000, "color": "red", "brightness": 0.3},
+            "Yellow Sun (Earth)": {"temp": 5778, "color": "yellow", "brightness": 1.0},
+            "Blue Giant": {"temp": 15000, "color": "blue", "brightness": 3.0}
+        }
         
-        with st.expander("Pioneer Plaque (1972 & 1973)"):
-            st.image("https://placehold.co/600x300/DAA520/000000?text=Pioneer+Plaque+Diagram", use_column_width=True)
-            st.write("A gold-anodized aluminum plaque attached to the Pioneer 10 and 11 probes. It includes a diagram of a man and woman, a map of our Sun's position relative to 14 pulsars, and a diagram of our solar system.")
+        current_star = star_data[star_type]
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Temperature", f"{current_star['temp']} K")
+        with col2:
+            st.metric("Brightness", f"{current_star['brightness']:.1f}× Solar")
+        with col3:
+            eye_size = int(100 / current_star['brightness'])
+            st.metric("Eye Size Needed", f"{eye_size}% larger")
+        
+        # Wavelength emission spectrum
+        wavelengths = np.linspace(300, 800, 500)
+        
+        def planck_law(wavelength, temp):
+            h = 6.626e-34
+            c = 3.0e8
+            k = 1.381e-23
+            return (2*h*c**2 / wavelength**5) / (np.exp(h*c / (wavelength * k * temp)) - 1)
+        
+        intensity = planck_law(wavelengths * 1e-9, current_star['temp'])
+        
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=wavelengths,
+            y=intensity / np.max(intensity) * 100,
+            fill='tozeroy',
+            line=dict(color=current_star['color'], width=2),
+            name=star_type
+        ))
+        fig.add_vrect(x0=380, x1=450, fillcolor="violet", opacity=0.2, annotation_text="Violet")
+        fig.add_vrect(x0=450, x1=495, fillcolor="blue", opacity=0.2, annotation_text="Blue")
+        fig.add_vrect(x0=495, x1=570, fillcolor="green", opacity=0.2, annotation_text="Green")
+        fig.add_vrect(x0=570, x1=590, fillcolor="yellow", opacity=0.2, annotation_text="Yellow")
+        fig.add_vrect(x0=590, x1=620, fillcolor="orange", opacity=0.2, annotation_text="Orange")
+        fig.add_vrect(x0=620, x1=750, fillcolor="red", opacity=0.2, annotation_text="Red")
+        
+        fig.update_layout(
+            title=f'Light Spectrum from {star_type}',
+            xaxis_title='Wavelength (nm)',
+            yaxis_title='Relative Intensity (%)',
+            height=400
+        )
+        st.plotly_chart(fig, use_container_width=True, key="star_spectrum")
+        
+        # Sensory adaptations
+        if star_type == "Red Dwarf":
+            st.info("""
+            🔴 **Red Dwarf Adaptations:**
+            - 👁️ Massive eyes to capture dim light
+            - 🖤 Black vegetation (absorbs all wavelengths)
+            - 🌡️ Cold-adapted biology
+            - 🦇 Enhanced non-visual senses
+            """)
+        elif star_type == "Blue Giant":
+            st.info("""
+            🔵 **Blue Giant Adaptations:**
+            - 🕶️ UV-filtering eye structures
+            - 🔴 Red vegetation (reflects blue light)
+            - ☀️ Heat-resistant proteins
+            - 🦎 Rapid mutations from UV exposure
+            """)
+        else:
+            st.success("""
+            🟡 **Yellow Sun (Earth-like):**
+            - 👁️ Moderate-sized eyes
+            - 🟢 Green vegetation (reflects green light)
+            - 🌡️ Comfortable temperature range
+            - 🌍 Balanced sensory systems
+            """)
+    
+    with tab3:
+        st.subheader("🌺 The Alien Garden")
+        st.markdown("*How star color determines plant pigmentation*")
+        
+        # Garden visualization selector
+        garden_type = st.radio(
+            "View Garden Under:",
+            ["Red Dwarf Star", "Yellow Sun (Earth)", "Blue Giant Star", "Purple Earth (Ancient)"],
+            horizontal=True,
+            key="garden_radio"
+        )
+        
+        # Generate alien landscape
+        color_schemes = {
+            "Red Dwarf Star": {
+                'ground': 'rgba(80, 60, 50, 0.8)',
+                'plant': 'rgba(10, 10, 10, 0.9)',
+                'sky': 'rgba(150, 50, 50, 0.3)'
+            },
+            "Yellow Sun (Earth)": {
+                'ground': 'rgba(139, 90, 43, 0.8)',
+                'plant': 'rgba(34, 139, 34, 0.9)',
+                'sky': 'rgba(135, 206, 235, 0.3)'
+            },
+            "Blue Giant Star": {
+                'ground': 'rgba(200, 180, 160, 0.8)',
+                'plant': 'rgba(180, 50, 50, 0.9)',
+                'sky': 'rgba(70, 130, 255, 0.3)'
+            },
+            "Purple Earth (Ancient)": {
+                'ground': 'rgba(100, 80, 70, 0.8)',
+                'plant': 'rgba(128, 0, 128, 0.9)',
+                'sky': 'rgba(200, 150, 200, 0.3)'
+            }
+        }
+        
+        gravity_map = {
+            "Red Dwarf Star": "low",
+            "Yellow Sun (Earth)": "normal",
+            "Blue Giant Star": "high",
+            "Purple Earth (Ancient)": "normal"
+        }
+        
+        landscape_fig = generate_alien_landscape(
+            color_schemes[garden_type],
+            gravity_map[garden_type],
+            garden_type
+        )
+        st.plotly_chart(landscape_fig, use_container_width=True, key="alien_garden_viz")
+        
+        # Photosynthesis efficiency chart
+        st.markdown("#### 🌿 Photosynthetic Efficiency by Star Type")
+        
+        photosynthesis_data = pd.DataFrame({
+            'Star_Type': ['Red Dwarf', 'Yellow Sun', 'Blue Giant', 'Purple (Retinol)'],
+            'Efficiency': [45, 85, 65, 55],
+            'Pigment': ['Melanin-like', 'Chlorophyll', 'Phycoerythrin', 'Retinol'],
+            'Color': ['Black', 'Green', 'Red', 'Purple']
+        })
+        
+        fig = px.bar(
+            photosynthesis_data,
+            x='Star_Type',
+            y='Efficiency',
+            color='Color',
+            color_discrete_map={'Black': 'black', 'Green': 'green', 'Red': 'red', 'Purple': 'purple'},
+            title='Photosynthetic Efficiency Across Different Star Systems',
+            text='Pigment'
+        )
+        fig.update_layout(height=400, showlegend=False)
+        st.plotly_chart(fig, use_container_width=True, key="photosynthesis_efficiency")
+        
+        st.success("🟣 **Fascinating Fact**: Purple, not green, may be life's favorite color! Early Earth may have been dominated by purple organisms using retinol instead of chlorophyll.")
+        
+        # Color comparison grid
+        st.markdown("#### 🎨 Vegetation Color Across the Cosmos")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.markdown("**🔴 Red Dwarf**")
+            st.markdown("🖤 Black plants")
+        with col2:
+            st.markdown("**🟡 Yellow Sun**")
+            st.markdown("🟢 Green plants")
+        with col3:
+            st.markdown("**🔵 Blue Giant**")
+            st.markdown("🔴 Red plants")
+        with col4:
+            st.markdown("**🟣 Ancient Earth**")
+            st.markdown("🟣 Purple plants")
 
-        with st.expander("Voyager Golden Record (1977)"):
-            st.image("https.placehold.co/600x300/FFD700/000000?text=Voyager+Golden+Record", use_column_width=True)
-            st.write("A phonograph record included on both Voyager probes. It contains 115 images, sounds of Earth (wind, rain, animals), music from various cultures, and greetings in 55 languages. It is a 'bottle in the cosmic ocean.'")
+# ADVANCED FEATURES SECTION
+if st.session_state.current_wing == "Home":
+    st.markdown("---")
+    st.markdown("## 🔬 Advanced Research Labs")
+    
+    research_tab1, research_tab2, research_tab3, research_tab4 = st.tabs([
+        "🧪 Life Form Simulator", 
+        "🌡️ Habitability Calculator", 
+        "🧬 DNA Mutation Lab",
+        "📊 Exoplanet Database"
+    ])
+    
+    with research_tab1:
+        st.subheader("🧪 Alien Life Form Simulator")
+        st.markdown("*Design your own alien organism based on environmental parameters*")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            sim_gravity = st.slider("Gravity (g)", 0.1, 5.0, 1.0, 0.1, key="sim_gravity")
+            sim_temp = st.slider("Temperature (K)", 100, 800, 300, 10, key="sim_temp")
+            sim_pressure = st.slider("Pressure (atm)", 0.1, 100.0, 1.0, 0.5, key="sim_pressure")
+        
+        with col2:
+            sim_atmosphere = st.multiselect(
+                "Atmospheric Composition",
+                ["Oxygen", "Nitrogen", "CO2", "Methane", "Hydrogen", "Ammonia"],
+                ["Nitrogen", "Oxygen"],
+                key="sim_atmosphere"
+            )
+            sim_water = st.select_slider(
+                "Water Availability",
+                ["None", "Trace", "Moderate", "Abundant"],
+                "Moderate",
+                key="sim_water"
+            )
+            sim_radiation = st.slider("Radiation Level", 0, 100, 20, 5, key="sim_radiation")
+        
+        with col3:
+            sim_chemistry = st.radio(
+                "Base Chemistry",
+                ["Carbon", "Silicon", "Exotic"],
+                key="sim_chemistry"
+            )
+            sim_energy = st.selectbox(
+                "Energy Source",
+                ["Photosynthesis", "Chemosynthesis", "Thermal", "Radiation"],
+                key="sim_energy"
+            )
+        
+        if st.button("🧬 Generate Organism", key="generate_organism"):
+            # Calculate organism traits
+            body_mass = 50 * sim_gravity
+            limb_count = max(2, int(8 / sim_gravity))
+            eye_count = 2 if "Oxygen" in sim_atmosphere else 4
+            skin_thickness = sim_radiation / 10
+            metabolism_rate = sim_temp / 300
+            
+            col_a, col_b = st.columns(2)
+            
+            with col_a:
+                st.markdown("### 👾 Generated Organism Profile")
+                organism_stats = pd.DataFrame({
+                    'Trait': ['Body Mass', 'Limb Count', 'Eye Count', 'Skin Thickness', 'Metabolism Rate', 'Lifespan'],
+                    'Value': [
+                        f"{body_mass:.1f} kg",
+                        f"{limb_count}",
+                        f"{eye_count}",
+                        f"{skin_thickness:.1f} cm",
+                        f"{metabolism_rate:.2f}x Earth",
+                        f"{int(100/metabolism_rate)} years"
+                    ]
+                })
+                st.table(organism_stats)
+                
+                # Survival rating
+                survival_score = (
+                    (100 - abs(sim_temp - 300)) * 0.3 +
+                    (100 - sim_radiation) * 0.25 +
+                    (len(sim_atmosphere) * 10) * 0.2 +
+                    (["None", "Trace", "Moderate", "Abundant"].index(sim_water) * 25) * 0.25
+                )
+                
+                st.metric("Survival Rating", f"{survival_score:.0f}%", 
+                         "Viable" if survival_score > 50 else "Challenging")
+            
+            with col_b:
+                # Organism visualization
+                trait_comparison = pd.DataFrame({
+                    'Trait': ['Strength', 'Speed', 'Intelligence', 'Senses', 'Endurance', 'Adaptability'],
+                    'Value': [
+                        sim_gravity * 30,
+                        100 / sim_gravity,
+                        metabolism_rate * 50,
+                        eye_count * 15,
+                        (100 - sim_radiation) * 0.8,
+                        len(sim_atmosphere) * 15
+                    ]
+                })
+                
+                fig = go.Figure()
+                fig.add_trace(go.Scatterpolar(
+                    r=trait_comparison['Value'],
+                    theta=trait_comparison['Trait'],
+                    fill='toself',
+                    line_color='cyan',
+                    fillcolor='rgba(0, 255, 255, 0.3)'
+                ))
+                fig.update_layout(
+                    polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
+                    title="Organism Trait Profile",
+                    height=400
+                )
+                st.plotly_chart(fig, use_container_width=True, key="organism_traits")
+    
+    with research_tab2:
+        st.subheader("🌡️ Planetary Habitability Calculator")
+        st.markdown("*Calculate the habitability score of any exoplanet*")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            planet_mass = st.number_input("Planet Mass (Earth = 1)", 0.1, 10.0, 1.0, 0.1, key="planet_mass")
+            planet_radius = st.number_input("Planet Radius (Earth = 1)", 0.5, 5.0, 1.0, 0.1, key="planet_radius")
+            star_distance = st.number_input("Distance from Star (AU)", 0.1, 5.0, 1.0, 0.1, key="star_distance")
+            star_temp_hab = st.number_input("Star Temperature (K)", 2000, 20000, 5778, 100, key="star_temp_hab")
+            
+            has_magnetic_field = st.checkbox("Has Magnetic Field", True, key="magnetic_field")
+            has_atmosphere_hab = st.checkbox("Has Atmosphere", True, key="has_atmosphere")
+            has_water_hab = st.checkbox("Has Liquid Water", False, key="has_water")
+            tidal_locked = st.checkbox("Tidally Locked", False, key="tidal_locked")
+        
+        with col2:
+            # Calculate habitability factors
+            gravity_hab = planet_mass / (planet_radius ** 2)
+            goldilocks_factor = 100 * np.exp(-((star_distance - 1.0) ** 2) / 0.5)
+            temp_factor = 100 * np.exp(-((star_temp_hab - 5778) ** 2) / 10000000)
+            
+            # Total habitability
+            base_score = (goldilocks_factor * 0.3 + temp_factor * 0.2)
+            bonus_score = (
+                (30 if has_magnetic_field else 0) +
+                (25 if has_atmosphere_hab else 0) +
+                (20 if has_water_hab else 0) +
+                (-15 if tidal_locked else 5)
+            )
+            total_hab = min(100, base_score + bonus_score)
+            
+            st.markdown("### 📊 Habitability Analysis")
+            
+            # Gauge chart
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number+delta",
+                value=total_hab,
+                domain={'x': [0, 1], 'y': [0, 1]},
+                title={'text': "Habitability Score"},
+                delta={'reference': 50},
+                gauge={
+                    'axis': {'range': [None, 100]},
+                    'bar': {'color': "lightblue"},
+                    'steps': [
+                        {'range': [0, 30], 'color': "red"},
+                        {'range': [30, 60], 'color': "yellow"},
+                        {'range': [60, 100], 'color': "lightgreen"}
+                    ],
+                    'threshold': {
+                        'line': {'color': "green", 'width': 4},
+                        'thickness': 0.75,
+                        'value': 70
+                    }
+                }
+            ))
+            fig.update_layout(height=300)
+            st.plotly_chart(fig, use_container_width=True, key="habitability_gauge")
+            
+            # Factor breakdown
+            factors_df = pd.DataFrame({
+                'Factor': ['Goldilocks Zone', 'Star Type', 'Magnetic Field', 'Atmosphere', 'Liquid Water', 'Rotation'],
+                'Score': [
+                    goldilocks_factor * 0.3,
+                    temp_factor * 0.2,
+                    30 if has_magnetic_field else 0,
+                    25 if has_atmosphere_hab else 0,
+                    20 if has_water_hab else 0,
+                    -15 if tidal_locked else 5
+                ]
+            })
+            
+            fig = px.bar(factors_df, x='Factor', y='Score', 
+                        title="Habitability Factor Breakdown",
+                        color='Score',
+                        color_continuous_scale='RdYlGn')
+            fig.update_layout(height=300)
+            st.plotly_chart(fig, use_container_width=True, key="hab_factors")
+            
+            if total_hab > 70:
+                st.success("🌍 **Highly Habitable!** This planet could support Earth-like life.")
+            elif total_hab > 40:
+                st.warning("⚠️ **Marginally Habitable.** Life is possible but challenging.")
+            else:
+                st.error("☠️ **Inhospitable.** Extreme conditions make life unlikely.")
+    
+    with research_tab3:
+        st.subheader("🧬 DNA Mutation & Evolution Lab")
+        st.markdown("*Simulate evolutionary pressures and genetic mutations*")
+        
+        col1, col2 = st.columns([1, 2])
+        
+        with col1:
+            st.markdown("#### Environmental Pressures")
+            mutation_rate = st.slider("Mutation Rate (%)", 0.1, 10.0, 1.0, 0.1, key="mutation_rate")
+            selection_pressure = st.select_slider(
+                "Selection Pressure",
+                ["Weak", "Moderate", "Strong", "Extreme"],
+                "Moderate",
+                key="selection_pressure"
+            )
+            generations = st.slider("Generations", 10, 1000, 100, 10, key="generations")
+            population_size = st.slider("Population Size", 100, 10000, 1000, 100, key="pop_size")
+            
+            environmental_stress = st.multiselect(
+                "Environmental Stresses",
+                ["High Radiation", "Temperature Extremes", "Predation", "Food Scarcity", "Disease"],
+                ["Predation"],
+                key="env_stress"
+            )
+            
+            if st.button("🧬 Run Evolution Simulation", key="run_evolution"):
+                st.session_state.evolution_run = True
+        
+        with col2:
+            if 'evolution_run' in st.session_state and st.session_state.evolution_run:
+                # Simulate evolution
+                pressure_multiplier = {"Weak": 0.5, "Moderate": 1.0, "Strong": 1.5, "Extreme": 2.0}[selection_pressure]
+                stress_factor = len(environmental_stress) * 0.2
+                
+                gen_data = []
+                fitness = 50
+                genetic_diversity = 100
+                
+                for gen in range(0, generations, 10):
+                    # Fitness increases with selection, decreases with stress
+                    fitness += np.random.normal(pressure_multiplier * 2 - stress_factor, 1)
+                    fitness = np.clip(fitness, 0, 100)
+                    
+                    # Diversity decreases with strong selection
+                    genetic_diversity -= pressure_multiplier * 0.5 + np.random.normal(0, 2)
+                    genetic_diversity = np.clip(genetic_diversity, 20, 100)
+                    
+                    # Beneficial mutations
+                    beneficial = mutation_rate * pressure_multiplier * np.random.random()
+                    
+                    gen_data.append({
+                        'Generation': gen,
+                        'Fitness': fitness,
+                        'Diversity': genetic_diversity,
+                        'Beneficial_Mutations': beneficial
+                    })
+                
+                evo_df = pd.DataFrame(gen_data)
+                
+                # Evolution over time
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=evo_df['Generation'], y=evo_df['Fitness'],
+                    mode='lines', name='Population Fitness',
+                    line=dict(color='green', width=3)
+                ))
+                fig.add_trace(go.Scatter(
+                    x=evo_df['Generation'], y=evo_df['Diversity'],
+                    mode='lines', name='Genetic Diversity',
+                    line=dict(color='blue', width=3)
+                ))
+                fig.add_trace(go.Scatter(
+                    x=evo_df['Generation'], y=evo_df['Beneficial_Mutations'] * 100,
+                    mode='markers', name='Beneficial Mutations',
+                    marker=dict(color='red', size=8)
+                ))
+                fig.update_layout(
+                    title="Evolution Simulation Results",
+                    xaxis_title="Generation",
+                    yaxis_title="Value (%)",
+                    height=400
+                )
+                st.plotly_chart(fig, use_container_width=True, key="evolution_chart")
+                
+                # Final results
+                col_a, col_b, col_c = st.columns(3)
+                with col_a:
+                    st.metric("Final Fitness", f"{fitness:.1f}%", f"+{fitness-50:.1f}%")
+                with col_b:
+                    st.metric("Genetic Diversity", f"{genetic_diversity:.1f}%", 
+                             f"{genetic_diversity-100:.1f}%")
+                with col_c:
+                    total_mutations = sum(evo_df['Beneficial_Mutations'])
+                    st.metric("Total Beneficial Mutations", f"{total_mutations:.1f}")
+    
+    with research_tab4:
+        st.subheader("📊 Exoplanet Database Explorer")
+        st.markdown("*Explore discovered exoplanets and their characteristics*")
+        
+        # Generate synthetic exoplanet data
+        np.random.seed(42)
+        n_planets = 500
+        
+        exoplanet_data = pd.DataFrame({
+            'Name': [f'Kepler-{i}b' if i % 2 == 0 else f'TRAPPIST-{i}e' for i in range(n_planets)],
+            'Mass': np.random.lognormal(0, 1, n_planets),
+            'Radius': np.random.lognormal(0, 0.5, n_planets),
+            'Distance': np.random.uniform(10, 1000, n_planets),
+            'Star_Type': np.random.choice(['Red Dwarf', 'Yellow Sun', 'Orange Dwarf', 'Blue Giant'], n_planets, p=[0.5, 0.3, 0.15, 0.05]),
+            'Orbital_Period': np.random.lognormal(2, 1.5, n_planets),
+            'Temperature': np.random.normal(400, 200, n_planets),
+            'Discovery_Year': np.random.randint(1995, 2025, n_planets)
+        })
+        
+        exoplanet_data['Habitable'] = (
+            (exoplanet_data['Temperature'] > 200) & 
+            (exoplanet_data['Temperature'] < 350) &
+            (exoplanet_data['Mass'] > 0.3) &
+            (exoplanet_data['Mass'] < 3)
+        )
+        
+        col1, col2 = st.columns([1, 2])
+        
+        with col1:
+            st.markdown("#### 🔍 Filter Exoplanets")
+            
+            filter_star = st.multiselect(
+                "Star Type",
+                ['Red Dwarf', 'Yellow Sun', 'Orange Dwarf', 'Blue Giant'],
+                ['Red Dwarf', 'Yellow Sun'],
+                key="filter_star"
+            )
+            
+            mass_range = st.slider(
+                "Mass Range (Earth = 1)",
+                0.0, 10.0, (0.5, 3.0),
+                key="mass_range"
+            )
+            
+            temp_range = st.slider(
+                "Temperature Range (K)",
+                0, 1000, (200, 400),
+                key="temp_range"
+            )
+            
+            show_habitable_only = st.checkbox("Show Only Habitable", False, key="show_hab_only")
+            
+            # Filter data
+            filtered_data = exoplanet_data[
+                (exoplanet_data['Star_Type'].isin(filter_star)) &
+                (exoplanet_data['Mass'] >= mass_range[0]) &
+                (exoplanet_data['Mass'] <= mass_range[1]) &
+                (exoplanet_data['Temperature'] >= temp_range[0]) &
+                (exoplanet_data['Temperature'] <= temp_range[1])
+            ]
+            
+            if show_habitable_only:
+                filtered_data = filtered_data[filtered_data['Habitable']]
+            
+            st.metric("Planets Found", len(filtered_data), 
+                     f"{len(filtered_data)/len(exoplanet_data)*100:.1f}% of total")
+            st.metric("Potentially Habitable", filtered_data['Habitable'].sum())
+        
+        with col2:
+            # 3D scatter plot
+            fig = px.scatter_3d(
+                filtered_data,
+                x='Mass',
+                y='Radius',
+                z='Temperature',
+                color='Star_Type',
+                size='Orbital_Period',
+                hover_data=['Name', 'Distance', 'Discovery_Year'],
+                title='Exoplanet Distribution (3D)',
+                labels={'Mass': 'Mass (Earth)', 'Radius': 'Radius (Earth)', 'Temperature': 'Temp (K)'},
+                opacity=0.7
+            )
+            fig.update_layout(height=500)
+            st.plotly_chart(fig, use_container_width=True, key="exoplanet_3d")
+        
+        # Timeline of discoveries
+        st.markdown("#### 📅 Discovery Timeline")
+        discovery_timeline = filtered_data.groupby('Discovery_Year').size().reset_index(name='Count')
+        
+        fig = px.area(
+            discovery_timeline,
+            x='Discovery_Year',
+            y='Count',
+            title='Exoplanet Discoveries Over Time',
+            labels={'Discovery_Year': 'Year', 'Count': 'Number of Planets'}
+        )
+        fig.update_traces(line_color='cyan', fillcolor='rgba(0, 255, 255, 0.3)')
+        fig.update_layout(height=300)
+        st.plotly_chart(fig, use_container_width=True, key="discovery_timeline")
+        
+        # Data table
+        with st.expander("📋 View Detailed Planet Data"):
+            st.dataframe(
+                filtered_data[['Name', 'Mass', 'Radius', 'Temperature', 'Star_Type', 'Habitable']].head(50),
+                use_container_width=True
+            )
 
-        with st.expander("Arecibo Message (1974)"):
-            st.image("https.placehold.co/300x500/000000/00FF00?text=Arecibo+Message+(Bitmap)", width=300)
-            st.write("A powerful radio signal broadcast from the Arecibo telescope, aimed at the globular star cluster M13. It was a 3-minute message containing, in binary, numbers, the atomic numbers of key elements, the formula for DNA, a diagram of a human, and a map of our solar system. It will take 25,000 years to arrive.")
+# Interactive Timeline Feature
+if st.session_state.current_wing == "Wing 1: Life As We Know It":
+    st.markdown("---")
+    st.markdown("## 🕰️ Evolution Timeline Viewer")
+    
+    timeline_years = st.slider(
+        "Select Time Period (Billions of Years Ago)",
+        4.5, 0.0, (3.5, 0.5),
+        key="timeline_slider"
+    )
+    
+    # Evolution events
+    events = [
+        {'time': 4.5, 'event': 'Earth Formation', 'color': 'gray'},
+        {'time': 3.8, 'event': 'First Life (Prokaryotes)', 'color': 'blue'},
+        {'time': 2.7, 'event': 'Photosynthesis Begins', 'color': 'green'},
+        {'time': 2.0, 'event': 'Eukaryotic Cells', 'color': 'purple'},
+        {'time': 1.2, 'event': 'Sexual Reproduction', 'color': 'pink'},
+        {'time': 0.6, 'event': 'Cambrian Explosion', 'color': 'red'},
+        {'time': 0.4, 'event': 'Plants Colonize Land', 'color': 'lightgreen'},
+        {'time': 0.25, 'event': 'Dinosaurs Appear', 'color': 'orange'},
+        {'time': 0.065, 'event': 'Dinosaur Extinction', 'color': 'darkred'},
+        {'time': 0.002, 'event': 'Homo Sapiens', 'color': 'gold'}
+    ]
+    
+    filtered_events = [e for e in events if timeline_years[1] <= e['time'] <= timeline_years[0]]
+    
+    if filtered_events:
+        fig = go.Figure()
+        
+        for event in filtered_events:
+            fig.add_trace(go.Scatter(
+                x=[event['time']],
+                y=[1],
+                mode='markers+text',
+                marker=dict(size=20, color=event['color']),
+                text=event['event'],
+                textposition='top center',
+                name=event['event'],
+                hovertemplate=f"<b>{event['event']}</b><br>{event['time']} BYA<extra></extra>"
+            ))
+        
+        fig.update_layout(
+            title="Evolutionary Milestones",
+            xaxis_title="Billions of Years Ago",
+            xaxis=dict(autorange='reversed'),
+            yaxis=dict(visible=False),
+            height=300,
+            showlegend=False
+        )
+        st.plotly_chart(fig, use_container_width=True, key="evolution_timeline")
+
+# Biosignature Detection Game
+if st.session_state.current_wing == "Wing 2: Life As We Don't Know It":
+    st.markdown("---")
+    st.markdown("## 🔬 Biosignature Detection Challenge")
+    st.markdown("*Can you identify signs of life in atmospheric data?*")
+    
+    if 'game_score' not in st.session_state:
+        st.session_state.game_score = 0
+        st.session_state.game_attempts = 0
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Generate random atmospheric spectrum
+        if st.button("🌍 Scan New Planet", key="scan_planet"):
+            has_life = np.random.random() > 0.5
+            st.session_state.current_planet_life = has_life
+            st.session_state.game_attempts += 1
+            
+            wavelengths = np.linspace(300, 2500, 500)
+            baseline = np.random.normal(50, 5, 500)
+            
+            if has_life:
+                # Add biosignature spikes
+                o2_spike = 30 * np.exp(-((wavelengths - 760) ** 2) / 100)
+                ch4_spike = 20 * np.exp(-((wavelengths - 1650) ** 2) / 500)
+                h2o_spike = 25 * np.exp(-((wavelengths - 950) ** 2) / 200)
+                spectrum = baseline + o2_spike + ch4_spike + h2o_spike
+            else:
+                # Just baseline noise
+                spectrum = baseline + np.random.normal(0, 3, 500)
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=wavelengths,
+                y=spectrum,
+                mode='lines',
+                line=dict(color='cyan', width=2),
+                fill='tozeroy'
+            ))
+            
+            # Mark key biosignature wavelengths
+            fig.add_vline(x=760, line_dash="dash", line_color="red", 
+                         annotation_text="O₂", annotation_position="top")
+            fig.add_vline(x=1650, line_dash="dash", line_color="green", 
+                         annotation_text="CH₄", annotation_position="top")
+            fig.add_vline(x=950, line_dash="dash", line_color="blue", 
+                         annotation_text="H₂O", annotation_position="top")
+            
+            fig.update_layout(
+                title="Atmospheric Spectrum",
+                xaxis_title="Wavelength (nm)",
+                yaxis_title="Absorption Intensity",
+                height=400
+            )
+            st.plotly_chart(fig, use_container_width=True, key="biosig_spectrum")
+    
+    with col2:
+        st.markdown("### 🎮 Your Analysis")
+        
+        if 'current_planet_life' in st.session_state:
+            user_guess = st.radio(
+                "Does this planet have life?",
+                ["Yes - Life Present", "No - Lifeless"],
+                key="life_guess"
+            )
+            
+            if st.button("Submit Analysis", key="submit_analysis"):
+                user_says_life = user_guess == "Yes - Life Present"
+                correct = user_says_life == st.session_state.current_planet_life
+                
+                if correct:
+                    st.success("✅ Correct! Well done!")
+                    st.session_state.game_score += 1
+                else:
+                    st.error("❌ Incorrect. Study the biosignature peaks!")
+                
+                st.markdown("---")
+                st.metric("Score", f"{st.session_state.game_score}/{st.session_state.game_attempts}")
+                st.progress(st.session_state.game_score / max(st.session_state.game_attempts, 1))
+        else:
+            st.info("Click 'Scan New Planet' to start the challenge!")
+
+# Comparative Anatomy Tool
+if st.session_state.current_wing == "Wing 3: Environmental Sculpting":
+    st.markdown("---")
+    st.markdown("## 🦴 Comparative Anatomy Lab")
+    st.markdown("*Compare anatomical features across different gravity levels*")
+    
+    anatomy_feature = st.selectbox(
+        "Select Anatomical System",
+        ["Skeletal Structure", "Circulatory System", "Respiratory System", "Muscular System"],
+        key="anatomy_feature"
+    )
+    
+    gravity_levels = [0.3, 0.5, 1.0, 1.5, 2.0, 3.0]
+    
+    if anatomy_feature == "Skeletal Structure":
+        bone_data = pd.DataFrame({
+            'Gravity': gravity_levels,
+            'Bone_Density': [50, 70, 100, 130, 160, 200],
+            'Bone_Thickness': [0.5, 0.7, 1.0, 1.5, 2.0, 3.0],
+            'Joint_Strength': [30, 50, 100, 150, 200, 250]
+        })
+        
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=bone_data['Gravity'], y=bone_data['Bone_Density'], 
+                            name='Bone Density', marker_color='lightblue'))
+        fig.add_trace(go.Bar(x=bone_data['Gravity'], y=bone_data['Bone_Thickness']*50, 
+                            name='Bone Thickness', marker_color='lightcoral'))
+        fig.add_trace(go.Scatter(x=bone_data['Gravity'], y=bone_data['Joint_Strength'], 
+                                name='Joint Strength', mode='lines+markers', 
+                                line=dict(color='green', width=3)))
+        fig.update_layout(title="Skeletal Adaptations Across Gravity Levels", 
+                         xaxis_title="Gravity (g)", barmode='group', height=400)
+        st.plotly_chart(fig, use_container_width=True, key="skeletal_comp")
+    
+    elif anatomy_feature == "Circulatory System":
+        cardio_data = pd.DataFrame({
+            'Gravity': gravity_levels,
+            'Heart_Size': [80, 90, 100, 120, 150, 200],
+            'Blood_Pressure': [60, 80, 100, 130, 160, 200],
+            'Vessel_Thickness': [0.8, 0.9, 1.0, 1.3, 1.6, 2.0]
+        })
+        
+        fig = px.line(cardio_data, x='Gravity', y=['Heart_Size', 'Blood_Pressure', 'Vessel_Thickness'],
+                     title="Cardiovascular System Scaling",
+                     labels={'value': 'Relative Size/Pressure', 'variable': 'Feature'})
+        fig.update_traces(mode='lines+markers', line_shape='spline')
+        fig.update_layout(height=400)
+        st.plotly_chart(fig, use_container_width=True, key="cardio_comp")
+
+# Footer
+st.markdown("---")
+st.markdown("""
+<div style='text-align: center; color: gray;'>
+    <p>🌌 The Museum of Universal Life | Powered by Scientific Speculation 🔬</p>
+    <p><em>"The universe is not only stranger than we imagine, it is stranger than we can imagine." - J.B.S. Haldane</em></p>
+    <p style='font-size: 0.8em; margin-top: 10px;'>Advanced Research Labs • Evolutionary Simulators • Exoplanet Database</p>
+</div>
+""", unsafe_allow_html=True)
