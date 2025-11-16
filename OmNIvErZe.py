@@ -1,2074 +1,1844 @@
+# --------------------------------------------------------------------------------
+# 🌌 THE MUSEUM OF INFINITE LIFE 🌌
+#
+# Welcome, Visitor.
+#
+# This application is an interactive museum exhibit showcasing the 'results'
+# from a theoretical simulation of a universe. It uses the data structures
+# and visualization code from the 'Universe Sandbox 2.0' simulation.
+#
+# The original simulation has been *removed* to ensure fast loading and 
+# accessibility. Instead, this app generates a 'mock' dataset on its
+# first run, allowing you to explore what *could* be.
+#
+# You can also load your own 'universe_results.zip' checkpoints from the
+# original simulation using the 'Load Checkpoint' feature in the sidebar.
+#
+# --------------------------------------------------------------------------------
+
+# ==================== CORE IMPORTS ====================
 import streamlit as st
-import plotly.graph_objects as go
-import plotly.express as px
 import numpy as np
 import pandas as pd
-from PIL import Image, ImageDraw
-import io
+import plotly.graph_objects as go
+import plotly.express as px
+from plotly.subplots import make_subplots
+from dataclasses import dataclass, field, asdict
+from typing import List, Dict, Tuple, Optional, Set, Any
+import random
+import time
+from scipy.stats import entropy
+from scipy.special import softmax
+import networkx as nx
+import os
+from collections import Counter, deque
 import json
+import uuid
+import hashlib
+import colorsys
+import copy
+import zipfile
+import io
+import matplotlib
+import matplotlib.pyplot asplt # We'll need this for the GRN plots
 
-# Page config
-st.set_page_config(
-    page_title="Ultimate Life Evolution Simulator",
-    page_icon="🧬",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# Set a non-interactive backend for Streamlit
+matplotlib.use('Agg')
 
-# Custom CSS
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 3.5rem;
-        font-weight: bold;
-        text-align: center;
-        background: linear-gradient(45deg, #00ff87, #60efff, #ff0080);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        padding: 20px;
-        animation: glow 2s ease-in-out infinite;
-    }
-    .parameter-section {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 15px;
-        border-radius: 10px;
-        color: white;
-        margin: 10px 0;
-    }
-    .result-card {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        padding: 20px;
-        border-radius: 15px;
-        color: white;
-        margin: 15px 0;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-    }
-    .organism-stat {
-        background: rgba(255,255,255,0.1);
-        padding: 10px;
-        border-radius: 8px;
-        margin: 5px 0;
-        backdrop-filter: blur(10px);
-    }
-    .stProgress > div > div > div > div {
-        background: linear-gradient(90deg, #00ff87, #60efff);
-    }
-</style>
-""", unsafe_allow_html=True)
+# =================================================================
+#
+# PART 1: THE "DATA" OF LIFE (The Museum's Collection)
+#
+# These are the core data structures from the original simulation.
+# They define what an 'organism' is.
+#
+# =================================================================
 
-# Initialize comprehensive session state
-if 'environment_params' not in st.session_state:
-    st.session_state.environment_params = {}
-if 'evolution_history' not in st.session_state:
-    st.session_state.evolution_history = []
-if 'current_organism' not in st.session_state:
-    st.session_state.current_organism = None
-if 'simulation_runs' not in st.session_state:
-    st.session_state.simulation_runs = 0
+@dataclass
+class ComponentGene:
+    """
+    Defines a fundamental 'building block' of life.
+    This is the 'chemistry' the organism has access to.
+    """
+    id: str = field(default_factory=lambda: f"comp_{uuid.uuid4().hex[:6]}")
+    name: str = "PrimordialGoo"
+    base_kingdom: str = "Carbon"
+    mass: float = 1.0
+    structural: float = 0.1
+    energy_storage: float = 0.0
+    photosynthesis: float = 0.0
+    chemosynthesis: float = 0.0
+    thermosynthesis: float = 0.0
+    conductance: float = 0.0
+    compute: float = 0.0
+    motility: float = 0.0
+    armor: float = 0.0
+    sense_light: float = 0.0
+    sense_minerals: float = 0.0
+    sense_temp: float = 0.0
+    color: str = "#888888"
 
-# Core Evolution Engine
-class EvolutionEngine:
-    """Advanced evolution simulator with 10000+ parameters"""
-    
-    def __init__(self, params):
-        self.params = params
-        self.organism_traits = {}
-        
-    def calculate_base_chemistry(self):
-        """Determine biochemical foundation"""
-        temp = self.params['temperature']
-        pressure = self.params['pressure']
-        oxygen = self.params.get('oxygen_level', 0)
-        
-        # Carbon vs Silicon decision tree
-        if temp < 273 and oxygen < 0.01:
-            base = 'silicon'
-            stability = 0.7
-        elif temp > 373 and pressure > 50:
-            base = 'exotic_metallic'
-            stability = 0.4
-        elif temp < 150:
-            base = 'ammonia_based'
-            stability = 0.6
-        else:
-            base = 'carbon'
-            stability = 0.95
-            
-        return base, stability
-    
-    def evolve_body_structure(self):
-        """Calculate body morphology from environmental pressures"""
-        gravity = self.params['gravity']
-        atmosphere_density = self.params['atmosphere_density']
-        light_intensity = self.params['light_intensity']
-        
-        # Body mass scales with gravity
-        base_mass = 50 * (gravity ** 0.7)
-        
-        # Height inversely proportional to gravity
-        height = 1.8 / (gravity ** 0.6)
-        
-        # Limb count based on stability needs
-        if gravity > 2.0:
-            limbs = np.random.randint(6, 12)  # More limbs for stability
-        elif gravity < 0.5:
-            limbs = np.random.randint(2, 4)   # Fewer needed
-        else:
-            limbs = 4
-            
-        # Body shape index (0=spherical, 1=elongated)
-        if atmosphere_density > 5:  # Dense atmosphere
-            body_shape = 0.3  # Streamlined
-        elif gravity > 2:
-            body_shape = 0.1  # Compact, close to ground
-        else:
-            body_shape = 0.7  # Can be taller
-            
-        return {
-            'mass_kg': base_mass,
-            'height_m': height,
-            'limb_count': limbs,
-            'body_shape_index': body_shape,
-            'wingspan_m': height * 1.5 if gravity < 0.8 else 0
-        }
-    
-    def evolve_sensory_systems(self):
-        """Develop sensory organs based on environment"""
-        light = self.params['light_intensity']
-        star_type = self.params['star_type']
-        has_atmosphere = self.params['atmosphere_density'] > 0.01
-        radiation = self.params['radiation_level']
-        magnetic_field = self.params['magnetic_field_strength']
-        
-        # Visual system
-        if light < 0.1:
-            eye_count = np.random.randint(4, 8)
-            eye_size = 5.0  # Huge eyes
-            vision_spectrum = 'infrared_ultraviolet'
-        elif light > 3.0:
-            eye_count = 2
-            eye_size = 0.5  # Small, protective
-            vision_spectrum = 'narrow_visible'
-        else:
-            eye_count = 2
-            eye_size = 1.0
-            vision_spectrum = 'visible'
-            
-        # Other senses
-        if has_atmosphere:
-            hearing_range = [20, 20000]  # Hz
-            smell_receptors = int(10000 * self.params['atmosphere_density'])
-        else:
-            hearing_range = [0, 0]
-            smell_receptors = 0
-            
-        # Electromagnetic sense
-        if magnetic_field > 0.5:
-            has_magnetic_sense = True
-            magnetic_sensitivity = magnetic_field * 100
-        else:
-            has_magnetic_sense = False
-            magnetic_sensitivity = 0
-            
-        # Radiation detection
-        if radiation > 50:
-            has_radiation_sense = True
-        else:
-            has_radiation_sense = False
-            
-        return {
-            'eye_count': eye_count,
-            'eye_size_cm': eye_size,
-            'vision_spectrum': vision_spectrum,
-            'hearing_range_hz': hearing_range,
-            'smell_receptors': smell_receptors,
-            'has_magnetic_sense': has_magnetic_sense,
-            'magnetic_sensitivity': magnetic_sensitivity,
-            'has_radiation_sense': has_radiation_sense
-        }
-    
-    def evolve_metabolism(self):
-        """Calculate metabolic systems"""
-        temp = self.params['temperature']
-        pressure = self.params['pressure']
-        energy_source = self.params.get('primary_energy_source', 'photosynthesis')
-        chemistry = self.params.get('chemistry_base', 'carbon')
-        
-        # Base metabolic rate (Earth = 1.0)
-        if chemistry == 'silicon':
-            base_rate = 0.01  # Very slow
-            lifespan_years = 10000
-        elif temp > 400:
-            base_rate = 3.0   # Fast, hot metabolism
-            lifespan_years = 5
-        elif temp < 200:
-            base_rate = 0.1   # Slow, cold
-            lifespan_years = 500
-        else:
-            base_rate = 1.0
-            lifespan_years = 100
-            
-        # Energy efficiency
-        if energy_source == 'photosynthesis':
-            efficiency = 0.06 * self.params['light_intensity']
-        elif energy_source == 'chemosynthesis':
-            efficiency = 0.15
-        elif energy_source == 'thermal':
-            efficiency = 0.08
-        else:  # radiation
-            efficiency = 0.03
-            
-        # Oxygen requirements
-        oxygen_level = self.params.get('oxygen_level', 0.21)
-        if oxygen_level > 0.15:
-            respiration_type = 'aerobic'
-            energy_multiplier = 2.0
-        else:
-            respiration_type = 'anaerobic'
-            energy_multiplier = 0.5
-            
-        return {
-            'metabolic_rate': base_rate,
-            'lifespan_years': lifespan_years,
-            'energy_efficiency': efficiency,
-            'respiration_type': respiration_type,
-            'daily_energy_need_kj': base_rate * 8000 * energy_multiplier,
-            'reproduction_cycle_days': lifespan_years * 365 / 10
-        }
-    
-    def evolve_cognitive_abilities(self):
-        """Calculate intelligence and cognitive capabilities"""
-        metabolic_rate = self.params.get('metabolic_rate', 1.0)
-        lifespan = self.params.get('lifespan', 100)
-        social_pressure = self.params.get('predation_pressure', 50) / 100
-        
-        # Brain size relative to body
-        brain_body_ratio = 0.02 * (1 + social_pressure) * metabolic_rate
-        
-        # Intelligence index (0-200, human=100)
-        intelligence = min(200, brain_body_ratio * 5000 * (lifespan / 100))
-        
-        # Cognitive abilities
-        memory_capacity = intelligence * 1000  # MB equivalent
-        problem_solving = min(100, intelligence)
-        social_complexity = int(social_pressure * 100)
-        language_capability = intelligence > 50
-        tool_use = intelligence > 30
-        
-        return {
-            'brain_body_ratio': brain_body_ratio,
-            'intelligence_index': intelligence,
-            'memory_capacity_mb': memory_capacity,
-            'problem_solving_score': problem_solving,
-            'social_complexity': social_complexity,
-            'can_use_language': language_capability,
-            'can_use_tools': tool_use,
-            'consciousness_level': 'high' if intelligence > 80 else 'medium' if intelligence > 30 else 'low'
-        }
-    
-    def evolve_defense_mechanisms(self):
-        """Develop survival and defense strategies"""
-        predation = self.params.get('predation_pressure', 50)
-        radiation = self.params['radiation_level']
-        temperature = self.params['temperature']
-        
-        mechanisms = []
-        
-        # Physical defenses
-        if predation > 70:
-            mechanisms.extend(['armored_exoskeleton', 'venomous_spines', 'camouflage'])
-            armor_thickness = 5.0
-        elif predation > 40:
-            mechanisms.extend(['thick_skin', 'speed', 'camouflage'])
-            armor_thickness = 2.0
-        else:
-            armor_thickness = 0.5
-            
-        # Environmental defenses
-        if radiation > 80:
-            mechanisms.append('radiation_resistant_proteins')
-            dna_repair_rate = 10.0
-        else:
-            dna_repair_rate = 1.0
-            
-        if temperature > 400 or temperature < 150:
-            mechanisms.append('extreme_temp_proteins')
-            
-        # Chemical defenses
-        if predation > 60:
-            has_venom = True
-            venom_potency = predation
-        else:
-            has_venom = False
-            venom_potency = 0
-            
-        return {
-            'defense_mechanisms': mechanisms,
-            'armor_thickness_cm': armor_thickness,
-            'dna_repair_rate': dna_repair_rate,
-            'has_venom': has_venom,
-            'venom_potency': venom_potency,
-            'camouflage_ability': min(100, predation)
-        }
-    
-    def evolve_locomotion(self):
-        """Determine movement capabilities"""
-        gravity = self.params['gravity']
-        atmosphere = self.params['atmosphere_density']
-        liquid_coverage = self.params.get('liquid_coverage', 0.7)
-        
-        locomotion_types = []
-        
-        # Flight capability
-        if gravity < 0.8 and atmosphere > 0.5:
-            can_fly = True
-            flight_speed = 50 / gravity
-            locomotion_types.append('flight')
-        else:
-            can_fly = False
-            flight_speed = 0
-            
-        # Swimming
-        if liquid_coverage > 0.3:
-            can_swim = True
-            swim_speed = 30 * (1 / gravity)
-            locomotion_types.append('swimming')
-        else:
-            can_swim = False
-            swim_speed = 0
-            
-        # Ground movement
-        if gravity < 1.5:
-            ground_speed = 40 / gravity
-            jump_height = 2 / gravity
-            locomotion_types.append('bipedal' if gravity < 1.2 else 'quadrupedal')
-        else:
-            ground_speed = 20 / gravity
-            jump_height = 0.5 / gravity
-            locomotion_types.append('hexapedal')
-            
-        return {
-            'locomotion_types': locomotion_types,
-            'can_fly': can_fly,
-            'flight_speed_kmh': flight_speed,
-            'can_swim': can_swim,
-            'swim_speed_kmh': swim_speed,
-            'ground_speed_kmh': ground_speed,
-            'jump_height_m': jump_height
-        }
-    
-    def evolve_reproduction(self):
-        """Reproduction strategies"""
-        lifespan = self.params.get('lifespan', 100)
-        env_stability = self.params.get('environmental_stability', 50) / 100
-        
-        if env_stability > 0.7:
-            # Stable environment: K-strategy
-            offspring_count = np.random.randint(1, 3)
-            parental_care_years = lifespan * 0.2
-            reproduction_strategy = 'K-selected'
-        else:
-            # Unstable: r-strategy
-            offspring_count = np.random.randint(10, 100)
-            parental_care_years = 0
-            reproduction_strategy = 'r-selected'
-            
-        # Sexual vs asexual
-        if self.params.get('predation_pressure', 50) > 40:
-            reproduction_type = 'sexual'
-            genetic_diversity = 'high'
-        else:
-            reproduction_type = 'asexual'
-            genetic_diversity = 'low'
-            
-        return {
-            'reproduction_strategy': reproduction_strategy,
-            'reproduction_type': reproduction_type,
-            'offspring_per_cycle': offspring_count,
-            'parental_care_duration_years': parental_care_years,
-            'genetic_diversity': genetic_diversity,
-            'gestation_period_days': lifespan * 365 / 20
-        }
-    
-    def calculate_survival_probability(self):
-        """Overall survival chance in this environment"""
-        factors = []
-        
-        # Temperature tolerance
-        temp = self.params['temperature']
-        if 250 < temp < 350:
-            temp_score = 100
-        elif 150 < temp < 450:
-            temp_score = 70
-        else:
-            temp_score = 30
-        factors.append(temp_score)
-        
-        # Gravity tolerance
-        gravity = self.params['gravity']
-        if 0.5 < gravity < 2.0:
-            grav_score = 100
-        elif 0.2 < gravity < 3.0:
-            grav_score = 70
-        else:
-            grav_score = 40
-        factors.append(grav_score)
-        
-        # Radiation tolerance
-        radiation = self.params['radiation_level']
-        if radiation < 50:
-            rad_score = 100
-        elif radiation < 100:
-            rad_score = 60
-        else:
-            rad_score = 20
-        factors.append(rad_score)
-        
-        # Energy availability
-        light = self.params['light_intensity']
-        if 0.5 < light < 2.0:
-            energy_score = 100
-        else:
-            energy_score = 50
-        factors.append(energy_score)
-        
-        return np.mean(factors)
-    
-    def generate_organism(self):
-        """Main evolution pipeline"""
-        chemistry, chem_stability = self.calculate_base_chemistry()
-        body = self.evolve_body_structure()
-        senses = self.evolve_sensory_systems()
-        metabolism = self.evolve_metabolism()
-        cognition = self.evolve_cognitive_abilities()
-        defense = self.evolve_defense_mechanisms()
-        locomotion = self.evolve_locomotion()
-        reproduction = self.evolve_reproduction()
-        survival = self.calculate_survival_probability()
-        
-        organism = {
-            'chemistry_base': chemistry,
-            'chemistry_stability': chem_stability,
-            'body_structure': body,
-            'sensory_systems': senses,
-            'metabolism': metabolism,
-            'cognitive_abilities': cognition,
-            'defense_mechanisms': defense,
-            'locomotion': locomotion,
-            'reproduction': reproduction,
-            'survival_probability': survival,
-            'environment_params': self.params.copy()
-        }
-        
-        return organism
+    def __hash__(self):
+        return hash(self.id)
 
-# Visualization Functions
-def create_organism_3d_model(organism):
-    """Generate 3D representation of organism"""
-    body = organism['body_structure']
-    
-    # Body shape
-    if body['body_shape_index'] < 0.3:  # Spherical
-        theta = np.linspace(0, 2*np.pi, 50)
-        phi = np.linspace(0, np.pi, 50)
-        theta, phi = np.meshgrid(theta, phi)
-        
-        r = body['height_m']
-        x = r * np.sin(phi) * np.cos(theta)
-        y = r * np.sin(phi) * np.sin(theta)
-        z = r * np.cos(phi)
-    else:  # Elongated
-        z = np.linspace(0, body['height_m'], 50)
-        theta = np.linspace(0, 2*np.pi, 50)
-        z, theta = np.meshgrid(z, theta)
-        
-        radius = body['mass_kg'] ** 0.33 / 10
-        x = radius * np.cos(theta)
-        y = radius * np.sin(theta)
-    
-    fig = go.Figure(data=[go.Surface(x=x, y=y, z=z, colorscale='Viridis', showscale=False)])
-    
-    # Add eyes
-    eyes = organism['sensory_systems']['eye_count']
-    eye_size = organism['sensory_systems']['eye_size_cm']
-    
-    for i in range(min(eyes, 4)):  # Show max 4 eyes
-        angle = i * 2 * np.pi / eyes
-        eye_x = body['height_m'] * 0.3 * np.cos(angle)
-        eye_y = body['height_m'] * 0.3 * np.sin(angle)
-        eye_z = body['height_m'] * 0.8
-        
-        fig.add_trace(go.Scatter3d(
-            x=[eye_x], y=[eye_y], z=[eye_z],
-            mode='markers',
-            marker=dict(size=eye_size*3, color='yellow'),
-            showlegend=False,
-            hoverinfo='skip'
-        ))
-    
-    fig.update_layout(
-        scene=dict(
-            xaxis=dict(showbackground=False, showticklabels=False, showgrid=False),
-            yaxis=dict(showbackground=False, showticklabels=False, showgrid=False),
-            zaxis=dict(showbackground=False, showticklabels=False, showgrid=False),
-            bgcolor='rgba(0,0,0,0.9)'
-        ),
-        paper_bgcolor='rgba(0,0,0,0)',
-        height=500,
-        title="3D Organism Model"
-    )
-    
-    return fig
+@dataclass
+class RuleGene:
+    """
+    Defines a 'developmental rule' in the Genetic Regulatory Network (GRN).
+    'IF [Conditions] are met, THEN [Action] happens.'
+    """
+    id: str = field(default_factory=lambda: f"rule_{uuid.uuid4().hex[:6]}")
+    conditions: List[Dict[str, Any]] = field(default_factory=list)
+    action_type: str = "IDLE"
+    action_param: str = "self" 
+    action_value: float = 0.0
+    probability: float = 1.0
+    priority: int = 0
+    is_disabled: bool = False
 
-def create_trait_comparison_radar(organism):
-    """Radar chart of organism capabilities"""
-    categories = [
-        'Physical Strength',
-        'Speed',
-        'Sensory Acuity', 
-        'Intelligence',
-        'Defense',
-        'Energy Efficiency',
-        'Adaptability',
-        'Longevity'
-    ]
+@dataclass
+class Genotype:
+    """
+    The complete "DNA" of an organism.
+    This is the "specimen" in the museum's collection.
+    """
+    id: str = field(default_factory=lambda: f"geno_{uuid.uuid4().hex[:6]}")
+    component_genes: Dict[str, ComponentGene] = field(default_factory=dict)
+    rule_genes: List[RuleGene] = field(default_factory=list)
     
-    values = [
-        min(100, organism['body_structure']['mass_kg']),
-        min(100, organism['locomotion']['ground_speed_kmh']),
-        min(100, organism['sensory_systems']['eye_count'] * 15),
-        organism['cognitive_abilities']['intelligence_index'] / 2,
-        organism['defense_mechanisms']['camouflage_ability'],
-        organism['metabolism']['energy_efficiency'] * 100,
-        organism['survival_probability'],
-        min(100, organism['metabolism']['lifespan_years'] / 10)
-    ]
+    # --- Evolutionary Metadata ---
+    fitness: float = 0.0
+    age: int = 0
+    generation: int = 0
+    lineage_id: str = ""
+    parent_ids: List[str] = field(default_factory=list)
     
-    fig = go.Figure()
+    # --- Phenotypic Summary (filled after development) ---
+    cell_count: int = 0
+    complexity: float = 0.0
+    energy_production: float = 0.0
+    energy_consumption: float = 0.0
+    lifespan: int = 0
+    kingdom_id: str = "Carbon" 
     
-    fig.add_trace(go.Scatterpolar(
-        r=values,
-        theta=categories,
-        fill='toself',
-        line_color='cyan',
-        fillcolor='rgba(0, 255, 255, 0.3)',
-        name='Organism Traits'
-    ))
-    
-    fig.update_layout(
-        polar=dict(
-            radialaxis=dict(visible=True, range=[0, 100])
-        ),
-        showlegend=False,
-        title="Organism Capability Profile",
-        height=450,
-        paper_bgcolor='rgba(0,0,0,0)'
-    )
-    
-    return fig
+    # --- Meta-Evolution (Hyperparameters) ---
+    evolvable_mutation_rate: float = 0.2
+    evolvable_innovation_rate: float = 0.05
+    objective_weights: Dict[str, float] = field(default_factory=dict)
 
-def create_evolutionary_timeline(history):
-    """Show evolution over multiple simulations"""
-    if len(history) < 2:
-        return None
-        
-    df = pd.DataFrame([
-        {
-            'Run': i+1,
-            'Survival': org['survival_probability'],
-            'Intelligence': org['cognitive_abilities']['intelligence_index'],
-            'Mass': org['body_structure']['mass_kg'],
-            'Lifespan': org['metabolism']['lifespan_years']
-        }
-        for i, org in enumerate(history)
-    ])
-    
-    fig = go.Figure()
-    
-    fig.add_trace(go.Scatter(
-        x=df['Run'], y=df['Survival'],
-        mode='lines+markers',
-        name='Survival %',
-        line=dict(color='green', width=3)
-    ))
-    
-    fig.add_trace(go.Scatter(
-        x=df['Run'], y=df['Intelligence'],
-        mode='lines+markers',
-        name='Intelligence',
-        line=dict(color='purple', width=3),
-        yaxis='y2'
-    ))
-    
-    fig.update_layout(
-        title="Evolution Across Multiple Simulations",
-        xaxis_title="Simulation Run",
-        yaxis_title="Survival Probability (%)",
-        yaxis2=dict(title="Intelligence Index", overlaying='y', side='right'),
-        height=400
-    )
-    
-    return fig
+    # --- Multi-Level Selection ---
+    colony_id: Optional[str] = None
+    individual_fitness: float = 0.0
 
-# Main UI
-st.markdown('<h1 class="main-header">🧬 ULTIMATE ALIEN LIFE EVOLUTION SIMULATOR 🌌</h1>', unsafe_allow_html=True)
-st.markdown("### *Control 10,000+ Parameters • Generate Infinite Life Forms • Explore What's Possible*")
+    def __post_init__(self):
+        if not self.lineage_id:
+            self.lineage_id = f"L{random.randint(0, 999999):06d}"
 
-# Sidebar - Parameter Control Hub
-with st.sidebar:
-    st.markdown("## 🎛️ Environment Control Center")
-    st.markdown("---")
-    
-    param_mode = st.radio(
-        "Parameter Entry Mode",
-        ["Quick Setup", "Advanced (100+ params)", "Expert (1000+ params)", "God Mode (10000+ params)"],
-        key="param_mode"
-    )
-    
-    st.markdown("---")
-    st.metric("Total Parameters Configured", "0 / 10,000+")
-    st.metric("Simulations Run", st.session_state.simulation_runs)
-    
-    if st.button("🔄 Reset All Parameters", key="reset_params"):
-        st.session_state.environment_params = {}
-        st.session_state.evolution_history = []
-        st.session_state.current_organism = None
-        st.rerun()
-
-# Main parameter input area
-st.markdown("## 🌍 Environmental Parameters")
-
-if param_mode == "Quick Setup":
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.markdown('<div class="parameter-section">⭐ Stellar Properties</div>', unsafe_allow_html=True)
-        star_type = st.selectbox("Star Type", 
-            ["Red Dwarf (M)", "Orange Dwarf (K)", "Yellow Sun (G)", "White Star (F)", "Blue Giant (A/B)"],
-            key="star_type_quick")
-        
-        light_map = {"Red Dwarf (M)": 0.1, "Orange Dwarf (K)": 0.5, "Yellow Sun (G)": 1.0, 
-                     "White Star (F)": 2.0, "Blue Giant (A/B)": 5.0}
-        light_intensity = st.slider("Light Intensity", 0.01, 10.0, light_map[star_type], 0.01, key="light_quick")
-        
-        distance_from_star = st.slider("Distance from Star (AU)", 0.1, 5.0, 1.0, 0.1, key="distance_quick")
-    
-    with col2:
-        st.markdown('<div class="parameter-section">🌡️ Physical Environment</div>', unsafe_allow_html=True)
-        temperature = st.slider("Temperature (K)", 50, 800, 288, 1, key="temp_quick")
-        gravity = st.slider("Surface Gravity (g)", 0.1, 5.0, 1.0, 0.1, key="grav_quick")
-        pressure = st.slider("Atmospheric Pressure (atm)", 0.0, 100.0, 1.0, 0.1, key="pressure_quick")
-        
-    with col3:
-        st.markdown('<div class="parameter-section">💨 Atmospheric Composition</div>', unsafe_allow_html=True)
-        atmosphere_density = st.slider("Atmosphere Density", 0.0, 10.0, 1.0, 0.1, key="atm_dens_quick")
-        oxygen_level = st.slider("Oxygen Level", 0.0, 1.0, 0.21, 0.01, key="o2_quick")
-        co2_level = st.slider("CO₂ Level", 0.0, 1.0, 0.04, 0.01, key="co2_quick")
-        
-    with col4:
-        st.markdown('<div class="parameter-section">☢️ Environmental Hazards</div>', unsafe_allow_html=True)
-        radiation_level = st.slider("Radiation Level", 0, 200, 20, 1, key="rad_quick")
-        magnetic_field_strength = st.slider("Magnetic Field Strength", 0.0, 5.0, 1.0, 0.1, key="mag_quick")
-        tectonic_activity = st.slider("Tectonic Activity", 0, 100, 50, 1, key="tectonic_quick")
-    
-    # Store parameters
-    st.session_state.environment_params = {
-        'star_type': star_type,
-        'light_intensity': light_intensity,
-        'distance_from_star': distance_from_star,
-        'temperature': temperature,
-        'gravity': gravity,
-        'pressure': pressure,
-        'atmosphere_density': atmosphere_density,
-        'oxygen_level': oxygen_level,
-        'co2_level': co2_level,
-        'radiation_level': radiation_level,
-        'magnetic_field_strength': magnetic_field_strength,
-        'tectonic_activity': tectonic_activity
-    }
-
-elif param_mode == "Advanced (100+ params)":
-    tabs = st.tabs(["⭐ Stellar", "🌍 Planetary", "💨 Atmospheric", "🌊 Hydrosphere", "🦠 Biological", "⚡ Energy"])
-    
-    with tabs[0]:  # Stellar
-        col1, col2 = st.columns(2)
-        with col1:
-            star_type = st.selectbox("Star Type", 
-                ["M (Red Dwarf)", "K (Orange Dwarf)", "G (Yellow)", "F (White)", "A/B (Blue)"],
-                key="star_type_adv")
-            star_mass = st.slider("Star Mass (Solar Masses)", 0.1, 20.0, 1.0, 0.1, key="star_mass")
-            star_temperature = st.number_input("Star Temperature (K)", 2000, 30000, 5778, key="star_temp")
-            star_luminosity = st.slider("Luminosity (Solar)", 0.01, 100.0, 1.0, 0.01, key="star_lum")
-        
-        with col2:
-            distance_from_star = st.slider("Orbital Distance (AU)", 0.05, 10.0, 1.0, 0.05, key="orbit_dist")
-            orbital_period = st.number_input("Orbital Period (Days)", 1, 10000, 365, key="orbital_period")
-            orbital_eccentricity = st.slider("Orbital Eccentricity", 0.0, 0.9, 0.0167, 0.001, key="ecc")
-            axial_tilt = st.slider("Axial Tilt (degrees)", 0, 90, 23, 1, key="tilt")
-            
-        light_intensity = star_luminosity / (distance_from_star ** 2)
-        
-    with tabs[1]:  # Planetary
-        col1, col2 = st.columns(2)
-        with col1:
-            planet_mass = st.slider("Planet Mass (Earth=1)", 0.1, 10.0, 1.0, 0.1, key="planet_mass_adv")
-            planet_radius = st.slider("Planet Radius (Earth=1)", 0.3, 5.0, 1.0, 0.1, key="planet_radius")
-            gravity = planet_mass / (planet_radius ** 2)
-            st.metric("Calculated Gravity", f"{gravity:.2f} g")
-            
-            core_type = st.selectbox("Core Type", ["Iron", "Rocky", "Ice", "Gas"], key="core_type")
-            plate_tectonics = st.checkbox("Plate Tectonics Active", True, key="tectonics")
-            volcanic_activity = st.slider("Volcanic Activity", 0, 100, 30, key="volcanic")
-            
-        with col2:
-            rotation_period = st.number_input("Rotation Period (hours)", 1, 1000, 24, key="rotation")
-            tidal_locked = st.checkbox("Tidally Locked", False, key="tidal_lock")
-            magnetic_field_strength = st.slider("Magnetic Field (Earth=1)", 0.0, 10.0, 1.0, 0.1, key="mag_adv")
-            
-            surface_temp_day = st.slider("Daytime Surface Temp (K)", 100, 800, 288, key="temp_day")
-            surface_temp_night = st.slider("Nighttime Surface Temp (K)", 50, 600, 283, key="temp_night")
-            temperature = (surface_temp_day + surface_temp_night) / 2
-    
-    with tabs[2]:  # Atmospheric
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("**Primary Gases**")
-            nitrogen = st.slider("Nitrogen %", 0.0, 100.0, 78.0, key="n2")
-            oxygen_level = st.slider("Oxygen %", 0.0, 100.0, 21.0, key="o2_adv")
-            co2_level = st.slider("CO₂ %", 0.0, 100.0, 0.04, key="co2_adv")
-            
-        with col2:
-            st.markdown("**Secondary Gases**")
-            argon = st.slider("Argon %", 0.0, 10.0, 0.93, key="ar")
-            methane = st.slider("Methane %", 0.0, 50.0, 0.0, key="ch4")
-            ammonia = st.slider("Ammonia %", 0.0, 50.0, 0.0, key="nh3")
-            
-        with col3:
-            st.markdown("**Atmospheric Properties**")
-            pressure = st.slider("Surface Pressure (atm)", 0.0, 200.0, 1.0, key="pressure_adv")
-            atmosphere_density = st.slider("Density (kg/m³)", 0.0, 50.0, 1.225, key="atm_dens_adv")
-            cloud_coverage = st.slider("Cloud Coverage %", 0, 100, 60, key="clouds")
-    
-    with tabs[3]:  # Hydrosphere
-        col1, col2 = st.columns(2)
-        with col1:
-            liquid_type = st.selectbox("Primary Liquid", 
-                ["Water", "Methane", "Ammonia", "Sulfuric Acid", "Liquid CO₂"],
-                key="liquid_type")
-            liquid_coverage = st.slider("Liquid Coverage %", 0.0, 1.0, 0.71, key="liquid_cov")
-            ocean_depth_avg = st.slider("Average Ocean Depth (km)", 0.0, 50.0, 3.8, key="ocean_depth")
-            
-        with col2:
-            salinity = st.slider("Salinity %", 0.0, 50.0, 3.5, key="salinity")
-            ph_level = st.slider("pH Level", 0.0, 14.0, 8.1, key="ph")
-            ocean_temp = st.slider("Ocean Temperature (K)", 200, 400, 277, key="ocean_temp")
-            hydrothermal_vents = st.checkbox("Hydrothermal Vents Present", True, key="vents")
-    
-    with tabs[4]:  # Biological Pressures
-        col1, col2 = st.columns(2)
-        with col1:
-            predation_pressure = st.slider("Predation Pressure", 0, 100, 50, key="predation")
-            competition_intensity = st.slider("Resource Competition", 0, 100, 60, key="competition")
-            disease_prevalence = st.slider("Disease Prevalence", 0, 100, 30, key="disease")
-            
-        with col2:
-            environmental_stability = st.slider("Environmental Stability", 0, 100, 70, key="stability")
-            seasonal_variation = st.slider("Seasonal Variation", 0, 100, 40, key="seasons")
-            extinction_events_freq = st.slider("Mass Extinction Frequency", 0, 100, 10, key="extinction")
-    
-    with tabs[5]:  # Energy Sources
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("**Available Energy Sources**")
-            has_photosynthesis = st.checkbox("Photosynthesis Possible", True, key="photo")
-            has_chemosynthesis = st.checkbox("Chemosynthesis Possible", True, key="chemo")
-            has_thermal_energy = st.checkbox("Thermal Energy Available", volcanic_activity > 50, key="thermal")
-            
-        with col2:
-            primary_energy_source = st.selectbox("Primary Energy Source",
-                ["Photosynthesis", "Chemosynthesis", "Thermal", "Radiation"],
-                key="primary_energy")
-            energy_availability = st.slider("Energy Availability", 0, 100, 80, key="energy_avail")
-    
-    # Store all advanced parameters
-    st.session_state.environment_params = {
-        'star_type': star_type,
-        'star_mass': star_mass,
-        'star_temperature': star_temperature,
-        'star_luminosity': star_luminosity,
-        'light_intensity': light_intensity,
-        'distance_from_star': distance_from_star,
-        'orbital_period': orbital_period,
-        'orbital_eccentricity': orbital_eccentricity,
-        'axial_tilt': axial_tilt,
-        'planet_mass': planet_mass,
-        'planet_radius': planet_radius,
-        'gravity': gravity,
-        'core_type': core_type,
-        'plate_tectonics': plate_tectonics,
-        'volcanic_activity': volcanic_activity,
-        'rotation_period': rotation_period,
-        'tidal_locked': tidal_locked,
-        'magnetic_field_strength': magnetic_field_strength,
-        'temperature': temperature,
-        'nitrogen': nitrogen,
-        'oxygen_level': oxygen_level,
-        'co2_level': co2_level,
-        'argon': argon,
-        'methane': methane,
-        'ammonia': ammonia,
-        'pressure': pressure,
-        'atmosphere_density': atmosphere_density,
-        'cloud_coverage': cloud_coverage,
-        'liquid_type': liquid_type,
-        'liquid_coverage': liquid_coverage,
-        'ocean_depth_avg': ocean_depth_avg,
-        'salinity': salinity,
-        'ph_level': ph_level,
-        'ocean_temp': ocean_temp,
-        'hydrothermal_vents': hydrothermal_vents,
-        'predation_pressure': predation_pressure,
-        'competition_intensity': competition_intensity,
-        'disease_prevalence': disease_prevalence,
-        'environmental_stability': environmental_stability,
-        'seasonal_variation': seasonal_variation,
-        'extinction_events_freq': extinction_events_freq,
-        'primary_energy_source': primary_energy_source,
-        'energy_availability': energy_availability,
-        'radiation_level': 20 if magnetic_field_strength > 0.5 else 100
-    }
-
-elif param_mode == "Expert (1000+ params)":
-    st.warning("⚠️ Expert Mode: Control 1000+ granular parameters")
-    
-    expert_tabs = st.tabs([
-        "🌟 Stellar Physics", 
-        "🪐 Planetary Dynamics", 
-        "🌡️ Climate Systems",
-        "🧪 Chemical Environment",
-        "🦠 Ecological Pressures",
-        "🧬 Genetic Factors",
-        "⚛️ Quantum Effects",
-        "🌊 Ocean Dynamics"
-    ])
-    
-    with expert_tabs[0]:  # Stellar Physics
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("**Stellar Classification**")
-            spectral_class = st.text_input("Spectral Class (e.g., G2V)", "G2V", key="spectral")
-            star_age = st.slider("Star Age (Gyr)", 0.1, 13.0, 4.6, key="star_age")
-            metallicity = st.slider("Metallicity [Fe/H]", -2.0, 0.5, 0.0, key="metallicity")
-            
-        with col2:
-            st.markdown("**Stellar Activity**")
-            solar_wind_strength = st.slider("Solar Wind", 0, 100, 50, key="solar_wind")
-            coronal_mass_ejections = st.slider("CME Frequency", 0, 100, 20, key="cme")
-            stellar_flares = st.slider("Flare Activity", 0, 100, 30, key="flares")
-            
-        with col3:
-            st.markdown("**Radiation Output**")
-            uv_radiation = st.slider("UV Radiation", 0, 100, 30, key="uv")
-            xray_radiation = st.slider("X-Ray Emission", 0, 100, 10, key="xray")
-            cosmic_ray_flux = st.slider("Cosmic Ray Flux", 0, 100, 40, key="cosmic")
-            radiation_level = (uv_radiation + xray_radiation + cosmic_ray_flux) / 3
-    
-    with expert_tabs[1]:  # Planetary Dynamics
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("**Orbital Mechanics**")
-            semi_major_axis = st.number_input("Semi-Major Axis (AU)", 0.1, 50.0, 1.0, key="semi_major")
-            orbital_inclination = st.slider("Orbital Inclination (°)", 0, 180, 7, key="inclination")
-            precession_rate = st.slider("Axial Precession (years)", 0, 50000, 26000, key="precession")
-            
-        with col2:
-            st.markdown("**Rotational Dynamics**")
-            day_length = st.slider("Day Length (hours)", 1, 1000, 24, key="day_length")
-            obliquity = st.slider("Obliquity (°)", 0, 90, 23.5, key="obliquity")
-            nutation_amplitude = st.slider("Nutation (arcsec)", 0, 100, 17, key="nutation")
-            
-        with col3:
-            st.markdown("**Gravitational Environment**")
-            escape_velocity = st.slider("Escape Velocity (km/s)", 1, 100, 11.2, key="escape_vel")
-            hill_sphere = st.slider("Hill Sphere (planet radii)", 10, 1000, 234, key="hill")
-            roche_limit = st.slider("Roche Limit (planet radii)", 1, 5, 2.46, key="roche")
-    
-    with expert_tabs[2]:  # Climate Systems
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("**Temperature Distribution**")
-            equatorial_temp = st.slider("Equatorial Temp (K)", 200, 400, 303, key="eq_temp")
-            polar_temp = st.slider("Polar Temp (K)", 100, 350, 243, key="polar_temp")
-            temp_gradient = equatorial_temp - polar_temp
-            temperature = (equatorial_temp + polar_temp) / 2
-            
-        with col2:
-            st.markdown("**Weather Patterns**")
-            storm_frequency = st.slider("Storm Frequency", 0, 100, 40, key="storms")
-            hurricane_intensity = st.slider("Hurricane Intensity", 0, 100, 50, key="hurricanes")
-            tornado_activity = st.slider("Tornado Activity", 0, 100, 30, key="tornadoes")
-            
-        with col3:
-            st.markdown("**Atmospheric Circulation**")
-            hadley_cell_strength = st.slider("Hadley Cell", 0, 100, 70, key="hadley")
-            jet_stream_speed = st.slider("Jet Stream (m/s)", 0, 200, 50, key="jet")
-            coriolis_effect = st.slider("Coriolis Effect", 0, 100, 50, key="coriolis")
-    
-    with expert_tabs[3]:  # Chemical Environment
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("**Atmospheric Chemistry**")
-            ozone_layer = st.slider("Ozone Layer Thickness (DU)", 0, 500, 300, key="ozone")
-            greenhouse_effect = st.slider("Greenhouse Effect (K)", 0, 100, 33, key="greenhouse")
-            aerosol_content = st.slider("Aerosol Content", 0, 100, 40, key="aerosol")
-            
-        with col2:
-            st.markdown("**Surface Chemistry**")
-            mineral_diversity = st.slider("Mineral Diversity", 0, 5000, 4000, key="minerals")
-            organic_compounds = st.slider("Organic Compounds", 0, 1000, 100, key="organics")
-            clay_minerals = st.checkbox("Clay Minerals Present", True, key="clay")
-            
-        with col3:
-            st.markdown("**Elemental Abundance**")
-            carbon_abundance = st.slider("Carbon ppm", 0, 10000, 200, key="carbon_ppm")
-            nitrogen_abundance = st.slider("Nitrogen ppm", 0, 100000, 78000, key="nitrogen_ppm")
-            phosphorus_abundance = st.slider("Phosphorus ppm", 0, 10000, 1000, key="phosphorus")
-    
-    with expert_tabs[4]:  # Ecological Pressures
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("**Competition Factors**")
-            niche_availability = st.slider("Niche Availability", 0, 100, 60, key="niches")
-            resource_scarcity = st.slider("Resource Scarcity", 0, 100, 40, key="scarcity")
-            territorial_pressure = st.slider("Territorial Pressure", 0, 100, 50, key="territory")
-            
-        with col2:
-            st.markdown("**Predation Dynamics**")
-            apex_predator_count = st.slider("Apex Predators", 0, 100, 30, key="apex")
-            prey_abundance = st.slider("Prey Abundance", 0, 100, 70, key="prey")
-            predator_intelligence = st.slider("Predator Intelligence", 0, 100, 50, key="pred_intel")
-            predation_pressure = (apex_predator_count + predator_intelligence) / 2
-            
-        with col3:
-            st.markdown("**Environmental Stress**")
-            drought_frequency = st.slider("Drought Frequency", 0, 100, 30, key="drought")
-            flood_risk = st.slider("Flood Risk", 0, 100, 40, key="flood")
-            fire_frequency = st.slider("Wildfire Frequency", 0, 100, 20, key="fire")
-    
-    with expert_tabs[5]:  # Genetic Factors
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("**Mutation Dynamics**")
-            base_mutation_rate = st.slider("Base Mutation Rate (per generation)", 0.0, 0.1, 0.001, 0.0001, key="mutation_base", format="%.4f")
-            beneficial_mutation_ratio = st.slider("Beneficial Mutations %", 0.0, 10.0, 1.0, key="beneficial")
-            horizontal_gene_transfer = st.checkbox("Horizontal Gene Transfer", False, key="hgt")
-            
-        with col2:
-            st.markdown("**Selection Pressures**")
-            natural_selection_strength = st.slider("Natural Selection", 0, 100, 70, key="nat_selection")
-            sexual_selection_strength = st.slider("Sexual Selection", 0, 100, 50, key="sex_selection")
-            artificial_selection = st.slider("Artificial Selection", 0, 100, 0, key="art_selection")
-            
-        with col3:
-            st.markdown("**Population Genetics**")
-            genetic_drift = st.slider("Genetic Drift", 0, 100, 30, key="drift")
-            gene_flow = st.slider("Gene Flow", 0, 100, 50, key="gene_flow")
-            bottleneck_events = st.slider("Bottleneck Events", 0, 100, 10, key="bottleneck")
-    
-    with expert_tabs[6]:  # Quantum Effects
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("**Quantum Biology**")
-            quantum_coherence = st.slider("Quantum Coherence Time (ps)", 0, 1000, 100, key="coherence")
-            quantum_tunneling = st.checkbox("Quantum Tunneling in Metabolism", True, key="tunneling")
-            entanglement_effects = st.slider("Entanglement Effects", 0, 100, 20, key="entangle")
-            
-        with col2:
-            st.markdown("**Electromagnetic Effects**")
-            em_field_strength = st.slider("EM Field Strength", 0, 100, 50, key="em_field")
-            static_electricity = st.slider("Static Buildup", 0, 100, 30, key="static")
-            piezoelectric_potential = st.slider("Piezoelectric Effects", 0, 100, 40, key="piezo")
-            
-        with col3:
-            st.markdown("**Exotic Physics**")
-            dark_matter_interaction = st.slider("Dark Matter Effects", 0, 100, 5, key="dark_matter")
-            neutrino_flux = st.slider("Neutrino Flux", 0, 100, 30, key="neutrino")
-            gravitational_waves = st.slider("Gravitational Wave Exposure", 0, 100, 10, key="grav_waves")
-    
-    with expert_tabs[7]:  # Ocean Dynamics
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("**Ocean Currents**")
-            thermohaline_circulation = st.slider("Thermohaline Strength", 0, 100, 70, key="thermo")
-            tidal_forces = st.slider("Tidal Forces", 0, 100, 50, key="tides")
-            upwelling_zones = st.slider("Upwelling Zones", 0, 100, 40, key="upwell")
-            
-        with col2:
-            st.markdown("**Marine Chemistry**")
-            dissolved_oxygen = st.slider("Dissolved O₂ (mg/L)", 0, 20, 8, key="do")
-            nutrient_concentration = st.slider("Nutrient Concentration", 0, 100, 60, key="nutrients")
-            bioluminescence_capable = st.checkbox("Bioluminescence Possible", True, key="biolum")
-            
-        with col3:
-            st.markdown("**Deep Ocean**")
-            ocean_pressure_max = st.slider("Max Ocean Pressure (atm)", 1, 2000, 1100, key="ocean_pressure")
-            hydrothermal_temp = st.slider("Vent Temperature (K)", 273, 673, 573, key="vent_temp")
-            chemosynthetic_zones = st.slider("Chemosynthetic Zones", 0, 100, 50, key="chemo_zones")
-    
-    # Compile expert parameters
-    st.session_state.environment_params = {
-        'star_type': spectral_class,
-        'star_age': star_age,
-        'metallicity': metallicity,
-        'light_intensity': 1.0,
-        'radiation_level': radiation_level,
-        'distance_from_star': semi_major_axis,
-        'temperature': temperature,
-        'gravity': 1.0,
-        'pressure': 1.0,
-        'atmosphere_density': 1.0,
-        'oxygen_level': 0.21,
-        'co2_level': 0.0004,
-        'magnetic_field_strength': 1.0,
-        'predation_pressure': predation_pressure,
-        'environmental_stability': 50,
-        'primary_energy_source': 'photosynthesis',
-        'liquid_coverage': 0.7,
-        'tectonic_activity': 50,
-        # Add all expert params
-        'solar_wind_strength': solar_wind_strength,
-        'mutation_rate': base_mutation_rate,
-        'quantum_effects': quantum_coherence > 50,
-        'ocean_depth_avg': 3.8
-    }
-
-elif param_mode == "God Mode (10000+ params)":
-    st.error("🔥 GOD MODE ACTIVATED: Complete Control Over Reality 🔥")
-    st.warning("⚠️ Warning: This mode allows control of 10,000+ parameters across all physical, chemical, biological, and quantum domains")
-    
-    god_tabs = st.tabs([
-        "🌌 Cosmology",
-        "⚛️ Atomic Physics", 
-        "🧪 Molecular Biology",
-        "🧠 Neuroscience",
-        "🌿 Botany",
-        "🦠 Microbiology",
-        "🐉 Xenobiology",
-        "🔬 Biochemistry",
-        "🌊 Fluid Dynamics",
-        "🏔️ Geology"
-    ])
-    
-    with god_tabs[0]:  # Cosmology
-        st.markdown("### 🌌 Cosmological Constants & Initial Conditions")
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.markdown("**Fundamental Constants**")
-            planck_constant = st.number_input("Planck Constant (J⋅s)", value=6.626e-34, format="%.3e", key="planck")
-            speed_of_light = st.number_input("Speed of Light (m/s)", value=299792458, key="c")
-            gravitational_constant = st.number_input("G (m³/kg⋅s²)", value=6.674e-11, format="%.3e", key="G")
-            
-        with col2:
-            st.markdown("**Universe Properties**")
-            universe_age = st.slider("Universe Age (Gyr)", 1.0, 20.0, 13.8, key="uni_age")
-            hubble_constant = st.slider("Hubble Constant (km/s/Mpc)", 50, 100, 70, key="hubble")
-            dark_energy_density = st.slider("Dark Energy %", 0, 100, 68, key="dark_energy")
-            
-        with col3:
-            st.markdown("**Galaxy Properties**")
-            galaxy_type = st.selectbox("Galaxy Type", ["Spiral", "Elliptical", "Irregular", "Dwarf"], key="galaxy")
-            galactic_hab_zone = st.checkbox("In Galactic Habitable Zone", True, key="gal_hab")
-            nearby_supernovae = st.slider("Nearby Supernovae (last 100 Myr)", 0, 100, 20, key="supernovae")
-            
-        with col4:
-            st.markdown("**Stellar Neighborhood**")
-            stellar_density = st.slider("Stellar Density (stars/pc³)", 0.0, 1.0, 0.14, key="stellar_dens")
-            binary_star_system = st.checkbox("Binary Star System", False, key="binary")
-            if binary_star_system:
-                companion_star_type = st.selectbox("Companion Star", ["M", "K", "G"], key="companion")
-    
-    with god_tabs[1]:  # Atomic Physics
-        st.markdown("### ⚛️ Atomic & Nuclear Physics Parameters")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown("**Nuclear Forces**")
-            strong_force_coupling = st.slider("Strong Force Coupling", 0.0, 2.0, 1.0, key="strong")
-            weak_force_coupling = st.slider("Weak Force Coupling", 0.0, 2.0, 1.0, key="weak")
-            nuclear_stability = st.slider("Nuclear Stability Index", 0, 100, 50, key="nuc_stab")
-            
-        with col2:
-            st.markdown("**Elemental Abundance**")
-            hydrogen_abundance = st.slider("H Abundance %", 0, 100, 75, key="H_abund")
-            helium_abundance = st.slider("He Abundance %", 0, 100, 24, key="He_abund")
-            metals_abundance = st.slider("Metals (Z>2) %", 0, 10, 1, key="metals_abund")
-            
-        with col3:
-            st.markdown("**Isotope Ratios**")
-            c12_c13_ratio = st.slider("¹²C/¹³C Ratio", 50, 100, 89, key="c_ratio")
-            o16_o18_ratio = st.slider("¹⁶O/¹⁸O Ratio", 400, 600, 500, key="o_ratio")
-            radioactive_decay_mod = st.slider("Decay Rate Modifier", 0.1, 2.0, 1.0, key="decay_mod")
-    
-    with god_tabs[2]:  # Molecular Biology
-        st.markdown("### 🧬 Molecular Biology & Genetics")
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.markdown("**DNA Structure**")
-            dna_base_pairs = st.selectbox("Base Pairs", ["4 (ATCG)", "6 (ATCGXY)", "8 (Custom)"], key="bases")
-            dna_helix_type = st.selectbox("Helix Type", ["Double", "Triple", "Quadruple"], key="helix")
-            codon_length = st.slider("Codon Length", 2, 5, 3, key="codon")
-            
-        with col2:
-            st.markdown("**Genetic Code**")
-            amino_acids_count = st.slider("Amino Acids", 10, 50, 20, key="aa_count")
-            stop_codons = st.slider("Stop Codons", 1, 10, 3, key="stop")
-            genetic_code_redundancy = st.slider("Code Redundancy", 0, 100, 64, key="redundancy")
-            
-        with col3:
-            st.markdown("**Gene Expression**")
-            transcription_rate = st.slider("Transcription Rate", 0.1, 10.0, 1.0, key="transcription")
-            translation_fidelity = st.slider("Translation Fidelity",  0.1, 10.0, 1.0, key="translation")
-            epigenetic_inheritance = st.checkbox("Epigenetic Inheritance", True, key="epigenetic")
-            
-        with col4:
-            st.markdown("**DNA Repair**")
-            mismatch_repair = st.slider("Mismatch Repair %", 0, 100, 99, key="mismatch")
-            nucleotide_excision = st.slider("Excision Repair %", 0, 100, 95, key="excision")
-            telomere_length = st.slider("Telomere Length (kb)", 5, 15, 10, key="telomere")
-    
-    with god_tabs[3]:  # Neuroscience
-        st.markdown("### 🧠 Neuroscience & Cognition")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown("**Neural Architecture**")
-            neuron_count = st.select_slider("Neuron Count", 
-                ["1M", "10M", "100M", "1B", "10B", "100B", "1T"],
-                "100B", key="neurons")
-            synapse_density = st.slider("Synapse Density", 0, 100, 70, key="synapses")
-            neural_layers = st.slider("Cortical Layers", 3, 12, 6, key="layers")
-            
-        with col2:
-            st.markdown("**Neural Signaling**")
-            action_potential_speed = st.slider("Action Potential (m/s)", 1, 120, 50, key="ap_speed")
-            neurotransmitter_types = st.slider("Neurotransmitter Types", 10, 200, 100, key="nt_types")
-            synaptic_plasticity = st.slider("Synaptic Plasticity", 0, 100, 80, key="plasticity")
-            
-        with col3:
-            st.markdown("**Cognitive Capabilities**")
-            working_memory_capacity = st.slider("Working Memory", 3, 15, 7, key="memory")
-            processing_speed = st.slider("Processing Speed", 0, 100, 50, key="proc_speed")
-            consciousness_integration = st.slider("Information Integration", 0, 100, 70, key="integration")
-    
-    with god_tabs[4]:  # Botany
-        st.markdown("### 🌿 Plant Biology & Photosynthesis")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown("**Photosynthetic Pathways**")
-            photosynthesis_type = st.multiselect("Pathways Available",
-                ["C3", "C4", "CAM", "C2", "Retinol-based", "Purple-based"],
-                ["C3", "C4"], key="photo_types")
-            light_saturation_point = st.slider("Light Saturation (μmol/m²/s)", 100, 2000, 1000, key="light_sat")
-            co2_compensation_point = st.slider("CO₂ Compensation (ppm)", 10, 200, 50, key="co2_comp")
-            
-        with col2:
-            st.markdown("**Plant Structure**")
-            vascular_system = st.selectbox("Vascular System",
-                ["None", "Simple", "Complex Xylem/Phloem", "Advanced"],
-                2, key="vascular")
-            root_depth_max = st.slider("Max Root Depth (m)", 0.1, 100.0, 10.0, key="root_depth")
-            leaf_area_index = st.slider("Leaf Area Index", 0.0, 10.0, 3.0, key="lai")
-            
-        with col3:
-            st.markdown("**Plant Adaptations**")
-            drought_tolerance = st.slider("Drought Tolerance", 0, 100, 50, key="drought_tol")
-            frost_resistance = st.slider("Frost Resistance (K)", -50, 0, -10, key="frost")
-            allelopathy = st.slider("Allelopathy (Chemical Warfare)", 0, 100, 30, key="allelopathy")
-    
-    with god_tabs[5]:  # Microbiology
-        st.markdown("### 🦠 Microbiology & Extremophiles")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown("**Microbial Diversity**")
-            bacteria_species = st.number_input("Bacterial Species", 1000, 1000000, 10000, key="bacteria")
-            archaea_species = st.number_input("Archaeal Species", 100, 100000, 5000, key="archaea")
-            virus_diversity = st.slider("Viral Diversity", 0, 100, 70, key="virus")
-            
-        with col2:
-            st.markdown("**Extremophile Capabilities**")
-            thermophile_max_temp = st.slider("Thermophile Max (K)", 273, 500, 395, key="thermo_max")
-            psychrophile_min_temp = st.slider("Psychrophile Min (K)", 100, 273, 253, key="psychro_min")
-            barophile_max_pressure = st.slider("Barophile Max (MPa)", 1, 1000, 110, key="baro_max")
-            
-        with col3:
-            st.markdown("**Metabolic Diversity**")
-            methanogenesis = st.checkbox("Methanogenesis", True, key="methano")
-            nitrogen_fixation = st.checkbox("Nitrogen Fixation", True, key="n_fix")
-            sulfur_metabolism = st.checkbox("Sulfur Metabolism", True, key="sulfur")
-    
-    with god_tabs[6]:  # Xenobiology
-        st.markdown("### 🐉 Xenobiology - Exotic Life Forms")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown("**Alternative Biochemistries**")
-            alt_chemistry = st.multiselect("Chemistry Bases",
-                ["Carbon", "Silicon", "Boron", "Nitrogen", "Arsenic", "Germanium"],
-                ["Carbon"], key="alt_chem")
-            alt_solvents = st.multiselect("Solvents",
-                ["Water", "Ammonia", "Methane", "Sulfuric Acid", "Formamide"],
-                ["Water"], key="alt_solvent")
-            
-        with col2:
-            st.markdown("**Exotic Energy Sources**")
-            uses_magnetism = st.checkbox("Magnetic Energy Harvesting", False, key="mag_energy")
-            uses_gravity = st.checkbox("Gravitational Energy", False, key="grav_energy")
-            uses_vacuum = st.checkbox("Zero-Point Energy", False, key="vacuum_energy")
-            
-        with col3:
-            st.markdown("**Exotic Structures**")
-            fractal_biology = st.checkbox("Fractal Body Structure", False, key="fractal")
-            crystalline_life = st.checkbox("Crystalline Components", False, key="crystal")
-            plasma_based = st.checkbox("Plasma-Based Life", False, key="plasma")
-    
-    with god_tabs[7]:  # Biochemistry
-        st.markdown("### 🔬 Biochemistry - Molecular Details")
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.markdown("**Proteins**")
-            protein_folding_speed = st.slider("Folding Speed (ms)", 1, 1000, 100, key="fold_speed")
-            chaperone_efficiency = st.slider("Chaperone Efficiency %", 0, 100, 90, key="chaperone")
-            enzyme_turnover = st.number_input("Enzyme Turnover (/s)", 1, 1000000, 1000, key="enzyme_turn")
-            
-        with col2:
-            st.markdown("**Lipids**")
-            membrane_fluidity = st.slider("Membrane Fluidity", 0, 100, 50, key="membrane_fluid")
-            lipid_bilayer_thickness = st.slider("Bilayer Thickness (nm)", 3, 10, 5, key="bilayer")
-            cholesterol_content = st.slider("Sterol Content %", 0, 50, 20, key="cholesterol")
-            
-        with col3:
-            st.markdown("**Carbohydrates**")
-            glycogen_storage = st.slider("Energy Storage (g/kg)", 0, 100, 10, key="glycogen")
-            cellulose_strength = st.slider("Structural Strength", 0, 100, 70, key="cellulose")
-            chitin_presence = st.checkbox("Chitin-based Structures", False, key="chitin")
-            
-        with col4:
-            st.markdown("**Metabolic Cofactors**")
-            atp_efficiency = st.slider("ATP Efficiency %", 30, 95, 65, key="atp_eff")
-            nadh_turnover = st.slider("NADH Turnover", 0, 100, 50, key="nadh")
-            coenzyme_diversity = st.slider("Coenzyme Types", 10, 100, 50, key="coenzyme")
-    
-    with god_tabs[8]:  # Fluid Dynamics
-        st.markdown("### 🌊 Fluid Dynamics & Transport")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown("**Viscosity & Flow**")
-            atmospheric_viscosity = st.slider("Atm Viscosity (Pa·s)", 0.00001, 0.001, 0.0000181, format="%.5f", key="atm_visc")
-            ocean_viscosity = st.slider("Ocean Viscosity (Pa·s)", 0.0001, 0.01, 0.001, format="%.4f", key="ocean_visc")
-            reynolds_number = st.number_input("Reynolds Number", 1, 1000000, 10000, key="reynolds")
-            
-        with col2:
-            st.markdown("**Turbulence**")
-            atmospheric_turbulence = st.slider("Atmospheric Turbulence", 0, 100, 50, key="atm_turb")
-            ocean_turbulence = st.slider("Ocean Turbulence", 0, 100, 40, key="ocean_turb")
-            vortex_formation = st.slider("Vortex Formation Rate", 0, 100, 30, key="vortex")
-            
-        with col3:
-            st.markdown("**Diffusion**")
-            molecular_diffusion = st.slider("Molecular Diffusion", 0, 100, 50, key="diff")
-            osmotic_pressure = st.slider("Osmotic Pressure (atm)", 0, 100, 10, key="osmotic")
-            capillary_action = st.slider("Capillary Action", 0, 100, 60, key="capillary")
-    
-    with god_tabs[9]:  # Geology
-        st.markdown("### 🏔️ Geology & Planetary Interior")
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.markdown("**Crustal Properties**")
-            crust_thickness = st.slider("Crust Thickness (km)", 5, 100, 30, key="crust")
-            crust_composition = st.selectbox("Crust Type",
-                ["Basaltic", "Granitic", "Mixed", "Exotic"],
-                key="crust_comp")
-            seismic_activity = st.slider("Seismic Activity", 0, 100, 40, key="seismic")
-            
-        with col2:
-            st.markdown("**Mantle Dynamics**")
-            mantle_convection = st.slider("Mantle Convection", 0, 100, 60, key="mantle_conv")
-            mantle_viscosity = st.number_input("Mantle Viscosity (Pa·s)", 1e19, 1e23, 1e21, format="%.2e", key="mantle_visc")
-            plume_activity = st.slider("Mantle Plumes", 0, 100, 30, key="plumes")
-            
-        with col3:
-            st.markdown("**Core Properties**")
-            core_type = st.selectbox("Core Type",
-                ["Iron-Nickel", "Iron-Sulfur", "Rocky", "None"],
-                key="core_comp")
-            core_temperature = st.slider("Core Temp (K)", 3000, 7000, 5200, key="core_temp")
-            inner_core_solidified = st.checkbox("Solid Inner Core", True, key="inner_core")
-            
-        with col4:
-            st.markdown("**Geological Cycles**")
-            rock_cycle_rate = st.slider("Rock Cycle (My)", 10, 500, 100, key="rock_cycle")
-            subduction_rate = st.slider("Subduction (cm/yr)", 0, 20, 5, key="subduction")
-            mountain_building = st.slider("Orogeny Rate", 0, 100, 40, key="orogeny")
-    
-    # Compile all God Mode parameters (10,000+)
-    st.session_state.environment_params = {
-        # Basic required params
-        'star_type': 'G2V',
-        'light_intensity': 1.0,
-        'distance_from_star': 1.0,
-        'temperature': 288,
-        'gravity': 1.0,
-        'pressure': 1.0,
-        'atmosphere_density': 1.0,
-        'oxygen_level': 0.21,
-        'co2_level': 0.0004,
-        'radiation_level': 20,
-        'magnetic_field_strength': 1.0,
-        'predation_pressure': 50,
-        'environmental_stability': 70,
-        'primary_energy_source': 'photosynthesis',
-        'liquid_coverage': 0.7,
-        'tectonic_activity': 40,
-        # God mode additions
-        'planck_constant': planck_constant,
-        'speed_of_light': speed_of_light,
-        'gravitational_constant': gravitational_constant,
-        'dna_base_pairs': 4,
-        'neuron_count': 100e9,
-        'photosynthesis_types': photosynthesis_type,
-        'extremophile_capable': True,
-        'alternative_chemistry': len(alt_chemistry) > 1,
-        'exotic_energy_use': uses_magnetism or uses_gravity or uses_vacuum,
-    }
-
-# EVOLUTION BUTTON
-st.markdown("---")
-st.markdown("## 🧬 Evolution Control Panel")
-
-col1, col2, col3 = st.columns([2, 1, 1])
-
-with col1:
-    evolution_mode = st.selectbox(
-        "Evolution Mode",
-        ["Single Organism", "Population (100)", "Ecosystem (1000)", "Planetary Scale (10000+)"],
-        key="evo_mode"
-    )
-    
-    time_scale = st.slider("Evolutionary Time Scale (Million Years)", 0.1, 1000.0, 10.0, key="time_scale")
-
-with col2:
-    mutation_factor = st.slider("Mutation Intensity", 0.1, 5.0, 1.0, key="mutation_factor")
-    
-with col3:
-    st.markdown("### Quick Presets")
-    if st.button("🌍 Earth-like", key="preset_earth"):
-        st.session_state.environment_params = {
-            'star_type': 'G2V', 'light_intensity': 1.0, 'distance_from_star': 1.0,
-            'temperature': 288, 'gravity': 1.0, 'pressure': 1.0, 'atmosphere_density': 1.0,
-            'oxygen_level': 0.21, 'co2_level': 0.0004, 'radiation_level': 20,
-            'magnetic_field_strength': 1.0, 'predation_pressure': 50, 'environmental_stability': 70,
-            'primary_energy_source': 'photosynthesis', 'liquid_coverage': 0.7, 'tectonic_activity': 40
-        }
-        st.rerun()
-    
-    if st.button("❄️ Ice World", key="preset_ice"):
-        st.session_state.environment_params = {
-            'star_type': 'M', 'light_intensity': 0.1, 'distance_from_star': 0.3,
-            'temperature': 200, 'gravity': 0.8, 'pressure': 0.5, 'atmosphere_density': 0.3,
-            'oxygen_level': 0.05, 'co2_level': 0.5, 'radiation_level': 80,
-            'magnetic_field_strength': 0.3, 'predation_pressure': 30, 'environmental_stability': 40,
-            'primary_energy_source': 'chemosynthesis', 'liquid_coverage': 0.3, 'tectonic_activity': 20
-        }
-        st.rerun()
-    
-    if st.button("🔥 Volcanic Hell", key="preset_hell"):
-        st.session_state.environment_params = {
-            'star_type': 'F', 'light_intensity': 3.0, 'distance_from_star': 0.5,
-            'temperature': 500, 'gravity': 2.0, 'pressure': 10.0, 'atmosphere_density': 5.0,
-            'oxygen_level': 0.0, 'co2_level': 0.9, 'radiation_level': 150,
-            'magnetic_field_strength': 0.1, 'predation_pressure': 80, 'environmental_stability': 20,
-            'primary_energy_source': 'thermal', 'liquid_coverage': 0.1, 'tectonic_activity': 95
-        }
-        st.rerun()
-
-# MAIN EVOLUTION BUTTON
-st.markdown("---")
-if st.button("🚀 EVOLVE LIFE FORM", key="evolve_button", type="primary"):
-    with st.spinner("🧬 Simulating billions of years of evolution..."):
-        # Run evolution engine
-        engine = EvolutionEngine(st.session_state.environment_params)
-        organism = engine.generate_organism()
-        
-        st.session_state.current_organism = organism
-        st.session_state.evolution_history.append(organism)
-        st.session_state.simulation_runs += 1
-        
-        # Success message
-        st.success(f"✅ Evolution Complete! Generated: {organism['chemistry_base'].upper()}-based organism")
-
-# RESULTS DISPLAY
-if st.session_state.current_organism is not None:
-    org = st.session_state.current_organism
-    
-    st.markdown("---")
-    st.markdown("## 📊 Evolution Results")
-    
-    # Top-level metrics
-    col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        st.metric("Chemistry", org['chemistry_base'].title(), f"{org['chemistry_stability']*100:.0f}% stable")
-    with col2:
-        st.metric("Survival Rate", f"{org['survival_probability']:.1f}%")
-    with col3:
-        st.metric("Intelligence", f"{org['cognitive_abilities']['intelligence_index']:.0f}/200")
-    with col4:
-        st.metric("Lifespan", f"{org['metabolism']['lifespan_years']:.0f} years")
-    with col5:
-        st.metric("Body Mass", f"{org['body_structure']['mass_kg']:.1f} kg")
-    
-    # Tabbed results
-    result_tabs = st.tabs([
-        "🦴 Physical Form",
-        "👁️ Senses", 
-        "🧠 Cognition",
-        "⚡ Metabolism",
-        "🛡️ Defense",
-        "🏃 Locomotion",
-        "👶 Reproduction",
-        "📈 Analytics"
-    ])
-    
-    with result_tabs[0]:  # Physical Form
-        col1, col2 = st.columns([1, 1])
-        
-        with col1:
-            st.markdown("### 3D Organism Model")
-            fig_3d = create_organism_3d_model(org)
-            st.plotly_chart(fig_3d, use_container_width=True, key="organism_3d")
-            
-        with col2:
-            st.markdown("### Physical Characteristics")
-            body = org['body_structure']
-            
-            st.markdown(f"""
-            <div class="result-card">
-            <h4>Body Structure</h4>
-            <div class="organism-stat">Height: {body['height_m']:.2f} meters</div>
-            <div class="organism-stat">Mass: {body['mass_kg']:.1f} kg</div>
-            <div class="organism-stat">Limbs: {body['limb_count']}</div>
-            <div class="organism-stat">Body Shape: {'Compact & Sturdy' if body['body_shape_index'] < 0.3 else 'Elongated & Graceful'}</div>
-            {f"<div class='organism-stat'>Wingspan: {body['wingspan_m']:.1f} meters</div>" if body['wingspan_m'] > 0 else ""}
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Body proportions chart
-            proportions = pd.DataFrame({
-                'Feature': ['Height', 'Mass', 'Limbs', 'Shape Index'],
-                'Value': [body['height_m']*10, body['mass_kg']/10, body['limb_count']*10, body['body_shape_index']*100]
-            })
-            
-            fig = px.bar(proportions, x='Feature', y='Value', 
-                        title="Body Proportions (Normalized)",
-                        color='Value', color_continuous_scale='Viridis')
-            fig.update_layout(height=300, showlegend=False)
-            st.plotly_chart(fig, use_container_width=True, key="body_props")
-    
-    with result_tabs[1]:  # Senses
-        col1, col2 = st.columns(2)
-        
-        senses = org['sensory_systems']
-        
-        with col1:
-            st.markdown(f"""
-            <div class="result-card">
-            <h4>👁️ Visual System</h4>
-            <div class="organism-stat">Eyes: {senses['eye_count']}</div>
-            <div class="organism-stat">Eye Size: {senses['eye_size_cm']:.1f} cm diameter</div>
-            <div class="organism-stat">Vision Spectrum: {senses['vision_spectrum'].replace('_', ' ').title()}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div class="result-card">
-            <h4>👂 Auditory System</h4>
-            <div class="organism-stat">Hearing Range: {senses['hearing_range_hz'][0]}-{senses['hearing_range_hz'][1]} Hz</div>
-            <div class="organism-stat">{'Excellent hearing in atmosphere' if senses['hearing_range_hz'][1] > 0 else 'No atmospheric hearing'}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown(f"""
-            <div class="result-card">
-            <h4>👃 Olfactory System</h4>
-            <div class="organism-stat">Smell Receptors: {senses['smell_receptors']:,}</div>
-            <div class="organism-stat">{'Highly developed sense of smell' if senses['smell_receptors'] > 5000 else 'Limited olfaction'}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown(f"""
-            <div class="result-card">
-            <h4>🧲 Exotic Senses</h4>
-            <div class="organism-stat">Magnetic Sense: {'✅ Yes' if senses['has_magnetic_sense'] else '❌ No'}</div>
-            {f"<div class='organism-stat'>Magnetic Sensitivity: {senses['magnetic_sensitivity']:.0f}</div>" if senses['has_magnetic_sense'] else ""}
-            <div class="organism-stat">Radiation Detection: {'✅ Yes' if senses['has_radiation_sense'] else '❌ No'}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Sensory capabilities radar
-        fig = create_trait_comparison_radar(org)
-        st.plotly_chart(fig, use_container_width=True, key="trait_radar")
-    
-    with result_tabs[2]:  # Cognition
-        cognition = org['cognitive_abilities']
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Intelligence Index", f"{cognition['intelligence_index']:.0f}/200")
-            st.metric("Brain-Body Ratio", f"{cognition['brain_body_ratio']:.4f}")
-        with col2:
-            st.metric("Memory Capacity", f"{cognition['memory_capacity_mb']:.0f} MB")
-            st.metric("Problem Solving", f"{cognition['problem_solving_score']:.0f}/100")
-        with col3:
-            st.metric("Social Complexity", cognition['social_complexity'])
-            st.metric("Consciousness", cognition['consciousness_level'].title())
-        
-        st.markdown(f"""
-        <div class="result-card">
-        <h4>🧠 Cognitive Abilities</h4>
-        <div class="organism-stat">Language Capability: {'✅ Can develop language' if cognition['can_use_language'] else '❌ Pre-linguistic'}</div>
-        <div class="organism-stat">Tool Use: {'✅ Can create and use tools' if cognition['can_use_tools'] else '❌ No tool use'}</div>
-        <div class="organism-stat">Consciousness Level: {cognition['consciousness_level'].upper()}</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Intelligence comparison
-        comparison_data = pd.DataFrame({
-            'Species': ['This Organism', 'Human', 'Dolphin', 'Chimpanzee', 'Crow', 'Octopus'],
-            'Intelligence': [cognition['intelligence_index'], 100, 85, 70, 50, 40]
-        })
-        
-        fig = px.bar(comparison_data, x='Species', y='Intelligence',
-                    title="Intelligence Comparison",
-                    color='Intelligence', color_continuous_scale='Plasma')
-        fig.update_layout(height=400)
-        st.plotly_chart(fig, use_container_width=True, key="intelligence_comp")
-    
-    with result_tabs[3]:  # Metabolism
-        metabolism = org['metabolism']
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown(f"""
-            <div class="result-card">
-            <h4>⚡ Energy Systems</h4>
-            <div class="organism-stat">Metabolic Rate: {metabolism['metabolic_rate']:.2f}× Earth baseline</div>
-            <div class="organism-stat">Energy Efficiency: {metabolism['energy_efficiency']*100:.1f}%</div>
-            <div class="organism-stat">Daily Energy Need: {metabolism['daily_energy_need_kj']:.0f} kJ</div>
-            <div class="organism-stat">Respiration: {metabolism['respiration_type'].title()}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with col2:
-            st.markdown(f"""
-            <div class="result-card">
-            <h4>⏱️ Life Cycle</h4>
-            <div class="organism-stat">Lifespan: {metabolism['lifespan_years']:.0f} years</div>
-            <div class="organism-stat">Reproduction Cycle: {metabolism['reproduction_cycle_days']:.0f} days</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Metabolic rate visualization
-        time_points = np.linspace(0, 24, 100)
-        metabolic_curve = metabolism['metabolic_rate'] * (1 + 0.3 * np.sin(time_points * np.pi / 12))
-        
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=time_points, y=metabolic_curve,
-            fill='tozeroy', line=dict(color='orange', width=3),
-            name='Metabolic Rate'
-        ))
-        fig.update_layout(
-            title="24-Hour Metabolic Cycle",
-            xaxis_title="Hour of Day",
-            yaxis_title="Relative Metabolic Rate",
-            height=350
+    def copy(self):
+        """Deep copy with new lineage"""
+        new_genotype = Genotype(
+            component_genes={cid: ComponentGene(**asdict(c)) for cid, c in self.component_genes.items()},
+            rule_genes=[RuleGene(**asdict(r)) for r in self.rule_genes],
+            fitness=self.fitness,
+            individual_fitness=self.individual_fitness,
+            age=0,
+            generation=self.generation,
+            parent_ids=[self.id],
+            kingdom_id=self.kingdom_id,
+            evolvable_mutation_rate=self.evolvable_mutation_rate,
+            evolvable_innovation_rate=self.evolvable_innovation_rate,
+            objective_weights=self.objective_weights.copy()
         )
-        st.plotly_chart(fig, use_container_width=True, key="metabolic_curve")
+        return new_genotype
     
-    with result_tabs[4]:  # Defense
-        defense = org['defense_mechanisms']
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown(f"""
-            <div class="result-card">
-            <h4>🛡️ Defense Mechanisms</h4>
-            <div class="organism-stat">Mechanisms: {', '.join(defense['defense_mechanisms'])}</div>
-            <div class="organism-stat">Armor Thickness: {defense['armor_thickness_cm']:.1f} cm</div>
-            <div class="organism-stat">DNA Repair Rate: {defense['dna_repair_rate']:.1f}× baseline</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with col2:
-            st.markdown(f"""
-            <div class="result-card">
-            <h4>☠️ Offensive Capabilities</h4>
-            <div class="organism-stat">Venom: {'✅ Venomous' if defense['has_venom'] else '❌ Non-venomous'}</div>
-            {f"<div class='organism-stat'>Venom Potency: {defense['venom_potency']:.0f}/100</div>" if defense['has_venom'] else ""}
-            <div class="organism-stat">Camouflage: {defense['camouflage_ability']:.0f}/100</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Defense vs Predation visualization
-        defense_score = len(defense['defense_mechanisms']) * 15 + defense['camouflage_ability'] * 0.5
-        
-        fig = go.Figure()
-        fig.add_trace(go.Indicator(
-            mode="gauge+number",
-            value=defense_score,
-            title={'text': "Overall Defense Rating"},
-            gauge={'axis': {'range': [0, 200]},
-                  'bar': {'color': "darkred"},
-                  'steps': [
-                      {'range': [0, 50], 'color': "lightgray"},
-                      {'range': [50, 100], 'color': "yellow"},
-                      {'range': [100, 200], 'color': "green"}]},
-            domain={'x': [0, 1], 'y': [0, 1]}
-        ))
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True, key="defense_gauge")
-    
-    with result_tabs[5]:  # Locomotion
-        locomotion = org['locomotion']
-        
-        st.markdown(f"""
-        <div class="result-card">
-        <h4>🏃 Locomotion Capabilities</h4>
-        <div class="organism-stat">Movement Types: {', '.join(locomotion['locomotion_types'])}</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric("Ground Speed", f"{locomotion['ground_speed_kmh']:.1f} km/h")
-            st.metric("Jump Height", f"{locomotion['jump_height_m']:.2f} m")
-            
-        with col2:
-            if locomotion['can_fly']:
-                st.metric("Flight Speed", f"{locomotion['flight_speed_kmh']:.1f} km/h", "✈️")
+    def compute_complexity(self) -> float:
+        """Kolmogorov complexity approximation"""
+        num_components = len(self.component_genes)
+        num_rules = len(self.rule_genes)
+        num_conditions = sum(len(r.conditions) for r in self.rule_genes)
+        return (num_components * 0.4) + (num_rules * 0.3) + (num_conditions * 0.3)
+
+    def update_kingdom(self):
+        """Determine the organism's kingdom based on its dominant structural component."""
+        if not self.component_genes:
+            self.kingdom_id = "Unknown"
+            return
+        dominant_comp = max(self.component_genes.values(), key=lambda c: c.structural, default=None)
+        if dominant_comp:
+            self.kingdom_id = dominant_comp.base_kingdom
+        else:
+            comp_counts = Counter(c.base_kingdom for c in self.component_genes.values())
+            if comp_counts:
+                self.kingdom_id = comp_counts.most_common(1)[0][0]
             else:
-                st.metric("Flight", "Not capable", "❌")
+                self.kingdom_id = "Unclassified"
+
+# =================================================================
+#
+# PART 2: PHENOTYPE & GRID (The "Display Case")
+#
+# These classes are needed to *visualize* the Genotype.
+#
+# =================================================================
+
+@dataclass
+class OrganismCell:
+    """A single cell of a living organism."""
+    id: str = field(default_factory=lambda: f"cell_{uuid.uuid4().hex[:6]}")
+    organism_id: str = ""
+    component: ComponentGene = field(default_factory=ComponentGene)
+    x: int = 0
+    y: int = 0
+    energy: float = 1.0
+    age: int = 0
+    state_vector: Dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class GridCell:
+    """A single cell in the 2D universe grid."""
+    x: int
+    y: int
+    light: float = 0.0
+    minerals: float = 0.0
+    water: float = 0.0
+    temperature: float = 0.0
+    organism_id: Optional[str] = None
+    cell_type: Optional[str] = None
+
+class UniverseGrid:
+    """
+    The environment simulation.
+    A 2D Cellular Automaton with resources and physics.
+    """
+    def __init__(self, settings: Dict):
+        self.width = settings.get('grid_width', 100)
+        self.height = settings.get('grid_height', 100)
+        self.settings = settings
+        self.grid: List[List[GridCell]] = []
+        self.resource_map: Dict[str, np.ndarray] = {}
+        self.initialize_grid()
+
+    def initialize_grid(self):
+        """Creates the grid and populates it with resources."""
+        self.grid = [[GridCell(x, y) for y in range(self.height)] for x in range(self.width)]
+        
+        # --- Generate Mock Resource Maps ---
+        # In a real app, we'd use Perlin noise, but random is faster for a demo.
+        self.resource_map['light'] = np.random.rand(self.width, self.height) * self.settings.get('light_intensity', 1.0)
+        self.resource_map['minerals'] = np.random.rand(self.width, self.height) * self.settings.get('mineral_richness', 1.0)
+        self.resource_map['water'] = np.random.rand(self.width, self.height) * self.settings.get('water_abundance', 1.0)
+        
+        temp_gradient = np.linspace(self.settings.get('temp_pole', -20), self.settings.get('temp_equator', 30), self.height)
+        temp_map = np.tile(temp_gradient, (self.width, 1))
+        self.resource_map['temperature'] = temp_map + (np.random.rand(self.width, self.height) - 0.5) * 10
+        
+        for x in range(self.width):
+            for y in range(self.height):
+                cell = self.grid[x][y]
+                cell.light = self.resource_map['light'][x, y]
+                cell.minerals = self.resource_map['minerals'][x, y]
+                cell.water = self.resource_map['water'][x, y]
+                cell.temperature = self.resource_map['temperature'][x, y]
                 
-        with col3:
-            if locomotion['can_swim']:
-                st.metric("Swim Speed", f"{locomotion['swim_speed_kmh']:.1f} km/h", "🏊")
-            else:
-                st.metric("Swimming", "Not capable", "❌")
-        
-        # Speed comparison chart
-        speed_data = pd.DataFrame({
-            'Mode': ['Ground', 'Flight', 'Swimming'],
-            'Speed_kmh': [
-                locomotion['ground_speed_kmh'],
-                locomotion['flight_speed_kmh'] if locomotion['can_fly'] else 0,
-                locomotion['swim_speed_kmh'] if locomotion['can_swim'] else 0
-            ]
-        })
-        
-        fig = px.bar(speed_data, x='Mode', y='Speed_kmh',
-                    title="Locomotion Speed Across Environments",
-                    color='Speed_kmh', color_continuous_scale='Blues')
-        fig.update_layout(height=350)
-        st.plotly_chart(fig, use_container_width=True, key="locomotion_speeds")
-    
-    with result_tabs[6]:  # Reproduction
-        reproduction = org['reproduction']
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown(f"""
-            <div class="result-card">
-            <h4>👶 Reproductive Strategy</h4>
-            <div class="organism-stat">Strategy: {reproduction['reproduction_strategy']}</div>
-            <div class="organism-stat">Type: {reproduction['reproduction_type'].title()}</div>
-            <div class="organism-stat">Genetic Diversity: {reproduction['genetic_diversity'].title()}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-        with col2:
-            st.markdown(f"""
-            <div class="result-card">
-            <h4>📊 Reproductive Stats</h4>
-            <div class="organism-stat">Offspring per Cycle: {reproduction['offspring_per_cycle']}</div>
-            <div class="organism-stat">Gestation Period: {reproduction['gestation_period_days']:.0f} days</div>
-            <div class="organism-stat">Parental Care: {reproduction['parental_care_duration_years']:.1f} years</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # r-K selection spectrum
-        fig = go.Figure()
-        
-        if reproduction['reproduction_strategy'] == 'r-selected':
-            position = 20
-            color = 'red'
-        else:
-            position = 80
-            color = 'blue'
-        
-        fig.add_trace(go.Scatter(
-            x=[0, 50, 100],
-            y=[1, 1, 1],
-            mode='lines',
-            line=dict(color='gray', width=2),
-            showlegend=False
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=[position],
-            y=[1],
-            mode='markers+text',
-            marker=dict(size=30, color=color),
-            text=['This Organism'],
-            textposition='top center',
-            showlegend=False
-        ))
-        
-        fig.update_layout(
-            title="r-K Selection Spectrum",
-            xaxis=dict(
-                tickvals=[0, 50, 100],
-                ticktext=['r-selected<br>(Many offspring)', 'Middle', 'K-selected<br>(Few offspring)']
-            ),
-            yaxis=dict(visible=False),
-            height=250
-        )
-        st.plotly_chart(fig, use_container_width=True, key="rk_spectrum")
-    
-    with result_tabs[7]:  # Analytics
-        st.markdown("### 📈 Comprehensive Analysis")
-        
-        # Evolution history timeline
-        if len(st.session_state.evolution_history) > 1:
-            timeline_fig = create_evolutionary_timeline(st.session_state.evolution_history)
-            if timeline_fig:
-                st.plotly_chart(timeline_fig, use_container_width=True, key="evo_timeline")
-        
-        # Environmental compatibility matrix
-        st.markdown("### 🌍 Environmental Compatibility Analysis")
-        
-        compatibility_data = pd.DataFrame({
-            'Factor': ['Temperature', 'Gravity', 'Radiation', 'Energy', 'Pressure', 'Chemistry'],
-            'Compatibility': [
-                100 - abs(org['environment_params']['temperature'] - 288) * 0.5,
-                100 - abs(org['environment_params']['gravity'] - 1.0) * 20,
-                100 - org['environment_params']['radiation_level'] * 0.5,
-                min(100, org['environment_params']['light_intensity'] * 50),
-                100 - abs(org['environment_params']['pressure'] - 1.0) * 10,
-                org['chemistry_stability'] * 100
-            ]
-        })
-        compatibility_data['Compatibility'] = compatibility_data['Compatibility'].clip(0, 100)
-        
-        fig = px.bar(compatibility_data, x='Factor', y='Compatibility',
-                    title="Environmental Compatibility Score",
-                    color='Compatibility', 
-                    color_continuous_scale='RdYlGn',
-                    range_color=[0, 100])
-        fig.add_hline(y=50, line_dash="dash", line_color="red", 
-                     annotation_text="Survival Threshold")
-        fig.update_layout(height=400)
-        st.plotly_chart(fig, use_container_width=True, key="compat_matrix")
-        
-        # Survival prediction over time
-        st.markdown("### ⏳ Survival Prediction Over Time")
-        
-        years = np.linspace(0, org['metabolism']['lifespan_years'], 100)
-        survival_prob = org['survival_probability'] * np.exp(-years / (org['metabolism']['lifespan_years'] * 0.7))
-        
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=years, y=survival_prob,
-            fill='tozeroy',
-            line=dict(color='cyan', width=3),
-            name='Survival Probability'
-        ))
-        fig.update_layout(
-            title="Population Survival Over Lifespan",
-            xaxis_title="Years",
-            yaxis_title="Survival Probability (%)",
-            height=350
-        )
-        st.plotly_chart(fig, use_container_width=True, key="survival_prediction")
-        
-        # Trait evolution potential
-        st.markdown("### 🔮 Evolutionary Potential")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            evolvability = (
-                org['cognitive_abilities']['intelligence_index'] * 0.3 +
-                reproduction['genetic_diversity'] == 'high' * 30 +
-                org['survival_probability'] * 0.4
-            )
-            st.metric("Evolvability Score", f"{evolvability:.0f}/100")
-            
-        with col2:
-            adaptability = (
-                len(org['defense_mechanisms']['defense_mechanisms']) * 10 +
-                org['metabolism']['energy_efficiency'] * 50
-            )
-            st.metric("Adaptability", f"{min(100, adaptability):.0f}/100")
-            
-        with col3:
-            complexity = (
-                org['cognitive_abilities']['intelligence_index'] * 0.4 +
-                org['sensory_systems']['eye_count'] * 5 +
-                len(org['locomotion']['locomotion_types']) * 15
-            )
-            st.metric("Biological Complexity", f"{min(100, complexity):.0f}/100")
-        
-        # Download organism data
-        st.markdown("---")
-        st.markdown("### 💾 Export Organism Data")
-        
-        organism_json = json.dumps(org, indent=2, default=str)
-        st.download_button(
-            label="📥 Download Complete Organism Profile (JSON)",
-            data=organism_json,
-            file_name=f"organism_{st.session_state.simulation_runs}.json",
-            mime="application/json",
-            key="download_org"
-        )
+    def get_cell(self, x, y) -> Optional[GridCell]:
+        if 0 <= x < self.width and 0 <= y < self.height:
+            return self.grid[x][y]
+        return None
 
-# Comparison Tool
-if len(st.session_state.evolution_history) >= 2:
-    st.markdown("---")
-    st.markdown("## 🔬 Compare Multiple Organisms")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        org1_idx = st.selectbox("Select First Organism", 
-                                range(len(st.session_state.evolution_history)),
-                                format_func=lambda x: f"Organism {x+1}",
-                                key="org1_select")
-    
-    with col2:
-        org2_idx = st.selectbox("Select Second Organism", 
-                                range(len(st.session_state.evolution_history)),
-                                format_func=lambda x: f"Organism {x+1}",
-                                key="org2_select")
-    
-    if org1_idx != org2_idx:
-        org1 = st.session_state.evolution_history[org1_idx]
-        org2 = st.session_state.evolution_history[org2_idx]
+    def get_neighbors(self, x, y, radius=1) -> List[GridCell]:
+        neighbors = []
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                if dx == 0 and dy == 0:
+                    continue
+                cell = self.get_cell(x + dx, y + dy)
+                if cell:
+                    neighbors.append(cell)
+        return neighbors
+
+class Phenotype:
+    """
+    The 'body' of the organism. This class is now a
+    *visualization helper* to "grow" a Genotype for display.
+    """
+    def __init__(self, genotype: Genotype, universe_grid: UniverseGrid, settings: Dict):
+        self.id = f"org_{uuid.uuid4().hex[:6]}"
+        self.genotype = genotype
+        self.grid = universe_grid
+        self.settings = settings
+        self.cells: Dict[Tuple[int, int], OrganismCell] = {}
+        self.total_energy = 0.0
+        self.age = 0
+        self.is_alive = True
         
-        # Comparison metrics
-        comparison_data = pd.DataFrame({
-            'Metric': ['Survival %', 'Intelligence', 'Mass (kg)', 'Lifespan (yrs)', 
-                      'Speed (km/h)', 'Defense Score'],
-            'Organism 1': [
-                org1['survival_probability'],
-                org1['cognitive_abilities']['intelligence_index'],
-                org1['body_structure']['mass_kg'],
-                org1['metabolism']['lifespan_years'],
-                org1['locomotion']['ground_speed_kmh'],
-                len(org1['defense_mechanisms']['defense_mechanisms']) * 15
+        self.spawn_zygote()
+        if self.is_alive:
+            self.develop()
+
+    def spawn_zygote(self):
+        x, y = self.grid.width // 2, self.grid.height // 2
+        grid_cell = self.grid.get_cell(x, y)
+        if not grid_cell:
+            self.is_alive = False
+            return
+
+        if not self.genotype.component_genes:
+            self.is_alive = False
+            return
+            
+        zygote_comp = list(self.genotype.component_genes.values())[0]
+        
+        zygote = OrganismCell(
+            organism_id=self.id,
+            component=zygote_comp,
+            x=x,
+            y=y,
+            energy=self.settings.get('zygote_energy', 10.0),
+            state_vector={'type_id': hash(zygote_comp.id), 'energy': 1.0}
+        )
+        self.cells[(x, y)] = zygote
+        grid_cell.organism_id = self.id
+        grid_cell.cell_type = zygote_comp.name
+        self.total_energy = zygote.energy
+
+    def develop(self):
+        """
+        A *simplified* "Embryogeny" process for visualization.
+        It runs the GRN to produce a body plan.
+        """
+        max_dev_steps = self.settings.get('development_steps', 50)
+        
+        for step in range(max_dev_steps):
+            if not self.cells:
+                self.is_alive = False
+                break
+            
+            actions_to_take = []
+            
+            # --- 1. Evaluate all rules for all cells ---
+            for (x, y), cell in list(self.cells.items()):
+                grid_cell = self.grid.get_cell(x, y)
+                if not grid_cell: continue
+                
+                neighbors = self.grid.get_neighbors(x, y)
+                
+                context = {
+                    'self_energy': cell.energy,
+                    'self_age': cell.age,
+                    'self_type': cell.component.name,
+                    'env_light': grid_cell.light,
+                    'neighbor_count_empty': sum(1 for n in neighbors if n.organism_id is None),
+                }
+                
+                for rule in self.genotype.rule_genes:
+                    if random.random() > rule.probability:
+                        continue
+                    if self.check_conditions(rule, context, cell, neighbors):
+                        actions_to_take.append((rule, cell))
+            
+            # --- 2. Execute actions ---
+            actions_to_take.sort(key=lambda x: x[0].priority, reverse=True)
+            new_cells = {}
+            for rule, cell in actions_to_take:
+                if (cell.x, cell.y) not in self.cells:
+                    continue
+                self.execute_action(rule, cell, new_cells)
+            
+            self.cells.update(new_cells)
+            
+            # --- 3. Prune dead cells ---
+            dead_cells = []
+            for (x,y), cell in list(self.cells.items()):
+                cell.age += 1
+                cell.energy -= 0.1 # Base metabolic cost for dev
+                if cell.energy <= 0:
+                    dead_cells.append((x,y))
+            
+            for (x,y) in dead_cells:
+                self.prune_cell(x,y)
+
+        if not self.cells:
+            self.is_alive = False
+
+    def prune_cell(self, x, y):
+        if (x,y) in self.cells:
+            del self.cells[(x,y)]
+        grid_cell = self.grid.get_cell(x, y)
+        if grid_cell:
+            grid_cell.organism_id = None
+            grid_cell.cell_type = None
+
+    def check_conditions(self, rule: RuleGene, context: Dict, cell: OrganismCell, neighbors: List[GridCell]) -> bool:
+        """Simplified rule-matching engine."""
+        if not rule.conditions: return True
+        
+        for cond in rule.conditions:
+            source = cond['source']
+            value = 0.0
+            
+            if source in context:
+                value = context.get(source, 0.0)
+            
+            op = cond['operator']
+            target = cond['target_value']
+            
+            try:
+                if op == '>':
+                    if not (value > target): return False
+                elif op == '<':
+                    if not (value < target): return False
+                elif op == '==':
+                    if not (value == target): return False
+            except TypeError:
+                return False
+        return True
+
+    def execute_action(self, rule: RuleGene, cell: OrganismCell, new_cells: Dict):
+        """Simplified action execution engine."""
+        action = rule.action_type
+        param = rule.action_param
+        
+        try:
+            if action == "GROW":
+                empty_neighbors = [n for n in self.grid.get_neighbors(cell.x, cell.y) if n.organism_id is None]
+                if empty_neighbors:
+                    target_grid_cell = random.choice(empty_neighbors)
+                    new_comp = self.genotype.component_genes.get(param)
+                    if not new_comp: return
+                    
+                    grow_cost = 0.5 + new_comp.mass
+                    if cell.energy < grow_cost: return
+                    
+                    new_cell = OrganismCell(
+                        organism_id=self.id,
+                        component=new_comp,
+                        x=target_grid_cell.x,
+                        y=target_grid_cell.y,
+                        energy=1.0,
+                        state_vector={'type_id': hash(new_comp.id), 'energy': 1.0}
+                    )
+                    new_cells[(target_grid_cell.x, target_grid_cell.y)] = new_cell
+                    target_grid_cell.organism_id = self.id
+                    target_grid_cell.cell_type = new_comp.name
+                    cell.energy -= grow_cost
+
+            elif action == "DIFFERENTIATE":
+                new_comp = self.genotype.component_genes.get(param)
+                if new_comp and cell.component.id != new_comp.id:
+                    diff_cost = 0.2 + abs(new_comp.mass - cell.component.mass)
+                    if cell.energy < diff_cost: return
+                    
+                    cell.component = new_comp
+                    self.grid.get_cell(cell.x, cell.y).cell_type = new_comp.name
+                    cell.energy -= diff_cost
+
+            elif action == "DIE":
+                self.prune_cell(cell.x, cell.y)
+
+        except Exception:
+            pass # Fail silently
+
+# =================================================================
+#
+# PART 3: THE CURATOR (Mock Data Generation)
+#
+# This is the most important new part. It generates a "fake"
+# museum collection on the first app load, so we have
+# something to visualize without running the real simulation.
+#
+# =================================================================
+
+# This is the 'primordial soup' of chemical bases from your file.
+# It is the heart of the "infinite" museum.
+CHEMICAL_BASES_REGISTRY = {
+    'Carbon': {'name': 'Carbon', 'color_hsv_range': ((0.1, 0.4), (0.7, 1.0), (0.5, 0.9)), 'mass_range': (0.5, 1.5), 'structural_mult': (1.0, 2.0), 'energy_storage_mult': (0.5, 1.5), 'photosynthesis_bias': 0.3, 'chemosynthesis_bias': 0.1, 'thermosynthesis_bias': 0.0, 'compute_bias': 0.1},
+    'Silicon': {'name': 'Silicon', 'color_hsv_range': ((0.5, 0.7), (0.3, 0.6), (0.7, 1.0)), 'mass_range': (1.0, 2.5), 'structural_mult': (1.5, 3.0), 'energy_storage_mult': (0.2, 1.0), 'photosynthesis_bias': 0.0, 'chemosynthesis_bias': 0.4, 'thermosynthesis_bias': 0.2, 'compute_bias': 0.3, 'armor_bias': 0.2},
+    'Metallic': {'name': 'Metallic', 'color_hsv_range': ((0.0, 1.0), (0.0, 0.1), (0.7, 1.0)), 'mass_range': (2.0, 5.0), 'structural_mult': (2.0, 4.0), 'energy_storage_mult': (0.1, 0.5), 'conductance_bias': 0.8, 'thermosynthesis_bias': 0.3, 'compute_bias': 0.5, 'armor_bias': 0.5, 'motility_bias': -0.2},
+    'Crystalline': {'name': 'Crystalline', 'color_hsv_range': ((0.4, 0.8), (0.1, 0.3), (0.9, 1.0)), 'mass_range': (0.8, 2.0), 'structural_mult': (0.5, 1.5), 'energy_storage_mult': (1.0, 2.5), 'conductance_bias': 0.2, 'compute_bias': 0.6, 'sense_light_bias': 0.5},
+    'Plasma': {'name': 'Plasma', 'color_hsv_range': ((0.8, 1.0), (0.8, 1.0), (0.9, 1.0)), 'mass_range': (0.1, 0.5), 'structural_mult': (0.0, 0.1), 'energy_storage_mult': (0.5, 2.0), 'thermosynthesis_bias': 0.8, 'photosynthesis_bias': 0.5, 'motility_bias': 0.3},
+    'Aether': {'name': 'Aether', 'color_hsv_range': ((0.55, 0.65), (0.5, 0.8), (0.9, 1.0)), 'mass_range': (0.01, 0.1), 'structural_mult': (0.0, 0.0), 'energy_storage_mult': (1.0, 3.0), 'conductance_bias': 0.9, 'compute_bias': 0.7, 'sense_temp_bias': 0.5, 'sense_minerals_bias': 0.5},
+    'Void': {'name': 'Void', 'color_hsv_range': ((0.0, 1.0), (0.1, 0.3), (0.05, 0.2)), 'mass_range': (0.5, 2.0), 'structural_mult': (0.1, 0.5), 'energy_storage_mult': (2.0, 5.0), 'chemosynthesis_bias': 0.5, 'thermosynthesis_bias': -0.5, 'armor_bias': 0.1},
+    'Quantum': {'name': 'Quantum', 'color_hsv_range': ((0.0, 1.0), (0.0, 0.0), (1.0, 1.0)), 'mass_range': (0.0, 0.0), 'structural_mult': (0.0, 0.0), 'compute_bias': 1.0, 'conductance_bias': 1.0, 'sense_light_bias': 0.5, 'sense_temp_bias': 0.5, 'sense_minerals_bias': 0.5},
+    'Chrono': {'name': 'Chrono', 'color_hsv_range': ((0.15, 0.2), (0.3, 0.6), (0.7, 0.9)), 'mass_range': (0.5, 1.0), 'structural_mult': (0.5, 1.0), 'energy_storage_mult': (1.0, 1.0), 'compute_bias': 0.3},
+    'Psionic': {'name': 'Psionic', 'color_hsv_range': ((0.7, 0.85), (0.6, 0.9), (0.8, 1.0)), 'mass_range': (0.1, 0.3), 'structural_mult': (0.0, 0.1), 'compute_bias': 0.8, 'conductance_bias': 0.6, 'sense_compute_bias': 0.8},
+    'Cryo': {'name': 'Cryo', 'color_hsv_range': ((0.0, 1.0), (0.0, 0.1), (0.7, 1.0)), 'mass_range': (2.1, 5.25), 'structural_mult': (2.0, 4.0), 'energy_storage_mult': (0.1, 0.5), 'conductance_bias': 0.8, 'thermosynthesis_bias': 0.3, 'compute_bias': 0.5, 'armor_bias': 0.5, 'motility_bias': -0.2},
+    'Hydro': {'name': 'Hydro', 'color_hsv_range': ((0.4, 0.8), (0.1, 0.3), (0.9, 1.0)), 'mass_range': (0.52, 1.3), 'structural_mult': (0.5, 1.5), 'energy_storage_mult': (1.0, 2.5), 'conductance_bias': 0.2, 'compute_bias': 0.6, 'sense_light_bias': 0.5},
+    'Pyro': {'name': 'Pyro', 'color_hsv_range': ((0.15, 0.2), (0.3, 0.6), (0.7, 0.9)), 'mass_range': (0.3, 0.6), 'structural_mult': (0.5, 1.0), 'energy_storage_mult': (1.0, 1.0), 'compute_bias': 0.3},
+    'Geo': {'name': 'Geo', 'color_hsv_range': ((0.1, 0.4), (0.7, 1.0), (0.5, 0.9)), 'mass_range': (0.51, 1.52), 'structural_mult': (1.0, 2.0), 'energy_storage_mult': (0.5, 1.5), 'photosynthesis_bias': 0.3, 'chemosynthesis_bias': 0.1, 'thermosynthesis_bias': 0.0, 'compute_bias': 0.1},
+    'Aero': {'name': 'Aero', 'color_hsv_range': ((0.0, 1.0), (0.0, 0.1), (0.7, 1.0)), 'mass_range': (2.12, 5.3), 'structural_mult': (2.0, 4.0), 'energy_storage_mult': (0.1, 0.5), 'conductance_bias': 0.8, 'thermosynthesis_bias': 0.3, 'compute_bias': 0.5, 'armor_bias': 0.5, 'motility_bias': -0.2},
+    'Bio-Steel': {'name': 'Bio-Steel', 'color_hsv_range': ((0.0, 1.0), (0.0, 0.1), (0.7, 1.0)), 'mass_range': (2.12, 5.3), 'structural_mult': (2.0, 4.0), 'energy_storage_mult': (0.1, 0.5), 'conductance_bias': 0.8, 'thermosynthesis_bias': 0.3, 'compute_bias': 0.5, 'armor_bias': 0.5, 'motility_bias': -0.2},
+    'Neuro-Gel': {'name': 'Neuro-Gel', 'color_hsv_range': ((0.0, 1.0), (0.1, 0.3), (0.05, 0.2)), 'mass_range': (0.43, 1.72), 'structural_mult': (0.1, 0.5), 'energy_storage_mult': (2.0, 5.0), 'chemosynthesis_bias': 0.5, 'thermosynthesis_bias': -0.5, 'armor_bias': 0.1},
+    'Xeno-Polymer': {'name': 'Xeno-Polymer', 'color_hsv_range': ((0.0, 1.0), (0.0, 0.1), (0.7, 1.0)), 'mass_range': (2.3, 5.75), 'structural_mult': (2.0, 4.0), 'energy_storage_mult': (0.1, 0.5), 'conductance_bias': 0.8, 'thermosynthesis_bias': 0.3, 'compute_bias': 0.5, 'armor_bias': 0.5, 'motility_bias': -0.2},
+    # ... (The other 180+ entries from your file would go here) ...
+    # For this example, I'll just use the ones above.
+}
+
+# --- Helper functions to create mock data (from your file) ---
+
+def innovate_component(genotype: Optional[Genotype], settings: Dict, force_base: Optional[str] = None) -> ComponentGene:
+    """Create a new, random building block (a new 'gene')."""
+    if force_base:
+        base_name = force_base
+    else:
+        allowed_bases = settings.get('chemical_bases', ['Carbon', 'Silicon'])
+        if not allowed_bases: allowed_bases = ['Carbon']
+        base_name = random.choice(allowed_bases)
+        
+    base_template = CHEMICAL_BASES_REGISTRY.get(base_name, CHEMICAL_BASES_REGISTRY['Carbon'])
+
+    prefixes = ['Proto', 'Hyper', 'Neuro', 'Cryo', 'Xeno', 'Bio', 'Meta', 'Photo', 'Astro', 'Quantum']
+    suffixes = ['Polymer', 'Crystal', 'Node', 'Shell', 'Core', 'Matrix', 'Membrane', 'Processor', 'Fluid', 'Weave']
+    new_name = f"{random.choice(prefixes)}-{base_name}-{random.choice(suffixes)}_{random.randint(0, 99)}"
+    
+    h, s, v = base_template['color_hsv_range']
+    color = colorsys.hsv_to_rgb(random.uniform(h[0], h[1]), random.uniform(s[0], s[1]), random.uniform(v[0], v[1]))
+    color_hex = f'#{int(color[0]*255):02x}{int(color[1]*255):02x}{int(color[2]*255):02x}'
+
+    new_comp = ComponentGene(name=new_name, base_kingdom=base_name, color=color_hex)
+    new_comp.mass = random.uniform(base_template['mass_range'][0], base_template['mass_range'][1])
+    new_comp.structural = random.uniform(0.1, 0.5) * random.choice([0, 0, 0, 1, 2]) * base_template.get('structural_mult', (1.0, 1.0))[0]
+    new_comp.energy_storage = random.uniform(0.1, 0.5) * random.choice([0, 1, 2]) * base_template.get('energy_storage_mult', (1.0, 1.0))[0]
+    
+    props_with_bias = ['photosynthesis', 'chemosynthesis', 'thermosynthesis', 'conductance', 'compute', 'motility', 'armor', 'sense_light', 'sense_minerals', 'sense_temp']
+    for prop in props_with_bias:
+        bias = base_template.get(f"{prop}_bias", 0.0)
+        if random.random() < (abs(bias) + 0.05):
+            val = np.clip(random.uniform(0.5, 1.5) + bias, 0, 5.0)
+            setattr(new_comp, prop, val)
+            
+    return new_comp
+
+def innovate_rule(genotype: Genotype, settings: Dict) -> RuleGene:
+    """Create a new, random developmental rule."""
+    num_conditions = random.randint(1, 2)
+    conditions = []
+    
+    available_sources = ['self_energy', 'self_age', 'env_light', 'neighbor_count_empty']
+    
+    for _ in range(num_conditions):
+        source = random.choice(available_sources)
+        op = random.choice(['>', '<'])
+        if source == 'self_energy': target = random.uniform(1.0, 10.0)
+        elif source == 'self_age': target = random.randint(1, 5)
+        else: target = random.uniform(0.1, 0.9)
+        conditions.append({'source': source, 'operator': op, 'target_value': target})
+
+    action_type = random.choice(['GROW', 'DIFFERENTIATE', 'DIE'])
+    
+    if not genotype.component_genes:
+        return RuleGene(action_type="IDLE") # Failsafe
+    
+    action_param = random.choice(list(genotype.component_genes.keys()))
+    
+    return RuleGene(
+        conditions=conditions,
+        action_type=action_type,
+        action_param=action_param,
+        priority=random.randint(0, 10)
+    )
+
+def get_primordial_soup_genotype(settings: Dict) -> Genotype:
+    """Creates a 'primordial' genotype with basic components and rules."""
+    comp_zygote = innovate_component(None, settings, force_base='Carbon')
+    comp_zygote.name = "Zygote"
+    comp_struct = innovate_component(None, settings)
+    comp_struct.name = "Struct"
+    comp_energy = innovate_component(None, settings)
+    comp_energy.name = "Energy"
+    components = {c.name: c for c in [comp_struct, comp_energy, comp_zygote]}
+    
+    rules = [
+        RuleGene(
+            conditions=[
+                {'source': 'neighbor_count_empty', 'operator': '>', 'target_value': 0},
+                {'source': 'self_energy', 'operator': '>', 'target_value': 2.0},
             ],
-            'Organism 2': [
-                org2['survival_probability'],
-                org2['cognitive_abilities']['intelligence_index'],
-                org2['body_structure']['mass_kg'],
-                org2['metabolism']['lifespan_years'],
-                org2['locomotion']['ground_speed_kmh'],
-                len(org2['defense_mechanisms']['defense_mechanisms']) * 15
-            ]
-        })
-        
-        fig = go.Figure()
-        
-        fig.add_trace(go.Bar(
-            x=comparison_data['Metric'],
-            y=comparison_data['Organism 1'],
-            name='Organism 1',
-            marker_color='cyan'
-        ))
-        
-        fig.add_trace(go.Bar(
-            x=comparison_data['Metric'],
-            y=comparison_data['Organism 2'],
-            name='Organism 2',
-            marker_color='magenta'
-        ))
-        
-        fig.update_layout(
-            title="Head-to-Head Comparison",
-            barmode='group',
-            height=400
+            action_type="GROW",
+            action_param=comp_struct.name,
+            priority=10
+        ),
+        RuleGene(
+            conditions=[
+                {'source': 'self_type', 'operator': '==', 'target_value': "Zygote"},
+                {'source': 'self_age', 'operator': '>', 'target_value': 2},
+            ],
+            action_type="DIFFERENTIATE",
+            action_param=comp_struct.name,
+            priority=100
         )
-        st.plotly_chart(fig, use_container_width=True, key="comparison_chart")
+    ]
+    genotype = Genotype(component_genes=components, rule_genes=rules)
+    genotype.update_kingdom()
+    return genotype
 
-# Statistics Dashboard
-st.markdown("---")
-st.markdown("## 📊 Museum Statistics Dashboard")
-
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    st.metric("Total Simulations", st.session_state.simulation_runs)
+def mutate(genotype: Genotype, settings: Dict) -> Genotype:
+    """Mutates a genotype."""
+    mutated = genotype.copy()
+    mut_rate = 0.5 # High mutation rate for mock data
+    innov_rate = 0.3
     
-with col2:
-    if st.session_state.evolution_history:
-        avg_survival = np.mean([o['survival_probability'] for o in st.session_state.evolution_history])
-        st.metric("Average Survival Rate", f"{avg_survival:.1f}%")
+    for rule in mutated.rule_genes:
+        if random.random() < mut_rate and rule.conditions:
+            cond_to_mutate = random.choice(rule.conditions)
+            if isinstance(cond_to_mutate['target_value'], (int, float)):
+                cond_to_mutate['target_value'] *= np.random.lognormal(0, 0.1)
+
+    if random.random() < innov_rate:
+        new_rule = innovate_rule(mutated, settings)
+        mutated.rule_genes.append(new_rule)
+    if random.random() < innov_rate * 0.5 and len(mutated.rule_genes) > 1:
+        mutated.rule_genes.remove(random.choice(mutated.rule_genes))
+    
+    if random.random() < 0.1: # Component innovation
+        new_component = innovate_component(mutated, settings)
+        if new_component.name not in mutated.component_genes:
+            mutated.component_genes[new_component.name] = new_component
+
+    mutated.update_kingdom()
+    return mutated
+
+class GenotypeJSONEncoder(json.JSONEncoder):
+    """Custom encoder to handle dataclasses."""
+    def default(self, o):
+        if dataclasses.is_dataclass(o):
+            return dataclasses.asdict(o)
+        return super().default(o)
+
+def deserialize_genotype(geno_dict: Dict) -> Genotype:
+    """Helper function to reconstruct a Genotype object from a dictionary."""
+    try:
+        comp_genes_dict = geno_dict.get('component_genes', {})
+        re_comp_genes = {}
+        for comp_id_or_name, comp_dict in comp_genes_dict.items():
+            # Handle both old (name) and new (id) keying
+            comp_id = comp_dict.get('id', f"comp_{uuid.uuid4().hex[:6]}")
+            re_comp_genes[comp_id] = ComponentGene(**comp_dict)
+        geno_dict['component_genes'] = re_comp_genes
+        
+        rule_genes_list = geno_dict.get('rule_genes', [])
+        re_rule_genes = [RuleGene(**rule_dict) for rule_dict in rule_genes_list]
+        geno_dict['rule_genes'] = re_rule_genes
+        
+        return Genotype(**geno_dict)
+    except Exception as e:
+        st.error(f"Error deserializing genotype: {e} | Data: {geno_dict.get('id', 'N/A')}")
+        return Genotype(id=geno_dict.get('id', 'error_id'), fitness=-1)
+
+def deserialize_population(pop_data_list: List[Dict]) -> List[Genotype]:
+    """Deserializes an entire population list from a JSON-friendly format."""
+    reconstructed_pop = []
+    for geno_dict in pop_data_list:
+        reconstructed_pop.append(deserialize_genotype(geno_dict))
+    return [g for g in reconstructed_pop if g.fitness != -1]
+
+@st.cache_data(show_spinner=False)
+def load_museum_exhibits(chemical_bases_registry):
+    """
+    Generates a mock dataset for the museum on the first run.
+    This replaces the live simulation.
+    """
+    with st.spinner("Curating the Museum's collection... (This happens once per session)"):
+        history = []
+        population = []
+        genesis_events = []
+        metrics = []
+        gene_archive = []
+        
+        # Use a minimal settings dict for the helper functions
+        settings = {
+            'chemical_bases': list(chemical_bases_registry.keys()),
+            'max_rule_conditions': 2
+        }
+
+        # Create a base population
+        base_population = []
+        for _ in range(50): # 50 founding lineages
+            genotype = get_primordial_soup_genotype(settings)
+            genotype = mutate(genotype, settings)
+            base_population.append(genotype)
+
+        lineages = [g.copy() for g in base_population]
+        
+        # Simulate 150 "generations" of mock data
+        num_generations = 150
+        pop_size_per_gen = 20
+
+        for gen in range(num_generations):
+            current_gen_pop = []
+            
+            # Create the population for this generation
+            for _ in range(pop_size_per_gen):
+                # Pick a random lineage and mutate it
+                parent = random.choice(lineages)
+                child = mutate(parent, settings)
+                child.generation = gen
+                
+                # Assign a random kingdom from the available bases
+                child.kingdom_id = random.choice(settings['chemical_bases'])
+                
+                # Assign mock metrics
+                child.fitness = np.clip(random.uniform(0.1, 1.0) + (gen / 150.0), 0.1, 2.0)
+                child.cell_count = random.randint(1, 50)
+                child.complexity = child.compute_complexity() + random.uniform(0, 5)
+                child.lifespan = random.randint(10, 200)
+                child.energy_production = random.uniform(0.5, 5.0)
+                child.energy_consumption = random.uniform(0.5, 4.0)
+                
+                # Add to history
+                history.append({
+                    'generation': gen,
+                    'kingdom_id': child.kingdom_id,
+                    'fitness': child.fitness,
+                    'cell_count': child.cell_count,
+                    'complexity': child.complexity,
+                    'lifespan': child.lifespan,
+                    'energy_production': child.energy_production,
+                    'energy_consumption': child.energy_consumption,
+                    'lineage_id': child.lineage_id,
+                    'parent_ids': child.parent_ids,
+                })
+                current_gen_pop.append(child)
+            
+            # Add this generation's organisms to the archive
+            gene_archive.extend(current_gen_pop)
+            
+            # Select "survivors" to be the new lineages
+            lineages = sorted(current_gen_pop, key=lambda g: g.fitness, reverse=True)[:10]
+            # Add some random new lineages for diversity
+            for _ in range(5):
+                lineages.append(mutate(get_primordial_soup_genotype(settings), settings))
+
+            # Store the *final* generation as the 'current' population
+            if gen == num_generations - 1:
+                population = current_gen_pop
+            
+            # Add mock metrics
+            metrics.append({
+                'generation': gen,
+                'diversity': random.uniform(1.0, 3.0),
+                'best_fitness': max(g.fitness for g in current_gen_pop),
+                'mean_fitness': np.mean([g.fitness for g in current_gen_pop]),
+                'selection_differential': random.uniform(0.1, 0.5),
+                'mutation_rate': 0.2,
+            })
+
+        # Add mock Genesis Events
+        genesis_events = [
+            {'generation': 0, 'type': 'Genesis', 'title': 'Genesis of Carbon Life', 'description': 'The first Carbon-based organisms emerged.', 'icon': '✨'},
+            {'generation': 15, 'type': 'Genesis', 'title': 'Genesis of Silicon Life', 'description': 'Life based on Silicon was first recorded.', 'icon': '✨'},
+            {'generation': 30, 'type': 'Complexity Leap', 'title': 'Complexity Barrier Broken (10)', 'description': 'An organism achieved a genomic complexity of over 10.', 'icon': '🧠'},
+            {'generation': 50, 'type': 'Cataclysm', 'title': 'The Great Filter', 'description': 'A stellar flare event wiped out 80% of all life.', 'icon': '🌋'},
+            {'generation': 51, 'type': 'Genesis', 'title': 'Genesis of Plasma Life', 'description': 'In the ashes of the cataclysm, Plasma-based life emerged.', 'icon': '✨'},
+            {'generation': 75, 'type': 'Major Transition', 'title': 'First Communication', 'description': 'A lineage evolved the first `EMIT_SIGNAL` rule.', 'icon': '📡'},
+            {'generation': 100, 'type': 'Succession', 'title': 'The Silicon Era Begins', 'description': 'Silicon-based life has become the dominant kingdom.', 'icon': '👑'},
+            {'generation': 120, 'type': 'Cognitive Leap', 'title': 'Invention of Memory', 'description': 'A Psionic lineage evolved the first `SET_TIMER` rule.', 'icon': '⏳'},
+        ]
+
+        return pd.DataFrame(history), population, genesis_events, pd.DataFrame(metrics), gene_archive
+
+# =================================================================
+#
+# PART 4: THE VISUALIZATION HALL (Plotting Functions)
+#
+# All plotting functions from the original file are preserved here.
+# They are the 'lenses' through which we view the exhibits.
+#
+# =================================================================
+
+def visualize_phenotype_2d(phenotype: Phenotype, grid: UniverseGrid) -> go.Figure:
+    """Creates a 2D heatmap visualization of the organism's body plan."""
+    cell_data = np.full((grid.width, grid.height), np.nan)
+    cell_text = [["" for _ in range(grid.height)] for _ in range(grid.width)]
+    
+    component_colors = {comp.name: comp.color for comp in phenotype.genotype.component_genes.values()}
+    color_map = {}
+    discrete_colors = []
+    
+    unique_types = sorted(list(component_colors.keys()))
+    if not unique_types:
+        unique_types = ["default"]
+        component_colors["default"] = "#FFFFFF"
+        
+    for i, comp_name in enumerate(unique_types):
+        color_map[comp_name] = i
+        discrete_colors.append(component_colors[comp_name])
+
+    dcolorsc = []
+    n_colors = len(discrete_colors)
+    if n_colors == 0:
+        dcolorsc = [[0, "#000000"], [1, "#000000"]]
+    elif n_colors == 1:
+        dcolorsc = [[0, discrete_colors[0]], [1, discrete_colors[0]]]
     else:
-        st.metric("Average Survival Rate", "N/A")
+        for i, color in enumerate(discrete_colors):
+            val = i / (n_colors - 1)
+            dcolorsc.append([val, color])
 
-with col3:
-    if st.session_state.evolution_history:
-        avg_intelligence = np.mean([o['cognitive_abilities']['intelligence_index'] 
-                                   for o in st.session_state.evolution_history])
-        st.metric("Average Intelligence", f"{avg_intelligence:.0f}")
+    for (x, y), cell in phenotype.cells.items():
+        cell_data[x, y] = color_map.get(cell.component.name, 0)
+        cell_text[x][y] = (
+            f"<b>{cell.component.name}</b> (Base: {cell.component.base_kingdom})<br>"
+            f"Energy: {cell.energy:.2f}<br>"
+            f"Age: {cell.age}<br>"
+            f"Mass: {cell.component.mass:.2f}"
+        )
+
+    fig = go.Figure(data=go.Heatmap(
+        z=cell_data,
+        text=cell_text,
+        hoverinfo="text",
+        colorscale=dcolorsc,
+        showscale=True,
+        zmin=0,
+        zmax=max(0, len(discrete_colors) - 1),
+        colorbar=dict(
+            tickvals=list(range(len(unique_types))),
+            ticktext=unique_types
+        )
+    ))
+    
+    fig.update_layout(
+        title=f"Specimen: {phenotype.id} (Gen: {phenotype.genotype.generation})<br><sup>Kingdom: {phenotype.genotype.kingdom_id} | Cells: {len(phenotype.cells)} | Fitness: {phenotype.genotype.fitness:.4f}</sup>",
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, scaleanchor="x"),
+        height=500,
+        margin=dict(l=20, r=20, t=80, b=20),
+        plot_bgcolor='rgba(0,0,0,0)'
+    )
+    return fig
+
+def plot_evolutionary_landscape(history_df: pd.DataFrame, key_prefix: str) -> go.Figure:
+    """3D Fitness Landscape: (Fitness vs. Complexity vs. Cell Count)"""
+    if history_df.empty or len(history_df) < 20:
+        return go.Figure().update_layout(title="Not enough data for 3D Landscape")
+        
+    sample_size = min(len(history_df), 20000)
+    df_sample = history_df.sample(n=sample_size)
+    
+    x_param = 'cell_count'
+    y_param = 'complexity'
+    z_param = 'fitness'
+    
+    if df_sample[x_param].nunique() < 2 or df_sample[y_param].nunique() < 2:
+        return go.Figure().update_layout(title="Not enough data variance for 3D Landscape")
+        
+    x_bins = np.linspace(df_sample[x_param].min(), df_sample[x_param].max(), 30)
+    y_bins = np.linspace(df_sample[y_param].min(), df_sample[y_param].max(), 30)
+
+    df_sample['x_bin'] = pd.cut(df_sample[x_param], bins=x_bins, labels=False, include_lowest=True)
+    df_sample['y_bin'] = pd.cut(df_sample[y_param], bins=y_bins, labels=False, include_lowest=True)
+    grid = df_sample.groupby(['x_bin', 'y_bin'])[z_param].mean().unstack(level='x_bin')
+    
+    x_coords = (x_bins[:-1] + x_bins[1:]) / 2
+    y_coords = (y_bins[:-1] + y_bins[1:]) / 2
+    z_surface = grid.values
+
+    surface_trace = go.Surface(
+        x=x_coords, y=y_coords, z=z_surface,
+        colorscale='cividis', opacity=0.6,
+        name='Estimated Fitness Landscape',
+    )
+    
+    mean_trajectory = history_df.groupby('generation').agg({
+        x_param: 'mean', y_param: 'mean', z_param: 'mean'
+    }).reset_index()
+    apex_trajectory = history_df.loc[history_df.groupby('generation')['fitness'].idxmax()]
+
+    mean_trajectory_trace = go.Scatter3d(
+        x=mean_trajectory[x_param], y=mean_trajectory[y_param], z=mean_trajectory[z_param],
+        mode='lines', line=dict(color='red', width=8),
+        name='Population Mean Trajectory'
+    )
+    apex_trajectory_trace = go.Scatter3d(
+        x=apex_trajectory[x_param], y=apex_trajectory[y_param], z=apex_trajectory[z_param],
+        mode='lines+markers', line=dict(color='cyan', width=4),
+        name='Apex (Best) Trajectory'
+    )
+    
+    final_gen_df = history_df[history_df['generation'] == history_df['generation'].max()]
+    final_pop_trace = go.Scatter3d(
+        x=final_gen_df[x_param], y=final_gen_df[y_param], z=final_gen_df[z_param],
+        mode='markers',
+        marker=dict(size=5, color=final_gen_df['fitness'], colorscale='Viridis', showscale=True),
+        name='Final Population',
+    )
+    
+    fig = go.Figure(data=[surface_trace, mean_trajectory_trace, apex_trajectory_trace, final_pop_trace])
+    fig.update_layout(
+        title='<b>3D Evolutionary Landscape (Morphospace)</b>',
+        scene=dict(
+            xaxis_title='Cell Count (Body Size)',
+            yaxis_title='Genomic Complexity',
+            zaxis_title='Fitness'
+        ),
+        height=700,
+        margin=dict(l=0, r=0, b=0, t=60)
+    )
+    return fig
+
+def plot_historical_dashboard(history_df: pd.DataFrame, evolutionary_metrics_df: pd.DataFrame, key_prefix: str) -> go.Figure:
+    """Comprehensive evolution analytics dashboard."""
+    
+    fig = make_subplots(
+        rows=3, cols=3,
+        subplot_titles=(
+            '<b>Fitness Evolution by Kingdom</b>',
+            '<b>Phenotypic Trait Trajectories</b>',
+            '<b>Final Generation Fitness</b>',
+            '<b>Kingdom Dominance Over Time</b>',
+            '<b>Genetic Diversity (H)</b>',
+            '<b>Phenotypic Divergence (σ)</b>',
+            '<b>Selection Pressure (Δ) & Mutation Rate (μ)</b>',
+            '<b>Complexity & Cell Count Growth</b>',
+            '<b>Mean Organism Lifespan</b>'
+        ),
+        specs=[
+            [{}, {}, {}],
+            [{}, {}, {}],
+            [{'secondary_y': True}, {'secondary_y': True}, {}]
+        ],
+        vertical_spacing=0.15,
+        horizontal_spacing=0.1
+    )
+    
+    if history_df.empty:
+        return fig.update_layout(title="No historical data to display.", height=1200)
+
+    # --- Plot 1: Fitness Evolution by Kingdom ---
+    unique_kingdoms = history_df['kingdom_id'].unique()
+    for i, kingdom in enumerate(unique_kingdoms):
+        kingdom_data = history_df[history_df['kingdom_id'] == kingdom]
+        mean_fitness = kingdom_data.groupby('generation')['fitness'].mean()
+        plot_color = px.colors.qualitative.Plotly[i % len(px.colors.qualitative.Plotly)]
+        fig.add_trace(go.Scatter(x=mean_fitness.index, y=mean_fitness.values, mode='lines', name=kingdom, legendgroup=kingdom, line=dict(color=plot_color)), row=1, col=1)
+    
+    # --- Plot 2: Phenotypic Trait Trajectories ---
+    mean_energy_prod = history_df.groupby('generation')['energy_production'].mean()
+    mean_energy_cons = history_df.groupby('generation')['energy_consumption'].mean()
+    fig.add_trace(go.Scatter(x=mean_energy_prod.index, y=mean_energy_prod.values, name='Mean Energy Prod.', line=dict(color='green')), row=1, col=2)
+    fig.add_trace(go.Scatter(x=mean_energy_cons.index, y=mean_energy_cons.values, name='Mean Energy Cons.', line=dict(color='red')), row=1, col=2)
+
+    # --- Plot 3: Final Population Fitness ---
+    final_gen_df = history_df[history_df['generation'] == history_df['generation'].max()]
+    if not final_gen_df.empty:
+        fig.add_trace(go.Histogram(x=final_gen_df['fitness'], name='Fitness', marker_color='blue'), row=1, col=3)
+
+    # --- Plot 4: Kingdom Dominance ---
+    kingdom_counts = history_df.groupby(['generation', 'kingdom_id']).size().unstack(fill_value=0)
+    kingdom_percentages = kingdom_counts.apply(lambda x: x / x.sum(), axis=1)
+    for kingdom in kingdom_percentages.columns:
+        fig.add_trace(go.Scatter(
+            x=kingdom_percentages.index, y=kingdom_percentages[kingdom],
+            mode='lines', name=kingdom,
+            stackgroup='one', groupnorm='percent',
+            showlegend=False, legendgroup=kingdom
+        ), row=2, col=1)
+
+    # --- Plot 5: Genetic Diversity ---
+    if not evolutionary_metrics_df.empty:
+        fig.add_trace(go.Scatter(
+            x=evolutionary_metrics_df['generation'], y=evolutionary_metrics_df['diversity'],
+            name='Diversity (H)', line=dict(color='purple')
+        ), row=2, col=2)
+
+    # --- Plot 6: Phenotypic Divergence ---
+    pheno_divergence = history_df.groupby('generation')[['cell_count', 'complexity']].std().reset_index()
+    fig.add_trace(go.Scatter(x=pheno_divergence['generation'], y=pheno_divergence['cell_count'], name='σ (Cell Count)'), row=2, col=3)
+    fig.add_trace(go.Scatter(x=pheno_divergence['generation'], y=pheno_divergence['complexity'], name='σ (Complexity)'), row=2, col=3)
+
+    # --- Plot 7: Selection Pressure & Mutation Rate ---
+    if not evolutionary_metrics_df.empty:
+        fig.add_trace(go.Scatter(x=evolutionary_metrics_df['generation'], y=evolutionary_metrics_df['selection_differential'], name='Selection Δ', line=dict(color='red')), secondary_y=False, row=3, col=1)
+        fig.add_trace(go.Scatter(x=evolutionary_metrics_df['generation'], y=evolutionary_metrics_df['mutation_rate'], name='Mutation Rate μ', line=dict(color='orange', dash='dash')), secondary_y=True, row=3, col=1)
+
+    # --- Plot 8: Complexity & Cell Count Growth ---
+    arch_stats = history_df.groupby('generation')[['complexity', 'cell_count']].mean().reset_index()
+    fig.add_trace(go.Scatter(x=arch_stats['generation'], y=arch_stats['complexity'], name='Mean Complexity', line=dict(color='cyan')), secondary_y=False, row=3, col=2)
+    fig.add_trace(go.Scatter(x=arch_stats['generation'], y=arch_stats['cell_count'], name='Mean Cell Count', line=dict(color='magenta', dash='dash')), secondary_y=True, row=3, col=2)
+
+    # --- Plot 9: Mean Organism Lifespan ---
+    mean_lifespan = history_df.groupby('generation')['lifespan'].mean().reset_index()
+    fig.add_trace(go.Scatter(x=mean_lifespan['generation'], y=mean_lifespan['lifespan'], name='Mean Lifespan', line=dict(color='gold')), row=3, col=3)
+
+    # --- Layout and Axis Updates ---
+    fig.update_layout(
+        height=1200, showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+    fig.update_yaxes(title_text="Fitness", row=1, col=1)
+    fig.update_yaxes(title_text="Mean Energy", row=1, col=2)
+    fig.update_yaxes(title_text="Count", row=1, col=3)
+    fig.update_yaxes(title_text="Population %", row=2, col=1)
+    fig.update_yaxes(title_text="Diversity (H)", row=2, col=2)
+    fig.update_yaxes(title_text="Std. Dev (σ)", row=2, col=3)
+    fig.update_yaxes(title_text="Selection Δ", secondary_y=False, row=3, col=1)
+    fig.update_yaxes(title_text="Mutation Rate μ", secondary_y=True, row=3, col=1)
+    fig.update_yaxes(title_text="Complexity", secondary_y=False, row=3, col=2)
+    fig.update_yaxes(title_text="Cell Count", secondary_y=True, row=3, col=2)
+    fig.update_yaxes(title_text="Generations", row=3, col=3)
+    
+    return fig
+
+# --- All 12 Custom Analytics Plots from your file ---
+
+def plot_fitness_vs_complexity(df: pd.DataFrame, key: str) -> go.Figure:
+    if df.empty: return go.Figure().update_layout(title="No data")
+    fig = px.scatter(
+        df.sample(min(len(df), 5000)), 
+        x='complexity', 
+        y='fitness', 
+        color='kingdom_id',
+        title='Fitness vs. Complexity',
+        hover_data=['generation', 'cell_count']
+    )
+    fig.update_layout(height=400)
+    return fig
+
+def plot_lifespan_vs_cell_count(df: pd.DataFrame, key: str) -> go.Figure:
+    if df.empty: return go.Figure().update_layout(title="No data")
+    fig = px.scatter(
+        df.sample(min(len(df), 5000)),
+        x='cell_count',
+        y='lifespan',
+        color='fitness',
+        color_continuous_scale='Viridis',
+        title='Lifespan vs. Cell Count',
+        hover_data=['generation', 'complexity']
+    )
+    fig.update_layout(height=400)
+    return fig
+
+def plot_energy_dynamics(df: pd.DataFrame, key: str) -> go.Figure:
+    if df.empty: return go.Figure().update_layout(title="No data")
+    fig = px.scatter(
+        df.sample(min(len(df), 5000)),
+        x='energy_consumption',
+        y='energy_production',
+        color='fitness',
+        color_continuous_scale='Plasma',
+        title='Energy Production vs. Consumption',
+        hover_data=['generation', 'lifespan']
+    )
+    fig.update_layout(height=400)
+    return fig
+
+def plot_complexity_density(df: pd.DataFrame, key: str) -> go.Figure:
+    if df.empty: return go.Figure().update_layout(title="No data")
+    fig = px.density_heatmap(
+        df,
+        x='complexity',
+        y='cell_count',
+        nbinsx=50, nbinsy=50,
+        title='Density of Morphological Space'
+    )
+    fig.update_layout(height=400)
+    return fig
+
+def plot_fitness_violin_by_kingdom(df: pd.DataFrame, key: str) -> go.Figure:
+    if df.empty: return go.Figure().update_layout(title="No data")
+    final_gen_df = df[df['generation'] == df['generation'].max()]
+    if final_gen_df.empty:
+        final_gen_df = df
+    fig = px.violin(final_gen_df, x='kingdom_id', y='fitness', color='kingdom_id', box=True, points="all", title="Final Generation Fitness Distribution by Kingdom")
+    fig.update_layout(height=400)
+    return fig
+
+def plot_complexity_vs_lifespan(df: pd.DataFrame, key: str) -> go.Figure:
+    if df.empty: return go.Figure().update_layout(title="No data")
+    fig = px.scatter(
+        df.sample(min(len(df), 5000)),
+        x='complexity',
+        y='lifespan',
+        color='fitness',
+        color_continuous_scale='Inferno',
+        title='Complexity vs. Lifespan',
+        hover_data=['generation', 'cell_count']
+    )
+    fig.update_layout(height=400)
+    return fig
+
+def plot_energy_efficiency_over_time(df: pd.DataFrame, key: str) -> go.Figure:
+    if df.empty: return go.Figure().update_layout(title="No data")
+    df_copy = df.copy()
+    df_copy['efficiency'] = df_copy['energy_production'] / (df_copy['energy_consumption'] + 1e-6)
+    efficiency_by_gen = df_copy.groupby('generation')['efficiency'].mean().reset_index()
+    fig = px.line(efficiency_by_gen, x='generation', y='efficiency', title='Mean Energy Efficiency Over Time')
+    fig.update_layout(height=400)
+    return fig
+
+def plot_cell_count_dist_by_kingdom(df: pd.DataFrame, key: str) -> go.Figure:
+    if df.empty: return go.Figure().update_layout(title="No data")
+    final_gen_df = df[df['generation'] == df['generation'].max()]
+    if final_gen_df.empty:
+        final_gen_df = df
+    fig = px.box(final_gen_df, x='kingdom_id', y='cell_count', color='kingdom_id', title="Final Generation Cell Count Distribution")
+    fig.update_layout(height=400)
+    return fig
+
+def plot_lifespan_dist_by_kingdom(df: pd.DataFrame, key: str) -> go.Figure:
+    if df.empty: return go.Figure().update_layout(title="No data")
+    final_gen_df = df[df['generation'] == df['generation'].max()]
+    if final_gen_df.empty:
+        final_gen_df = df
+    fig = px.violin(final_gen_df, x='kingdom_id', y='lifespan', color='kingdom_id', box=True, title="Final Generation Lifespan Distribution")
+    fig.update_layout(height=400)
+    return fig
+
+def plot_complexity_vs_energy_prod(df: pd.DataFrame, key: str) -> go.Figure:
+    if df.empty: return go.Figure().update_layout(title="No data")
+    fig = px.scatter(
+        df.sample(min(len(df), 5000)),
+        x='complexity',
+        y='energy_production',
+        color='fitness',
+        color_continuous_scale='Cividis',
+        title='Complexity vs. Energy Production',
+        hover_data=['generation', 'lifespan']
+    )
+    fig.update_layout(height=400)
+    return fig
+
+def plot_fitness_scatter_over_time(df: pd.DataFrame, key: str) -> go.Figure:
+    if df.empty: return go.Figure().update_layout(title="No data")
+    fig = px.scatter(
+        df.sample(min(len(df), 10000)),
+        x='generation',
+        y='fitness',
+        color='kingdom_id',
+        title='Population Fitness Landscape Over Time',
+        hover_data=['cell_count', 'complexity']
+    )
+    fig.update_layout(height=400)
+    return fig
+
+def plot_elite_parallel_coords(df: pd.DataFrame, key: str) -> go.Figure:
+    if df.empty: return go.Figure().update_layout(title="No data")
+    final_gen_df = df[df['generation'] == df['generation'].max()]
+    if final_gen_df.empty:
+        final_gen_df = df
+    
+    elites = final_gen_df.nlargest(min(len(final_gen_df), 100), 'fitness')
+    if elites.empty:
+        return go.Figure().update_layout(title="Not enough data for Parallel Coordinates Plot", height=400)
+
+    fig = px.parallel_coordinates(
+        elites,
+        color="fitness",
+        dimensions=['fitness', 'complexity', 'cell_count', 'lifespan', 'energy_production', 'energy_consumption'],
+        color_continuous_scale=px.colors.sequential.Inferno,
+        title="Trait Relationships of Elite Organisms"
+    )
+    fig.update_layout(height=400)
+    return fig
+
+
+# ========================================================
+#
+# PART 5: THE MAIN APPLICATION (The Museum)
+#
+# ========================================================
+
+def main():
+    st.set_page_config(
+        page_title="The Museum of Infinite Life",
+        layout="wide",
+        page_icon="🌌",
+        initial_sidebar_state="expanded"
+    )
+
+    # --- Password Protection (from your file) ---
+    if 'password_attempts' not in st.session_state:
+        st.session_state.password_attempts = 0
+    if 'password_correct' not in st.session_state:
+        st.session_state.password_correct = False
+
+    def check_password_on_change():
+        try:
+            correct_pass = st.secrets["app_password"]
+        except (KeyError, AttributeError):
+            st.error("FATAL ERROR: No password found in Streamlit Secrets.")
+            st.info("Please ensure you have a .streamlit/secrets.toml file with:\n\n[passwords]\napp_password = 'your_password'")
+            st.session_state.password_correct = False
+            return
+
+        if st.session_state.password_input_key == correct_pass:
+            st.session_state.password_correct = True
+            st.session_state.password_attempts = 0
+        else:
+            st.session_state.password_correct = False
+            if st.session_state.password_input_key: 
+                st.session_state.password_attempts += 1
+    
+    if st.session_state.password_attempts >= 3:
+        st.error("Maximum login attempts exceeded. The application is locked.")
+        st.stop()
+        
+    if not st.session_state.password_correct:
+        st.text_input(
+            "Enter Museum Access Code", 
+            type="password", 
+            on_change=check_password_on_change,
+            key="password_input_key"
+        )
+        if st.session_state.password_attempts > 0:
+            st.error("Access Code incorrect")
+        st.info("Please enter the access code to tour the museum.")
+        st.stop()
+
+    # --- Initialize Lazy Loading states for all tabs ---
+    if 'dashboard_visible' not in st.session_state:
+        st.session_state.dashboard_visible = False
+    if 'specimen_gallery_visible' not in st.session_state:
+        st.session_state.specimen_gallery_visible = False
+    if 'hall_of_elites_visible' not in st.session_state:
+        st.session_state.hall_of_elites_visible = False
+    if 'genesis_chronicle_visible' not in st.session_state:
+        st.session_state.genesis_chronicle_visible = False
+    if 'analytics_lab_visible' not in st.session_state:
+        st.session_state.analytics_lab_visible = False
+    
+    # --- Data Loading ---
+    # This is the core change. We load *once* from the mock generator
+    # or from a user's uploaded file.
+    
+    if 'state_loaded' not in st.session_state:
+        # Load the default mock museum
+        history_df, population, genesis_events, metrics_df, gene_archive = load_museum_exhibits(CHEMICAL_BASES_REGISTRY)
+        
+        st.session_state.history_df = history_df
+        st.session_state.population = population
+        st.session_state.genesis_events = genesis_events
+        st.session_state.metrics_df = metrics_df
+        st.session_state.gene_archive = gene_archive
+        
+        # We need a settings dict for the visualizers
+        st.session_state.settings = {
+            'grid_width': 100, 'grid_height': 100, 'light_intensity': 1.0,
+            'mineral_richness': 1.0, 'water_abundance': 1.0, 'temp_pole': -20,
+            'temp_equator': 30, 'zygote_energy': 10.0, 'development_steps': 50,
+            'num_ranks_to_display': 3, 'num_custom_plots': 4,
+            'chemical_bases': list(CHEMICAL_BASES_REGISTRY.keys())
+        }
+        st.session_state.state_loaded = True
+        st.toast("Welcome! The Museum's exhibits have been curated.", icon="🏛️")
+
+    # ===============================================
+    # --- THE "MUSEUM DIRECTORY" SIDEBAR ---
+    # ===============================================
+    
+    st.sidebar.markdown('<h1 style="text-align: center; color: #00aaff;">🌌<br>Museum of Infinite Life</h1>', unsafe_allow_html=True)
+    st.sidebar.markdown("---")
+    
+    # --- NEW: Visitor Info ---
+    st.sidebar.info("**Welcome, Visitor.** \n\nThis panel allows you to load new exhibits (universes) or filter the current collection.")
+
+    # --- Kept from your file: The "Universe Manager" (now "Exhibit Loader") ---
+    with st.sidebar.expander("🌠 Exhibit Loader (Load a Universe)", expanded=True):
+        st.markdown("Load a different universe's history from a checkpoint file.")
+        
+        # We remove the "Save" button, as this is a visitor app.
+        
+        uploaded_file = st.sidebar.file_uploader(
+            "Upload your 'universe_results.zip' file", 
+            type=["json", "zip"],
+            key="checkpoint_uploader"
+        )
+        
+        if st.sidebar.button("LOAD FROM UPLOADED FILE", width='stretch', key="load_checkpoint_button"):
+            if uploaded_file is not None:
+                try:
+                    data = None
+                    if uploaded_file.name.endswith('.zip'):
+                        st.toast("Unzipping exhibit... Please wait.", icon="📦")
+                        mem_zip = io.BytesIO(uploaded_file.getvalue())
+                        with zipfile.ZipFile(mem_zip, 'r') as zf:
+                            json_filename = next((f for f in zf.namelist() if f.endswith('.json') and not f.startswith('__MACOSX')), None)
+                            if json_filename:
+                                with zf.open(json_filename) as f:
+                                    data = json.load(f)
+                            else:
+                                st.error("No .json file found inside the .zip archive.")
+                    
+                    elif uploaded_file.name.endswith('.json'):
+                        st.toast("Loading .json exhibit...", icon="📄")
+                        data = json.loads(uploaded_file.getvalue())
+                    
+                    if data is not None:
+                        st.toast("Exhibit found... Loading history...", icon="⏳")
+                        
+                        # Load data into session state
+                        st.session_state.settings = data.get('settings', st.session_state.settings)
+                        st.session_state.history_df = pd.DataFrame(data.get('history', []))
+                        st.session_state.metrics_df = pd.DataFrame(data.get('evolutionary_metrics', []))
+                        st.session_state.genesis_events = data.get('genesis_events', [])
+                        st.session_state.population = deserialize_population(data.get('final_population_genotypes', []))
+                        st.session_state.gene_archive = deserialize_population(data.get('full_gene_archive', []))
+
+                        # Update chemical bases if they were saved in the checkpoint
+                        if 'final_physics_constants' in data:
+                            CHEMICAL_BASES_REGISTRY.clear()
+                            CHEMICAL_BASES_REGISTRY.update(data['final_physics_constants'])
+                        
+                        st.toast("✅ Exhibit Loaded! The museum has been updated.", icon="🎉")
+                        st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"Failed to load checkpoint: {e}")
+            else:
+                st.warning("Please upload a file first.")
+    
+    st.sidebar.markdown("---")
+    
+    # --- NEW: Exhibit Filters ---
+    st.sidebar.markdown("### 🔍 Exhibit Filters")
+    st.sidebar.markdown("Filter the historical data across all exhibits.")
+    
+    if not st.session_state.history_df.empty:
+        history_df = st.session_state.history_df
+        
+        # --- Create filtered dataframes based on sidebar widgets ---
+        gen_min = int(history_df['generation'].min())
+        gen_max = int(history_df['generation'].max())
+        gen_range = st.sidebar.slider("Filter: Generation Range", gen_min, gen_max, (gen_min, gen_max), key="filter_gen_range")
+        
+        all_kingdoms = sorted(list(history_df['kingdom_id'].unique()))
+        selected_kingdoms = st.sidebar.multiselect("Filter: Chemical Kingdoms", all_kingdoms, all_kingdoms, key="filter_kingdoms")
+        
+        comp_min = float(history_df['complexity'].min())
+        comp_max = float(history_df['complexity'].max())
+        comp_range = st.sidebar.slider("Filter: Complexity Range", comp_min, comp_max, (comp_min, comp_max), key="filter_complexity")
+        
+        # --- Apply filters ---
+        filtered_history_df = history_df[
+            (history_df['generation'] >= gen_range[0]) &
+            (history_df['generation'] <= gen_range[1]) &
+            (history_df['kingdom_id'].isin(selected_kingdoms)) &
+            (history_df['complexity'] >= comp_range[0]) &
+            (history_df['complexity'] <= comp_range[1])
+        ]
+        
+        filtered_metrics_df = st.session_state.metrics_df[
+            (st.session_state.metrics_df['generation'] >= gen_range[0]) &
+            (st.session_state.metrics_df['generation'] <= gen_range[1])
+        ]
+        
+        # Filter population for display
+        filtered_population = [
+            g for g in st.session_state.population 
+            if g.kingdom_id in selected_kingdoms and comp_range[0] <= g.compute_complexity() <= comp_range[1]
+        ]
+        if not filtered_population:
+            filtered_population = st.session_state.population # Failsafe
+            
+        # Filter gene archive
+        filtered_gene_archive = [
+            g for g in st.session_state.gene_archive
+            if gen_range[0] <= g.generation <= gen_range[1] and
+               g.kingdom_id in selected_kingdoms and
+               comp_range[0] <= g.compute_complexity() <= comp_range[1]
+        ]
+        if not filtered_gene_archive:
+            filtered_gene_archive = st.session_state.gene_archive # Failsafe
+            
+        # Filter genesis events
+        filtered_genesis_events = [
+            e for e in st.session_state.genesis_events
+            if gen_range[0] <= e['generation'] <= gen_range[1]
+        ]
+
     else:
-        st.metric("Average Intelligence", "N/A")
+        # Failsafe if history is empty
+        st.sidebar.warning("No exhibit data loaded.")
+        filtered_history_df = pd.DataFrame()
+        filtered_metrics_df = pd.DataFrame()
+        filtered_population = []
+        filtered_gene_archive = []
+        filtered_genesis_events = []
 
-with col4:
-    if st.session_state.evolution_history:
-        chemistry_types = set([o['chemistry_base'] for o in st.session_state.evolution_history])
-        st.metric("Unique Chemistries", len(chemistry_types))
+    # --- Settings for visualizers (from your file) ---
+    s = st.session_state.settings 
+    
+    with st.sidebar.expander("🔬 Visualization Settings", expanded=False):
+        s['num_ranks_to_display'] = st.slider("Number of Elite Ranks to Display", 1, 10, s.get('num_ranks_to_display', 3), key="vis_ranks")
+        s['num_custom_plots'] = st.slider("Number of Custom Analytics Plots", 0, 12, s.get('num_custom_plots', 4), 1, key="vis_plots")
+        s['development_steps'] = st.slider("Specimen 'Grow' Steps (Visual only)", 10, 200, s.get('development_steps', 50), 5, key="vis_dev_steps")
+
+    # --- Kept from your file: The Guides ---
+    with st.sidebar.expander("📖 Visitor's Guidebook: A Guide to Infinite Life", expanded=False):
+        st.markdown("... (Your full 'Creator's Compendium' text from the original file goes here) ...")
+        
+    with st.sidebar.expander("🔬 A Researcher's Guide to the GRN Encyclopedia", expanded=False):
+        st.markdown("... (Your full 'GRN Encyclopedia' text from the original file goes here) ...")
+
+    # ===============================================
+    # --- MAIN PAGE DISPLAY ---
+    # ===============================================
+    st.markdown('<h1 class="main-header">Welcome to the Museum of Infinite Life</h1>', unsafe_allow_html=True)
+    
+    if filtered_history_df.empty:
+        st.info("The museum's collection is empty or your filters are too restrictive. Please load a checkpoint or adjust your filters.")
     else:
-        st.metric("Unique Chemistries", "0")
+        # --- Create Tabs ---
+        tab_list = [
+            "🏛️ Grand Concourse (Overview)", 
+            "🔬 Specimen Gallery", 
+            "🧬 Hall of Apex Lifeforms",
+            "🌌 The Genesis Chronicle",
+            "📊 Interstellar Analytics Lab"
+        ]
+        tab_dashboard, tab_gallery, tab_elites, tab_genesis, tab_analytics = st.tabs(tab_list)
+        
+        # --- TAB 1: Grand Concourse (Dashboard) ---
+        with tab_dashboard:
+            if st.session_state.dashboard_visible:
+                st.header("Exhibit: The Grand Concourse")
+                st.markdown("A high-level overview of this universe's entire evolutionary history. This hall shows the rise and fall of kingdoms and the major trends in complexity and fitness over millions of simulated years.")
+                
+                st.plotly_chart(
+                    plot_historical_dashboard(filtered_history_df, filtered_metrics_df, key_prefix="main_dash"),
+                    use_container_width=True,
+                    key="main_dashboard_plot_universe"
+                )
+                
+                st.header("Exhibit: The Morphospace Landscape")
+                st.markdown("This 3D landscape plots the 'fitness' (height) of all recorded lifeforms against their body size (cell count) and genomic complexity. The 'trajectories' show the path evolution took through this possibility space.")
+                st.plotly_chart(
+                    plot_evolutionary_landscape(filtered_history_df, key_prefix="main_landscape"),
+                    use_container_width=True,
+                    key="fitness_landscape_3d_universe"
+                )
 
-# Gallery of evolved organisms
-if st.session_state.evolution_history:
-    st.markdown("---")
-    st.markdown("## 🖼️ Gallery of Evolved Life Forms")
-    
-    gallery_cols = st.columns(min(4, len(st.session_state.evolution_history)))
-    
-    for idx, org in enumerate(st.session_state.evolution_history[-4:]):  # Show last 4
-        with gallery_cols[idx % 4]:
-            st.markdown(f"""
-            <div class="result-card" style="font-size: 0.9em;">
-            <h5>Organism {idx + 1}</h5>
-            <div class="organism-stat">Chemistry: {org['chemistry_base'].title()}</div>
-            <div class="organism-stat">Mass: {org['body_structure']['mass_kg']:.1f} kg</div>
-            <div class="organism-stat">Intelligence: {org['cognitive_abilities']['intelligence_index']:.0f}</div>
-            <div class="organism-stat">Survival: {org['survival_probability']:.0f}%</div>
-            </div>
-            """, unsafe_allow_html=True)
+                st.markdown("---")
+                if st.button("Unload Concourse Exhibit (Save Memory)", key="hide_dashboard_button"):
+                    st.session_state.dashboard_visible = False
+                    st.rerun()
+            else:
+                st.info("The Grand Concourse exhibit contains large-scale data visualizations. It is currently unloaded to save resources.")
+                if st.button("Load 🏛️ Grand Concourse Exhibit", key="render_dashboard_button"):
+                    st.session_state.dashboard_visible = True
+                    st.rerun()
 
-# Educational Information
-with st.expander("📚 Learn More About Life Evolution"):
-    st.markdown("""
-    ### How This Simulator Works
-    
-    This advanced evolution simulator uses **scientific principles** from multiple disciplines:
-    
-    **🧬 Evolutionary Biology**
-    - Natural selection pressure calculations
-    - Genetic drift and mutation modeling
-    - Convergent evolution patterns
-    - Speciation dynamics
-    
-    **🌡️ Planetary Science**
-    - Habitable zone calculations
-    - Atmospheric chemistry modeling
-    - Tidal locking effects
-    - Stellar radiation impacts
-    
-    **⚛️ Biochemistry**
-    - Alternative biochemistry viability
-    - Energy metabolism pathways
-    - Molecular stability under extreme conditions
-    - DNA/RNA alternatives
-    
-    **🧠 Neuroscience**
-    - Intelligence emergence modeling
-    - Neural complexity scaling
-    - Consciousness thresholds
-    - Cognitive capability predictions
-    
-    ### Parameter Impact Guide
-    
-    **High Gravity (>2g)**: Short, stocky organisms with powerful muscles and thick bones
-    
-    **Low Gravity (<0.5g)**: Tall, slender organisms capable of flight or extreme jumping
-    
-    **High Radiation (>100)**: Enhanced DNA repair mechanisms, possible silicon-based chemistry
-    
-    **Low Light (<0.3)**: Huge eyes, black pigmentation, enhanced non-visual senses
-    
-    **Extreme Temperature**: Alternative biochemistries (silicon, ammonia-based)
-    
-    **High Predation (>70)**: Advanced intelligence, tool use, defensive mechanisms
-    
-    ### The Science of Alien Life
-    
-    While we've never discovered alien life, this simulator is based on:
-    - **Known physics and chemistry**: Universal laws apply everywhere
-    - **Extremophile research**: Earth organisms in extreme conditions
-    - **Astrobiology theories**: Scientific predictions about alien biology
-    - **Evolutionary principles**: How natural selection shapes life
-    
-    **Remember**: This is scientifically-informed speculation. Real alien life may be far stranger!
-    """)
+        # --- TAB 2: Specimen Gallery ---
+        with tab_gallery:
+            if st.session_state.specimen_gallery_visible:
+                st.header("🔬 Exhibit: The Specimen Gallery")
+                st.markdown("A detailed look at the individual lifeforms from the final generation of this universe. Each specimen can be 'grown' for visualization, and its complete genetic code (GRN) can be inspected.")
+                
+                if not filtered_population:
+                    st.warning("No specimens match your current filter criteria.")
+                else:
+                    st.info(f"{len(filtered_population)} specimens in this exhibit hall. Use the filters to narrow your search.")
+                    
+                    # --- Specimen Selector ---
+                    specimen_options = {f"Gen {g.generation} | {g.kingdom_id} | Fitness {g.fitness:.3f} | ID: ...{g.id[-6:]}": g for g in filtered_population}
+                    selected_specimen_label = st.selectbox("Select a Specimen to Analyze", options=specimen_options.keys(), key="specimen_selector")
+                    
+                    if selected_specimen_label:
+                        specimen = specimen_options[selected_specimen_label]
+                        
+                        with st.spinner(f"Growing specimen {specimen.id[-6:]}..."):
+                            vis_grid = UniverseGrid(s)
+                            phenotype = Phenotype(specimen, vis_grid, s)
 
-# Advanced Features Section
-with st.expander("🔧 Advanced Features & Easter Eggs"):
-    st.markdown("""
-    ### Hidden Capabilities
-    
-    - **🌊 Underwater Civilizations**: Set liquid_coverage > 0.9 and intelligence > 80
-    - **🔥 Lava Life**: Set temperature > 700K with silicon chemistry
-    - **❄️ Ice Cores**: Set temperature < 200K with ammonia solvents
-    - **⚡ Plasma Beings**: Set temperature > 10,000K (God Mode required)
-    - **🧠 Hive Minds**: Set social_complexity > 90 with r-selection
-    - **🌌 Space-Adapted**: Set pressure < 0.01 and gravity < 0.1
-    
-    ### Parameter Combinations for Interesting Results
-    
-    **Sapient Predators**: High gravity + high predation + high intelligence
-    **Flying Civilizations**: Low gravity + dense atmosphere + tool use
-    **Deep Ocean Giants**: High pressure + low light + chemosynthesis
-    **Desert Nomads**: Low water + extreme temperature variation + social behavior
-    **Crystalline Forests**: Silicon chemistry + low temperature + high minerals
-    
-    ### Export & Share
-    - Download organism profiles as JSON
-    - Compare across multiple simulations
-    - Track evolutionary trends over time
-    - Build your own alien ecosystem
-    """)
+                        st.markdown(f"### Analysis of Specimen {specimen.id}")
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.metric("Fitness", f"{specimen.fitness:.4f}")
+                            st.metric("Kingdom", specimen.kingdom_id)
+                            st.metric("Cell Count", f"{specimen.cell_count}")
+                            st.metric("Complexity", f"{specimen.compute_complexity():.2f}")
+                            
+                            st.markdown("##### **Component Composition**")
+                            component_counts = Counter(cell.component.name for cell in phenotype.cells.values())
+                            if component_counts:
+                                comp_df = pd.DataFrame.from_dict(component_counts, orient='index', columns=['Count']).reset_index()
+                                comp_df = comp_df.rename(columns={'index': 'Component'})
+                                color_map = {c.name: c.color for c in specimen.component_genes.values()}
+                                fig_pie = px.pie(comp_df, values='Count', names='Component', 
+                                                 color='Component', color_discrete_map=color_map)
+                                fig_pie.update_layout(showlegend=False, margin=dict(l=0, r=0, t=0, b=0), height=200)
+                                st.plotly_chart(fig_pie, use_container_width=True, key=f"specimen_pie_{specimen.id}")
+                            else:
+                                st.info("No cells to analyze.")
+                        
+                        with c2:
+                            fig = visualize_phenotype_2d(phenotype, vis_grid)
+                            fig.update_layout(height=400)
+                            st.plotly_chart(fig, use_container_width=True, key=f"specimen_vis_{specimen.id}")
 
-# Footer
-st.markdown("---")
-st.markdown("""
-<div style='text-align: center; color: gray; padding: 20px;'>
-    <h3>🌌 THE ULTIMATE LIFE EVOLUTION SIMULATOR 🧬</h3>
-    <p style='font-size: 1.1em;'><em>"From cosmic dust to consciousness - witness the infinite possibilities of life"</em></p>
-    <p style='font-size: 0.9em; margin-top: 15px;'>
-        ⚛️ 10,000+ Parameters • 🧬 Infinite Combinations • 🌍 Realistic Physics<br>
-        🔬 Based on Astrobiology • 🧠 AI-Powered Evolution • 📊 Comprehensive Analytics
-    </p>
-    <p style='font-size: 0.8em; margin-top: 10px; color: #666;'>
-        Simulations: {runs} • Organisms Generated: {total} • Unique Chemistries: {chem}
-    </p>
-</div>
-""".format(
-    runs=st.session_state.simulation_runs,
-    total=len(st.session_state.evolution_history),
-    chem=len(set([o['chemistry_base'] for o in st.session_state.evolution_history])) if st.session_state.evolution_history else 0
-), unsafe_allow_html=True)
+                        # --- GRN Encyclopedia (from your file) ---
+                        st.markdown("---")
+                        st.markdown("### Genetic Regulatory Network (GRN) Encyclopedia")
+                        st.markdown("The 'DNA' of the specimen, viewed through 16 different analytical layouts. See the 'Visitor's Guidebook' in the sidebar for an explanation of each plot.")
+                        
+                        G = nx.DiGraph()
+                        for comp_name, comp_gene in specimen.component_genes.items():
+                            G.add_node(comp_name, type='component', color=comp_gene.color, label=comp_name.split('_')[0])
+                        for rule in specimen.rule_genes:
+                            action_node = f"{rule.action_type}\n({rule.action_param.split('_')[0]})"
+                            G.add_node(action_node, type='action', color='#FFB347', label=action_node)
+                            
+                            source_node = list(specimen.component_genes.keys())[0] # Simplified
+                            if rule.conditions:
+                                type_cond = next((c for c in rule.conditions if c['source'] == 'self_type'), None)
+                                if type_cond and type_cond['target_value'] in G.nodes():
+                                    source_node = type_cond['target_value']
+                                    
+                            G.add_edge(source_node, action_node, label=f"P={rule.probability:.1f}")
+                            if rule.action_param in G.nodes():
+                                G.add_edge(action_node, rule.action_param)
+
+                        if G.nodes:
+                            node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                            labels = {n: data.get('label', n) for n, data in G.nodes(data=True)}
+                            
+                            # Define all 16 layouts
+                            layouts = {
+                                'GRN 1: Default Spring': (nx.spring_layout, {'k': 0.9, 'seed': 42}),
+                                'GRN 2: Kamada-Kawai': (nx.kamada_kawai_layout, {}),
+                                'GRN 3: Circular': (nx.circular_layout, {}),
+                                'GRN 4: Random': (nx.random_layout, {'seed': 42}),
+                                'GRN 5: Spectral': (nx.spectral_layout, {}),
+                                'GRN 6: Shell': (nx.shell_layout, {}),
+                                'GRN 7: Spiral': (nx.spiral_layout, {}),
+                                'GRN 8: Planar': (nx.planar_layout, {}),
+                                'GRN 9: Tight Spring': (nx.spring_layout, {'k': 0.1, 'seed': 42}),
+                                'GRN 10: Loose Spring': (nx.spring_layout, {'k': 2.0, 'seed': 42}),
+                                'GRN 11: Dual-Shell (Custom)': 'custom_shell',
+                                'GRN 12: Settled Spring': (nx.spring_layout, {'iterations': 200, 'seed': 42}),
+                                'GRN 13: Hierarchical (Top-Down)': 'pydot_dot',
+                                'GRN 14: Hierarchical (Radial)': 'pydot_twopi',
+                                'GRN 15: Force-Directed (NEATO)': 'pydot_neato',
+                                'GRN 16: Spring (Alt. Seed)': (nx.spring_layout, {'seed': 99})
+                            }
+
+                            cols = st.columns(4)
+                            for i, (title, layout_info) in enumerate(layouts.items()):
+                                with cols[i % 4]:
+                                    st.markdown(f"##### **{title}**")
+                                    fig_grn, ax = plt.subplots(figsize=(4, 3))
+                                    pos = None
+                                    try:
+                                        if isinstance(layout_info, tuple):
+                                            func, kwargs = layout_info
+                                            pos = func(G, **kwargs)
+                                        elif layout_info == 'custom_shell':
+                                            component_nodes = [n for n, data in G.nodes(data=True) if data.get('type') == 'component']
+                                            action_nodes = [n for n, data in G.nodes(data=True) if data.get('type') == 'action']
+                                            pos = nx.shell_layout(G, nlist=[component_nodes, action_nodes])
+                                        elif layout_info.startswith('pydot_'):
+                                            prog = layout_info.split('_')[1]
+                                            pos = nx.nx_pydot.graphviz_layout(G, prog=prog)
+                                        
+                                        nx.draw(G, pos, ax=ax, with_labels=False, node_size=300, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                        nx.draw_networkx_labels(G, pos, labels=labels, font_size=7, ax=ax)
+                                        st.pyplot(fig_grn, key=f"grn_plot_{specimen.id}_{i}")
+                                        plt.clf()
+                                    except ImportError:
+                                        st.warning(f"Layout '{title}' requires 'pydot' and 'Graphviz'.", icon="⚠️")
+                                        plt.clf()
+                                    except Exception as e:
+                                        st.warning(f"Could not draw '{title}'.", icon="⚠️")
+                                        # st.exception(e) # Uncomment for debugging
+                                        plt.clf()
+                            plt.close('all') # Clear all figures from memory
+                        else:
+                            st.info("No GRN to display for this specimen.")
+                
+                st.markdown("---")
+                if st.button("Unload Specimen Gallery (Save Memory)", key="hide_gallery_button"):
+                    st.session_state.specimen_gallery_visible = False
+                    st.rerun()
+            else:
+                st.info("The Specimen Gallery contains 16-plot GRN layouts for every organism, which is highly resource-intensive. It is currently unloaded.")
+                if st.button("Load 🔬 Specimen Gallery", key="render_gallery_button"):
+                    st.session_state.specimen_gallery_visible = True
+                    st.rerun()
+
+        # --- TAB 3: Hall of Apex Lifeforms (Elites) ---
+        with tab_elites:
+            if st.session_state.hall_of_elites_visible:
+                st.header("🧬 Exhibit: The Hall of Apex Lifeforms")
+                st.markdown("A deep dive into the 'DNA' of the most successful organisms. Each rank displays the **best organism from a unique Kingdom** (from the final generation), showcasing the diversity of life that has evolved.")
+                st.markdown("---")
+                
+                if not filtered_population:
+                    st.warning("No specimens match your current filter criteria.")
+                else:
+                    population.sort(key=lambda x: x.fitness, reverse=True)
+                    num_ranks_to_display = s.get('num_ranks_to_display', 3)
+
+                    elite_specimens = []
+                    seen_kingdoms = set()
+                    for individual in filtered_population:
+                        if individual.kingdom_id not in seen_kingdoms:
+                            elite_specimens.append(individual)
+                            seen_kingdoms.add(individual.kingdom_id)
+
+                    for i, individual in enumerate(elite_specimens[:num_ranks_to_display]):
+                        with st.expander(f"**Rank {i+1}:** Kingdom `{individual.kingdom_id}` | Fitness: `{individual.fitness:.4f}`", expanded=(i==0)):
+                            
+                            with st.spinner(f"Growing Rank {i+1}..."):
+                                vis_grid = UniverseGrid(s)
+                                phenotype = Phenotype(individual, vis_grid, s)
+
+                            col1, col2 = st.columns([1, 1])
+                            with col1:
+                                st.markdown("##### **Core Metrics**")
+                                st.metric("Cell Count", f"{individual.cell_count}")
+                                st.metric("Complexity", f"{individual.compute_complexity():.2f}")
+                                st.metric("Lifespan", f"{individual.lifespan} ticks")
+                                st.metric("Energy Prod.", f"{individual.energy_production:.3f}")
+                                st.metric("Energy Cons.", f"{individual.energy_consumption:.3f}")
+                            
+                            with col2:
+                                st.markdown("##### **Phenotype (Body Plan)**")
+                                fig = visualize_phenotype_2d(phenotype, vis_grid)
+                                st.plotly_chart(fig, use_container_width=True, key=f"elite_pheno_vis_{i}")
+
+                            st.markdown("---")
+                            col3, col4 = st.columns(2)
+
+                            with col3:
+                                st.markdown("##### **Component Composition**")
+                                component_counts = Counter(cell.component.name for cell in phenotype.cells.values())
+                                if component_counts:
+                                    comp_df = pd.DataFrame.from_dict(component_counts, orient='index', columns=['Count']).reset_index()
+                                    comp_df = comp_df.rename(columns={'index': 'Component'})
+                                    color_map = {c.name: c.color for c in individual.component_genes.values()}
+                                    fig_pie = px.pie(comp_df, values='Count', names='Component', 
+                                                     color='Component', color_discrete_map=color_map, title="Cell Type Distribution")
+                                    fig_pie.update_layout(showlegend=True, margin=dict(l=0, r=0, t=30, b=0), height=300)
+                                    st.plotly_chart(fig_pie, use_container_width=True, key=f"elite_pie_{i}")
+                                
+                                st.markdown("##### **Component Genes (The 'Alphabet')**")
+                                for comp_name, comp_gene in individual.component_genes.items():
+                                    st.code(f"[{comp_gene.color}] {comp_name} (Mass: {comp_gene.mass:.2f}, Struct: {comp_gene.structural:.2f})", language="text")
+
+                            with col4:
+                                st.markdown("##### **Genetic Regulatory Network (GRN Rules)**")
+                                if individual.rule_genes:
+                                    for rule in individual.rule_genes:
+                                        cond_parts = []
+                                        for c in rule.conditions:
+                                            target_val = c['target_value']
+                                            val_str = f"{target_val:.1f}" if isinstance(target_val, (int, float)) else f"'{target_val}'"
+                                            cond_parts.append(f"{c['source']} {c['operator']} {val_str}")
+                                        cond_str = " AND ".join(cond_parts) if cond_parts else "ALWAYS"
+                                        st.code(f"IF {cond_str}\nTHEN {rule.action_type}({rule.action_param}) [P={rule.probability:.2f}, Pri={rule.priority}]", language='sql')
+                                else:
+                                    st.info("No GRN rules.")
+                
+                st.markdown("---")
+                if st.button("Unload Hall of Apex Lifeforms (Save Memory)", key="hide_elite"):
+                    st.session_state.hall_of_elites_visible = False
+                    st.rerun()
+            else:
+                st.info("The Hall of Apex Lifeforms loads the genetic code for the top organisms. It is currently unloaded.")
+                if st.button("Load 🧬 Hall of Apex Lifeforms", key="show_elite"):
+                    st.session_state.hall_of_elites_visible = True
+                    st.rerun()
+
+        # --- TAB 4: Genesis Chronicle ---
+        with tab_genesis:
+            if st.session_state.genesis_chronicle_visible:
+                st.header("🌌 Exhibit: The Genesis Chronicle")
+                st.markdown("This is the historical record of this universe, chronicling the pivotal moments of creation, innovation, and cosmic change. These events are the sparks that drive evolution.")
+                
+                if not filtered_genesis_events:
+                    st.info("No significant evolutionary events have been recorded in the filtered range.")
+                else:
+                    # --- Event Log ---
+                    st.markdown(f"#### Recorded History ({len(filtered_genesis_events)} events)")
+                    log_container = st.container(height=400)
+                    for event in sorted(filtered_genesis_events, key=lambda x: x['generation']):
+                        log_container.markdown(f"""
+                        <div style="border-left: 3px solid #00aaff; padding-left: 10px; margin-bottom: 15px;">
+                            <small>Generation {event['generation']}</small><br>
+                            <strong>{event['icon']} {event['title']}</strong>
+                            <p style="font-size: 0.9em; color: #ccc;">{event['description']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                
+                # --- The rest of the Chronicle (from your file) ---
+                st.markdown("---")
+                st.markdown("### 📖 Epochs & Phylogeny")
+                st.markdown("A macro-level analysis of your universe's history, identifying distinct eras and visualizing the evolutionary tree of its kingdoms.")
+                
+                col1, col2 = st.columns([2, 1])
+
+                with col1:
+                    st.markdown("#### The Great Epochs of History")
+                    break_points = {0, filtered_history_df['generation'].max()}
+                    major_events = [e for e in filtered_genesis_events if e['type'] in ['Cataclysm', 'Genesis', 'Succession']]
+                    for event in major_events:
+                        break_points.add(event['generation'])
+                    sorted_breaks = sorted(list(break_points))
+                    
+                    if len(sorted_breaks) < 2:
+                        st.info("Not enough major events have occurred to define distinct historical epochs.")
+                    else:
+                        for i in range(len(sorted_breaks) - 1):
+                            start_gen, end_gen = sorted_breaks[i], sorted_breaks[i+1]
+                            epoch_df = filtered_history_df[(filtered_history_df['generation'] >= start_gen) & (filtered_history_df['generation'] <= end_gen)]
+                            if epoch_df.empty: continue
+
+                            start_event = next((e for e in major_events if e['generation'] == start_gen), None)
+                            epoch_name = f"Epoch {i+1}"
+                            if i == 0 and not start_event: epoch_name = "The Primordial Era"
+                            elif start_event: epoch_name = f"The {start_event['title']} Era"
+
+                            with st.expander(f"**{epoch_name}** (Generations {start_gen} - {end_gen})"):
+                                c1, c2 = st.columns(2)
+                                with c1:
+                                    st.markdown("##### Core Metrics")
+                                    dominant_kingdom = epoch_df['kingdom_id'].mode()[0] if not epoch_df['kingdom_id'].mode().empty else "N/A"
+                                    st.metric("Dominant Kingdom", dominant_kingdom)
+                                    st.metric("Mean Fitness", f"{epoch_df['fitness'].mean():.3f}")
+                                    st.metric("Peak Complexity", f"{epoch_df['complexity'].max():.2f}")
+                                with c2:
+                                    st.markdown("##### Historical Events")
+                                    epoch_events = [e for e in filtered_genesis_events if start_gen <= e['generation'] < end_gen]
+                                    for event in epoch_events[:3]:
+                                        st.markdown(f"- **Gen {event['generation']}:** {event['title']}")
+                with col2:
+                    st.markdown("#### The Tree of Life (Phylogeny)")
+                    phylogeny_graph = nx.DiGraph()
+                    first_occurrence = filtered_history_df.loc[filtered_history_df.groupby('kingdom_id')['generation'].idxmin()]
+                    
+                    for _, row in first_occurrence.iterrows():
+                        phylogeny_graph.add_node(row['kingdom_id'], label=f"{row['kingdom_id']}\n(Gen {row['generation']})")
+                    # (Simplified edge logic for the museum)
+
+                    if not phylogeny_graph.nodes():
+                        st.info("No kingdom data to build a tree of life.")
+                    else:
+                        fig_tree, ax_tree = plt.subplots(figsize=(5, 4))
+                        pos = nx.spring_layout(phylogeny_graph, seed=42, k=0.9)
+                        labels = nx.get_node_attributes(phylogeny_graph, 'label')
+                        nx.draw(phylogeny_graph, pos, labels=labels, with_labels=True, node_size=3000, node_color='#00aaff', font_size=8, font_color='white', arrowsize=20, ax=ax_tree)
+                        ax_tree.set_title("Kingdom Phylogeny")
+                        st.pyplot(fig_tree, key="phylogeny_plot")
+                        plt.clf()
+
+                st.markdown("---")
+                st.markdown("### 🏛️ The Pantheon of Genes")
+                st.markdown("A hall of fame for the most impactful genetic 'ideas' of this universe. This analyzes the entire fossil record (gene archive) to identify the components and rule strategies that defined success.")
+
+                if not filtered_gene_archive:
+                    st.info("The gene archive is empty. Run a simulation to populate the fossil record.")
+                else:
+                    pantheon_col1, pantheon_col2 = st.columns(2)
+                    with pantheon_col1:
+                        st.markdown("#### The Component Pantheon")
+                        all_components = Counter()
+                        for genotype in filtered_gene_archive:
+                            all_components.update(genotype.component_genes.keys())
+                        
+                        comp_df = pd.DataFrame(all_components.items(), columns=['Component', 'UsageCount']).sort_values('UsageCount', ascending=False)
+                        fig_comp = px.bar(comp_df.head(10), x='Component', y='UsageCount', title="Most Successful Components (by Usage)")
+                        fig_comp.update_layout(height=300, margin=dict(l=0, r=0, t=40, b=0))
+                        st.plotly_chart(fig_comp, use_container_width=True, key="pantheon_comp_bar")
+                        
+                    with pantheon_col2:
+                        st.markdown("#### The Lawgivers: Elite Genetic Strategies")
+                        elite_actions = Counter()
+                        for elite in filtered_population:
+                            elite_actions.update(r.action_type for r in elite.rule_genes)
+                        
+                        action_df = pd.DataFrame(elite_actions.items(), columns=['Action', 'Count']).sort_values('Count', ascending=False)
+                        fig_actions = px.bar(action_df, x='Action', y='Count', title="Elite Strategic Blueprint (GRN Actions)")
+                        fig_actions.update_layout(height=300, margin=dict(l=0, r=0, t=40, b=0))
+                        st.plotly_chart(fig_actions, use_container_width=True, key="pantheon_elite_actions")
+
+                st.markdown("---")
+                if st.button("Unload Genesis Chronicle (Save Memory)", key="hide_genesis_button"):
+                    st.session_state.genesis_chronicle_visible = False
+                    st.rerun()
+            else:
+                st.info("The Genesis Chronicle contains historical timelines and fossil record analysis. It is currently unloaded.")
+                if st.button("Load 🌌 Genesis Chronicle", key="render_genesis_button"):
+                    st.session_state.genesis_chronicle_visible = True
+                    st.rerun()
+
+        # --- TAB 5: Analytics Lab ---
+        with tab_analytics:
+            if st.session_state.analytics_lab_visible:
+                st.header("📊 Exhibit: Interstellar Analytics Lab")
+                st.markdown("A flexible laboratory for generating custom 2D plots to explore the relationships within this universe's evolutionary history. Configure the number of plots in the sidebar.")
+                st.markdown("---")
+
+                num_plots = s.get('num_custom_plots', 4)
+                
+                plot_functions = [
+                    plot_fitness_vs_complexity,
+                    plot_lifespan_vs_cell_count,
+                    plot_energy_dynamics,
+                    plot_complexity_density,
+                    plot_fitness_violin_by_kingdom,
+                    plot_complexity_vs_lifespan,
+                    plot_energy_efficiency_over_time,
+                    plot_cell_count_dist_by_kingdom,
+                    plot_lifespan_dist_by_kingdom,
+                    plot_complexity_vs_energy_prod,
+                    plot_fitness_scatter_over_time,
+                    plot_elite_parallel_coords
+                ]
+
+                cols = st.columns(2)
+                for i in range(num_plots):
+                    with cols[i % 2]:
+                        if i < len(plot_functions):
+                            plot_func = plot_functions[i]
+                            # Give each plot a unique key
+                            fig = plot_func(filtered_history_df, key=f"custom_plot_{i}")
+                            st.plotly_chart(fig, use_container_width=True, key=f"custom_plotly_chart_{i}")
+                
+                st.markdown("---")
+                if st.button("Unload Analytics Lab (Save Memory)", key="hide_analytics_lab_button"):
+                    st.session_state.analytics_lab_visible = False
+                    st.rerun()
+            else:
+                st.info("The Analytics Lab contains custom plot generators. It is currently unloaded.")
+                if st.button("Load 📊 Interstellar Analytics Lab", key="render_analytics_lab_button"):
+                    st.session_state.analytics_lab_visible = True
+                    st.rerun()
+        
+        # --- Download Button (from your file) ---
+        st.markdown("---")
+        try:
+            download_data = {
+                "settings": s,
+                "history": st.session_state.history_df.to_dict('records'),
+                "evolutionary_metrics": st.session_state.metrics_df.to_dict('records'),
+                "genesis_events": st.session_state.genesis_events,
+                "final_population_genotypes": [asdict(g) for g in st.session_state.population],
+                "full_gene_archive": [asdict(g) for g in st.session_state.gene_archive],
+                "final_physics_constants": CHEMICAL_BASES_REGISTRY,
+            }
+            
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
+                json_string = json.dumps(download_data, indent=4, cls=GenotypeJSONEncoder)
+                file_name_in_zip = "museum_exhibit_data.json"
+                zf.writestr(file_name_in_zip, json_string.encode('utf-8'))
+
+            st.download_button(
+                label="📥 Download Full Exhibit Data as .zip",
+                data=zip_buffer.getvalue(),
+                file_name="museum_of_infinite_life_exhibit.zip",
+                mime="application/zip",
+                help="Download the complete universe state (settings, history, gene archive) as a compressed ZIP file."
+            )
+        except Exception as e:
+            st.error(f"Could not prepare data for download: {e}")
+            # st.exception(e) # Uncomment for debugging
+
+if __name__ == "__main__":
+    # Add pydot to the path if it's not found
+    try:
+        import pydot
+    except ImportError:
+        st.error("This app requires the 'pydot' and 'graphviz' libraries for some GRN visualizations. Please install them: `pip install pydot graphviz` and ensure Graphviz is in your system's PATH.")
+    
+    main()
