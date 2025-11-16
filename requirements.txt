@@ -12,3 +12,4 @@ matplotlib
 scikit-learn
 seaborn
 pydot
+graphviz
