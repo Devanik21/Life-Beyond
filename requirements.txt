@@ -1,10 +1,14 @@
 streamlit
+google-generativeai
+pyperclip
+streamlit
 numpy
 pandas
 plotly
 scipy
 networkx
 tinydb
-pygraphviz
-statsmodels
 matplotlib
+scikit-learn
+seaborn
+pydot
