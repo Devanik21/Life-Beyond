@@ -4,7 +4,7 @@ import plotly.express as px
 import numpy as np
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
-import io
+import graphviz
 
 # Page config
 st.set_page_config(
@@ -188,7 +188,7 @@ with st.sidebar:
     
     wing_choice = st.radio(
         "Select Wing:",
-        ["Home", "Wing 1: Life As We Know It", "Wing 2: Life As We Don't Know It", "Wing 3: Environmental Sculpting"],
+        ["Home", "Wing 1: Life As We Know It", "Wing 2: Life As We Don't Know It", "Wing 3: Environmental Sculpting", "Tree of Universal Life"],
         key="wing_selector"
     )
     st.session_state.current_wing = wing_choice
@@ -1427,6 +1427,46 @@ if st.session_state.current_wing == "Wing 3: Environmental Sculpting":
         fig.update_traces(mode='lines+markers', line_shape='spline')
         fig.update_layout(height=400)
         st.plotly_chart(fig, use_container_width=True, key="cardio_comp")
+
+# WING 4: TREE OF UNIVERSAL LIFE
+elif st.session_state.current_wing == "Tree of Universal Life":
+    st.markdown('<h2 class="wing-header">🌳 The Tree of Universal Life</h2>', unsafe_allow_html=True)
+    st.markdown("*A speculative graph connecting all known and theoretical forms of life.*")
+
+    # Create a graphlib graph object
+    graph = graphviz.Digraph('UniversalTree', engine='dot')
+    graph.attr('node', shape='box', style='rounded,filled', fontname='Helvetica', color='skyblue', fillcolor='lightyellow')
+    graph.attr('edge', fontname='Helvetica', fontsize='10')
+    graph.attr(rankdir='TB', size='10,10', splines='ortho')
+
+    # Nodes
+    graph.node('LUCA', 'Last Universal Common Ancestor (LUCA)', fillcolor='gold')
+    
+    # Carbon-based branch
+    with graph.subgraph(name='cluster_carbon') as c:
+        c.attr(label='Carbon-Based Life', style='filled', color='lightgreen')
+        c.node('Prokaryotes')
+        c.node('Eukaryotes')
+        c.node('Animals')
+        c.node('Plants')
+        c.node('Fungi')
+        c.edge('LUCA', 'Prokaryotes', label='First Life')
+        c.edge('Prokaryotes', 'Eukaryotes', label='Endosymbiosis')
+        c.edge('Eukaryotes', 'Animals')
+        c.edge('Eukaryotes', 'Plants')
+        c.edge('Eukaryotes', 'Fungi')
+
+    # Exotic/Theoretical branch
+    with graph.subgraph(name='cluster_exotic') as c:
+        c.attr(label='Exotic & Theoretical Life', style='filled', color='lightcoral')
+        c.node('SiliconLife', 'Silicon-Based Life\n(e.g., on Titan)')
+        c.node('PlasmaLife', 'Plasma-Based Life\n(Cosmic Clouds)')
+        c.node('NuclearLife', 'Macronuclei Life\n(Neutron Stars)')
+        c.edge('LUCA', 'SiliconLife', label='Alternative\nBiochemistry', style='dashed')
+        c.edge('SiliconLife', 'PlasmaLife', label='Extreme\nConditions', style='dashed')
+        c.edge('PlasmaLife', 'NuclearLife', label='Beyond Known\nPhysics', style='dashed')
+
+    st.graphviz_chart(graph, use_container_width=True)
 
 # Footer
 st.markdown("---")
