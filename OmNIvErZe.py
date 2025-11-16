@@ -123,6 +123,12 @@ if 'sim_selection_pressure' not in st.session_state:
     st.session_state.sim_selection_pressure = "Moderate"
 if 'sim_env_stress' not in st.session_state:
     st.session_state.sim_env_stress = []
+if 'final_graph_source' not in st.session_state:
+    st.session_state.final_graph_source = None
+if 'final_graph_png' not in st.session_state:
+    st.session_state.final_graph_png = None
+if 'final_graph_jpg' not in st.session_state:
+    st.session_state.final_graph_jpg = None
 
 
 # Helper function to generate alien landscape
