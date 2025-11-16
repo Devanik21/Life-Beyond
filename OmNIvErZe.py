@@ -1422,37 +1422,17 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
     with st.expander(expander_title, expanded=True):
         
         # Define tabs for the deep dive
-        tab_arch, tab_ancestry = st.tabs([
-            "🌐 Architectural Evolution", 
-            "🌳 Genealogy & Traits",
+        tab_vitals, tab_ancestry = st.tabs([
+            "🌐 Vitals & Architecture", 
+            "🌳 Genealogy & Ancestry",
         ])
         
-        # --- TAB 2: Genealogy & Traits ---
-        with tab_ancestry:
-            ancestry_col1, ancestry_col2 = st.columns(2)
-            with ancestry_col1:
-                st.markdown("#### Evolutionary Lineage")
-            
-                # Create a simple ancestry tree
-                tree = graphviz.Digraph('Ancestry', graph_attr={'bgcolor': 'transparent'})
-                tree.attr('node', shape='box', style='rounded,filled', fontname='Exo 2', color='#00BCD4', fillcolor='#2D3748', fontcolor='#E2E8F0')
-                tree.attr('edge', fontname='Exo 2', fontsize='10', color='#A0AEC0', fontcolor='#A0AEC0')
-                tree.attr(rankdir='BT')
-
-                tree.node('Final', 'Final Dominant Genotype', fillcolor='#B7791F', fontcolor='white')
-                tree.node('Ancestor1', 'Ancestor (Gen -50)')
-                tree.node('Ancestor2', 'Ancestor (Gen -80)')
-                tree.node('Origin', 'Origin Population')
-                
-                tree.edge('Ancestor1', 'Final', label=' Strong Selection')
-                tree.edge('Ancestor2', 'Ancestor1', label=' Beneficial Mutation')
-                tree.edge('Origin', 'Ancestor2', label=' Initial Adaptation')
-                
-                st.graphviz_chart(tree, use_container_width=True)
-                st.info("This chart traces the key evolutionary steps that led to the emergence of the final dominant genotype.")
-
-            with ancestry_col2:
+        # --- TAB 1: Vitals & Architecture ---
+        with tab_vitals:
+            vitals_col1, vitals_col2 = st.columns([1, 1])
+            with vitals_col1:
                 st.markdown("#### Evolved Trait Profile")
+                
                 # --- DYNAMIC TRAIT GENERATION ---
                 trait_pool = {
                     "High Radiation": ["Radiation Shielding", "DNA Repair"],
@@ -1499,9 +1479,9 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
                 )
                 st.plotly_chart(fig, use_container_width=True, key="evolved_trait_radar")
 
-        # --- TAB 1: Architectural Evolution ---
-        with tab_arch:
+            with vitals_col2:
                 st.markdown("#### Architectural Evolution")
+                
                 # --- DEDICATED CONTROLS ---
                 evo_col1, evo_col2 = st.columns(2)
                 with evo_col1:
@@ -1512,12 +1492,27 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
                 delay_map = {"Slow": 0.2, "Normal": 0.05, "Fast": 0.01}
                 animation_delay = delay_map[anim_speed]
 
+                # --- UX CONTROLS & DOWNLOADS ---
+                with st.expander("Graph Controls & Export"):
+                    export_cols = st.columns(2)
+                    with export_cols[0]:
+                        st.session_state.graph_layout = st.selectbox(
+                            "Graph Layout Engine",
+                            ['dot', 'neato', 'fdp', 'sfdp', 'twopi', 'circo'],
+                            key="layout_engine"
+                        )
+                    with export_cols[1]:
+                        st.write(" ") # Spacer
+                        if 'final_graph_source' in st.session_state and st.session_state.final_graph_source:
+                            st.download_button("⬇️ Download SVG", st.session_state.final_graph_svg, file_name="architecture.svg", mime="image/svg+xml")
+                            st.download_button("⬇️ Download DOT Source", st.session_state.final_graph_source, file_name="architecture.dot", mime="text/vnd.graphviz")
+
                 blueprint_placeholder = st.empty()
                 
                 if st.button("Animate Architectural Evolution", key="animate_architecture"):
                     # --- DYNAMIC ANIMATED EVOLUTION ---
                     base_nodes = 3
-                    max_additional_nodes = int(20 * (final_fitness / 100))
+                    max_additional_nodes = int(25 * (final_fitness / 100))
                     
                     for gen in range(0, max_gens + 1, 5):
                         progress = gen / max_gens
@@ -1528,7 +1523,7 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
                         
                         with blueprint_placeholder.container():
                             st.markdown(f"**Visualizing Generation:** `{gen}/{max_gens}`")
-                            graph = graphviz.Digraph('Genotype', graph_attr={'bgcolor': 'transparent'})
+                            graph = graphviz.Digraph('Genotype', engine=st.session_state.graph_layout, graph_attr={'bgcolor': 'transparent'})
                             graph.attr('node', shape='circle', style='filled', fontname='Exo 2', color='#00BCD4', fillcolor='#2D3748', fontcolor='#E2E8F0')
                             graph.attr('edge', color='#A0AEC0')
                             
@@ -1548,7 +1543,34 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
                             st.graphviz_chart(graph, use_container_width=True)
                         
                         time.sleep(animation_delay)
+                    
+                    # After animation, store final graph for download
+                    st.session_state.final_graph_source = graph.source
+                    # Render to SVG bytes for download
+                    st.session_state.final_graph_svg = graph.pipe(format='svg')
 
+
+        # --- TAB 2: Genealogy & Ancestry ---
+        with tab_ancestry:
+            st.markdown("#### Evolutionary Lineage")
+            
+            # Create a simple ancestry tree
+            tree = graphviz.Digraph('Ancestry', graph_attr={'bgcolor': 'transparent'})
+            tree.attr('node', shape='box', style='rounded,filled', fontname='Exo 2', color='#00BCD4', fillcolor='#2D3748', fontcolor='#E2E8F0')
+            tree.attr('edge', fontname='Exo 2', fontsize='10', color='#A0AEC0', fontcolor='#A0AEC0')
+            tree.attr(rankdir='BT')
+
+            tree.node('Final', 'Final Dominant Genotype', fillcolor='#B7791F', fontcolor='white')
+            tree.node('Ancestor1', 'Ancestor (Gen -50)')
+            tree.node('Ancestor2', 'Ancestor (Gen -80)')
+            tree.node('Origin', 'Origin Population')
+            
+            tree.edge('Ancestor1', 'Final', label=' Strong Selection')
+            tree.edge('Ancestor2', 'Ancestor1', label=' Beneficial Mutation')
+            tree.edge('Origin', 'Ancestor2', label=' Initial Adaptation')
+            
+            st.graphviz_chart(tree, use_container_width=True)
+            st.info("This chart traces the key evolutionary steps that led to the emergence of the final dominant genotype from the origin population.")
 
 
 # Interactive Timeline Feature
