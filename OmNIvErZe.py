@@ -1015,9 +1015,14 @@ if st.session_state.current_wing == "Home":
             st.markdown("---")
             st.subheader("🛰️ Behavioral Simulation")
             st.markdown("*Watch the organism move in a simulated environment based on its traits.*")
-
+            
+            sim_col1, sim_col2 = st.columns(2)
+            with sim_col1:
+                sim_steps = st.slider("Simulation Steps", 10, 200, 50, 10, key="sim_steps_slider")
+            with sim_col2:
+                animation_delay = st.slider("Animation Delay (s)", 0.0, 0.5, 0.05, 0.01, key="sim_speed_slider")
+                
             # Simulation parameters
-            sim_steps = 50
             space_size = 100
             
             # Organism speed is inversely proportional to gravity
@@ -1078,7 +1083,7 @@ if st.session_state.current_wing == "Home":
                                   yaxis=dict(range=[0, space_size], showgrid=False, zeroline=False),
                                   height=500, showlegend=True)
                 sim_placeholder.plotly_chart(fig, use_container_width=True)
-                time.sleep(0.05)
+                time.sleep(animation_delay)
     
     with research_tab2:
         st.subheader("🌡️ Planetary Habitability Calculator")
