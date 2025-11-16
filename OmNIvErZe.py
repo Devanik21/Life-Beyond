@@ -188,7 +188,7 @@ with st.sidebar:
     
     wing_choice = st.radio(
         "Select Wing:",
-        ["Home", "Wing 1: Life As We Know It", "Wing 2: Life As We Don't Know It", "Wing 3: Environmental Sculpting"],
+        ["Home", "Wing 1: Life As We Know It", "Wing 2: Life As We Don't Know It", "Wing 3: Environmental Sculpting", "Wing 4: Procedural Life Lab"],
         key="wing_selector"
     )
     st.session_state.current_wing = wing_choice
@@ -840,593 +840,139 @@ elif st.session_state.current_wing == "Wing 3: Environmental Sculpting":
             st.markdown("**🟣 Ancient Earth**")
             st.markdown("🟣 Purple plants")
 
-# ADVANCED FEATURES SECTION
-if st.session_state.current_wing == "Home":
-    st.markdown("---")
-    st.markdown("## 🔬 Advanced Research Labs")
-    
-    research_tab1, research_tab2, research_tab3, research_tab4 = st.tabs([
-        "🧪 Life Form Simulator", 
-        "🌡️ Habitability Calculator", 
-        "🧬 DNA Mutation Lab",
-        "📊 Exoplanet Database"
-    ])
-    
-    with research_tab1:
-        st.subheader("🧪 Alien Life Form Simulator")
-        st.markdown("*Design your own alien organism based on environmental parameters*")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            sim_gravity = st.slider("Gravity (g)", 0.1, 5.0, 1.0, 0.1, key="sim_gravity")
-            sim_temp = st.slider("Temperature (K)", 100, 800, 300, 10, key="sim_temp")
-            sim_pressure = st.slider("Pressure (atm)", 0.1, 100.0, 1.0, 0.5, key="sim_pressure")
-        
-        with col2:
-            sim_atmosphere = st.multiselect(
-                "Atmospheric Composition",
-                ["Oxygen", "Nitrogen", "CO2", "Methane", "Hydrogen", "Ammonia"],
-                ["Nitrogen", "Oxygen"],
-                key="sim_atmosphere"
-            )
-            sim_water = st.select_slider(
-                "Water Availability",
-                ["None", "Trace", "Moderate", "Abundant"],
-                "Moderate",
-                key="sim_water"
-            )
-            sim_radiation = st.slider("Radiation Level", 0, 100, 20, 5, key="sim_radiation")
-        
-        with col3:
-            sim_chemistry = st.radio(
-                "Base Chemistry",
-                ["Carbon", "Silicon", "Exotic"],
-                key="sim_chemistry"
-            )
-            sim_energy = st.selectbox(
-                "Energy Source",
-                ["Photosynthesis", "Chemosynthesis", "Thermal", "Radiation"],
-                key="sim_energy"
-            )
-        
-        if st.button("🧬 Generate Organism", key="generate_organism"):
-            # Calculate organism traits
-            body_mass = 50 * sim_gravity
-            limb_count = max(2, int(8 / sim_gravity))
-            eye_count = 2 if "Oxygen" in sim_atmosphere else 4
-            skin_thickness = sim_radiation / 10
-            metabolism_rate = sim_temp / 300
-            
-            col_a, col_b = st.columns(2)
-            
-            with col_a:
-                st.markdown("### 👾 Generated Organism Profile")
-                organism_stats = pd.DataFrame({
-                    'Trait': ['Body Mass', 'Limb Count', 'Eye Count', 'Skin Thickness', 'Metabolism Rate', 'Lifespan'],
-                    'Value': [
-                        f"{body_mass:.1f} kg",
-                        f"{limb_count}",
-                        f"{eye_count}",
-                        f"{skin_thickness:.1f} cm",
-                        f"{metabolism_rate:.2f}x Earth",
-                        f"{int(100/metabolism_rate)} years"
-                    ]
-                })
-                st.table(organism_stats)
-                
-                # Survival rating
-                survival_score = (
-                    (100 - abs(sim_temp - 300)) * 0.3 +
-                    (100 - sim_radiation) * 0.25 +
-                    (len(sim_atmosphere) * 10) * 0.2 +
-                    (["None", "Trace", "Moderate", "Abundant"].index(sim_water) * 25) * 0.25
-                )
-                
-                st.metric("Survival Rating", f"{survival_score:.0f}%", 
-                         "Viable" if survival_score > 50 else "Challenging")
-            
-            with col_b:
-                # Organism visualization
-                trait_comparison = pd.DataFrame({
-                    'Trait': ['Strength', 'Speed', 'Intelligence', 'Senses', 'Endurance', 'Adaptability'],
-                    'Value': [
-                        sim_gravity * 30,
-                        100 / sim_gravity,
-                        metabolism_rate * 50,
-                        eye_count * 15,
-                        (100 - sim_radiation) * 0.8,
-                        len(sim_atmosphere) * 15
-                    ]
-                })
-                
-                fig = go.Figure()
-                fig.add_trace(go.Scatterpolar(
-                    r=trait_comparison['Value'],
-                    theta=trait_comparison['Trait'],
-                    fill='toself',
-                    line_color='cyan',
-                    fillcolor='rgba(0, 255, 255, 0.3)'
-                ))
-                fig.update_layout(
-                    polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-                    title="Organism Trait Profile",
-                    height=400
-                )
-                st.plotly_chart(fig, use_container_width=True, key="organism_traits")
-    
-    with research_tab2:
-        st.subheader("🌡️ Planetary Habitability Calculator")
-        st.markdown("*Calculate the habitability score of any exoplanet*")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            planet_mass = st.number_input("Planet Mass (Earth = 1)", 0.1, 10.0, 1.0, 0.1, key="planet_mass")
-            planet_radius = st.number_input("Planet Radius (Earth = 1)", 0.5, 5.0, 1.0, 0.1, key="planet_radius")
-            star_distance = st.number_input("Distance from Star (AU)", 0.1, 5.0, 1.0, 0.1, key="star_distance")
-            star_temp_hab = st.number_input("Star Temperature (K)", 2000, 20000, 5778, 100, key="star_temp_hab")
-            
-            has_magnetic_field = st.checkbox("Has Magnetic Field", True, key="magnetic_field")
-            has_atmosphere_hab = st.checkbox("Has Atmosphere", True, key="has_atmosphere")
-            has_water_hab = st.checkbox("Has Liquid Water", False, key="has_water")
-            tidal_locked = st.checkbox("Tidally Locked", False, key="tidal_locked")
-        
-        with col2:
-            # Calculate habitability factors
-            gravity_hab = planet_mass / (planet_radius ** 2)
-            goldilocks_factor = 100 * np.exp(-((star_distance - 1.0) ** 2) / 0.5)
-            temp_factor = 100 * np.exp(-((star_temp_hab - 5778) ** 2) / 10000000)
-            
-            # Total habitability
-            base_score = (goldilocks_factor * 0.3 + temp_factor * 0.2)
-            bonus_score = (
-                (30 if has_magnetic_field else 0) +
-                (25 if has_atmosphere_hab else 0) +
-                (20 if has_water_hab else 0) +
-                (-15 if tidal_locked else 5)
-            )
-            total_hab = min(100, base_score + bonus_score)
-            
-            st.markdown("### 📊 Habitability Analysis")
-            
-            # Gauge chart
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number+delta",
-                value=total_hab,
-                domain={'x': [0, 1], 'y': [0, 1]},
-                title={'text': "Habitability Score"},
-                delta={'reference': 50},
-                gauge={
-                    'axis': {'range': [None, 100]},
-                    'bar': {'color': "lightblue"},
-                    'steps': [
-                        {'range': [0, 30], 'color': "red"},
-                        {'range': [30, 60], 'color': "yellow"},
-                        {'range': [60, 100], 'color': "lightgreen"}
-                    ],
-                    'threshold': {
-                        'line': {'color': "green", 'width': 4},
-                        'thickness': 0.75,
-                        'value': 70
-                    }
-                }
-            ))
-            fig.update_layout(height=300)
-            st.plotly_chart(fig, use_container_width=True, key="habitability_gauge")
-            
-            # Factor breakdown
-            factors_df = pd.DataFrame({
-                'Factor': ['Goldilocks Zone', 'Star Type', 'Magnetic Field', 'Atmosphere', 'Liquid Water', 'Rotation'],
-                'Score': [
-                    goldilocks_factor * 0.3,
-                    temp_factor * 0.2,
-                    30 if has_magnetic_field else 0,
-                    25 if has_atmosphere_hab else 0,
-                    20 if has_water_hab else 0,
-                    -15 if tidal_locked else 5
-                ]
-            })
-            
-            fig = px.bar(factors_df, x='Factor', y='Score', 
-                        title="Habitability Factor Breakdown",
-                        color='Score',
-                        color_continuous_scale='RdYlGn')
-            fig.update_layout(height=300)
-            st.plotly_chart(fig, use_container_width=True, key="hab_factors")
-            
-            if total_hab > 70:
-                st.success("🌍 **Highly Habitable!** This planet could support Earth-like life.")
-            elif total_hab > 40:
-                st.warning("⚠️ **Marginally Habitable.** Life is possible but challenging.")
-            else:
-                st.error("☠️ **Inhospitable.** Extreme conditions make life unlikely.")
-    
-    with research_tab3:
-        st.subheader("🧬 DNA Mutation & Evolution Lab")
-        st.markdown("*Simulate evolutionary pressures and genetic mutations*")
-        
-        col1, col2 = st.columns([1, 2])
-        
-        with col1:
-            st.markdown("#### Environmental Pressures")
-            mutation_rate = st.slider("Mutation Rate (%)", 0.1, 10.0, 1.0, 0.1, key="mutation_rate")
-            selection_pressure = st.select_slider(
-                "Selection Pressure",
-                ["Weak", "Moderate", "Strong", "Extreme"],
-                "Moderate",
-                key="selection_pressure"
-            )
-            generations = st.slider("Generations", 10, 1000, 100, 10, key="generations")
-            population_size = st.slider("Population Size", 100, 10000, 1000, 100, key="pop_size")
-            
-            environmental_stress = st.multiselect(
-                "Environmental Stresses",
-                ["High Radiation", "Temperature Extremes", "Predation", "Food Scarcity", "Disease"],
-                ["Predation"],
-                key="env_stress"
-            )
-            
-            if st.button("🧬 Run Evolution Simulation", key="run_evolution"):
-                st.session_state.evolution_run = True
-        
-        with col2:
-            if 'evolution_run' in st.session_state and st.session_state.evolution_run:
-                # Simulate evolution
-                pressure_multiplier = {"Weak": 0.5, "Moderate": 1.0, "Strong": 1.5, "Extreme": 2.0}[selection_pressure]
-                stress_factor = len(environmental_stress) * 0.2
-                
-                gen_data = []
-                fitness = 50
-                genetic_diversity = 100
-                
-                for gen in range(0, generations, 10):
-                    # Fitness increases with selection, decreases with stress
-                    fitness += np.random.normal(pressure_multiplier * 2 - stress_factor, 1)
-                    fitness = np.clip(fitness, 0, 100)
-                    
-                    # Diversity decreases with strong selection
-                    genetic_diversity -= pressure_multiplier * 0.5 + np.random.normal(0, 2)
-                    genetic_diversity = np.clip(genetic_diversity, 20, 100)
-                    
-                    # Beneficial mutations
-                    beneficial = mutation_rate * pressure_multiplier * np.random.random()
-                    
-                    gen_data.append({
-                        'Generation': gen,
-                        'Fitness': fitness,
-                        'Diversity': genetic_diversity,
-                        'Beneficial_Mutations': beneficial
-                    })
-                
-                evo_df = pd.DataFrame(gen_data)
-                
-                # Evolution over time
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=evo_df['Generation'], y=evo_df['Fitness'],
-                    mode='lines', name='Population Fitness',
-                    line=dict(color='green', width=3)
-                ))
-                fig.add_trace(go.Scatter(
-                    x=evo_df['Generation'], y=evo_df['Diversity'],
-                    mode='lines', name='Genetic Diversity',
-                    line=dict(color='blue', width=3)
-                ))
-                fig.add_trace(go.Scatter(
-                    x=evo_df['Generation'], y=evo_df['Beneficial_Mutations'] * 100,
-                    mode='markers', name='Beneficial Mutations',
-                    marker=dict(color='red', size=8)
-                ))
-                fig.update_layout(
-                    title="Evolution Simulation Results",
-                    xaxis_title="Generation",
-                    yaxis_title="Value (%)",
-                    height=400
-                )
-                st.plotly_chart(fig, use_container_width=True, key="evolution_chart")
-                
-                # Final results
-                col_a, col_b, col_c = st.columns(3)
-                with col_a:
-                    st.metric("Final Fitness", f"{fitness:.1f}%", f"+{fitness-50:.1f}%")
-                with col_b:
-                    st.metric("Genetic Diversity", f"{genetic_diversity:.1f}%", 
-                             f"{genetic_diversity-100:.1f}%")
-                with col_c:
-                    total_mutations = sum(evo_df['Beneficial_Mutations'])
-                    st.metric("Total Beneficial Mutations", f"{total_mutations:.1f}")
-    
-    with research_tab4:
-        st.subheader("📊 Exoplanet Database Explorer")
-        st.markdown("*Explore discovered exoplanets and their characteristics*")
-        
-        # Generate synthetic exoplanet data
-        np.random.seed(42)
-        n_planets = 500
-        
-        exoplanet_data = pd.DataFrame({
-            'Name': [f'Kepler-{i}b' if i % 2 == 0 else f'TRAPPIST-{i}e' for i in range(n_planets)],
-            'Mass': np.random.lognormal(0, 1, n_planets),
-            'Radius': np.random.lognormal(0, 0.5, n_planets),
-            'Distance': np.random.uniform(10, 1000, n_planets),
-            'Star_Type': np.random.choice(['Red Dwarf', 'Yellow Sun', 'Orange Dwarf', 'Blue Giant'], n_planets, p=[0.5, 0.3, 0.15, 0.05]),
-            'Orbital_Period': np.random.lognormal(2, 1.5, n_planets),
-            'Temperature': np.random.normal(400, 200, n_planets),
-            'Discovery_Year': np.random.randint(1995, 2025, n_planets)
-        })
-        
-        exoplanet_data['Habitable'] = (
-            (exoplanet_data['Temperature'] > 200) & 
-            (exoplanet_data['Temperature'] < 350) &
-            (exoplanet_data['Mass'] > 0.3) &
-            (exoplanet_data['Mass'] < 3)
-        )
-        
-        col1, col2 = st.columns([1, 2])
-        
-        with col1:
-            st.markdown("#### 🔍 Filter Exoplanets")
-            
-            filter_star = st.multiselect(
-                "Star Type",
-                ['Red Dwarf', 'Yellow Sun', 'Orange Dwarf', 'Blue Giant'],
-                ['Red Dwarf', 'Yellow Sun'],
-                key="filter_star"
-            )
-            
-            mass_range = st.slider(
-                "Mass Range (Earth = 1)",
-                0.0, 10.0, (0.5, 3.0),
-                key="mass_range"
-            )
-            
-            temp_range = st.slider(
-                "Temperature Range (K)",
-                0, 1000, (200, 400),
-                key="temp_range"
-            )
-            
-            show_habitable_only = st.checkbox("Show Only Habitable", False, key="show_hab_only")
-            
-            # Filter data
-            filtered_data = exoplanet_data[
-                (exoplanet_data['Star_Type'].isin(filter_star)) &
-                (exoplanet_data['Mass'] >= mass_range[0]) &
-                (exoplanet_data['Mass'] <= mass_range[1]) &
-                (exoplanet_data['Temperature'] >= temp_range[0]) &
-                (exoplanet_data['Temperature'] <= temp_range[1])
-            ]
-            
-            if show_habitable_only:
-                filtered_data = filtered_data[filtered_data['Habitable']]
-            
-            st.metric("Planets Found", len(filtered_data), 
-                     f"{len(filtered_data)/len(exoplanet_data)*100:.1f}% of total")
-            st.metric("Potentially Habitable", filtered_data['Habitable'].sum())
-        
-        with col2:
-            # 3D scatter plot
-            fig = px.scatter_3d(
-                filtered_data,
-                x='Mass',
-                y='Radius',
-                z='Temperature',
-                color='Star_Type',
-                size='Orbital_Period',
-                hover_data=['Name', 'Distance', 'Discovery_Year'],
-                title='Exoplanet Distribution (3D)',
-                labels={'Mass': 'Mass (Earth)', 'Radius': 'Radius (Earth)', 'Temperature': 'Temp (K)'},
-                opacity=0.7
-            )
-            fig.update_layout(height=500)
-            st.plotly_chart(fig, use_container_width=True, key="exoplanet_3d")
-        
-        # Timeline of discoveries
-        st.markdown("#### 📅 Discovery Timeline")
-        discovery_timeline = filtered_data.groupby('Discovery_Year').size().reset_index(name='Count')
-        
-        fig = px.area(
-            discovery_timeline,
-            x='Discovery_Year',
-            y='Count',
-            title='Exoplanet Discoveries Over Time',
-            labels={'Discovery_Year': 'Year', 'Count': 'Number of Planets'}
-        )
-        fig.update_traces(line_color='cyan', fillcolor='rgba(0, 255, 255, 0.3)')
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True, key="discovery_timeline")
-        
-        # Data table
-        with st.expander("📋 View Detailed Planet Data"):
-            st.dataframe(
-                filtered_data[['Name', 'Mass', 'Radius', 'Temperature', 'Star_Type', 'Habitable']].head(50),
-                use_container_width=True
-            )
+# WING 4: PROCEDURAL LIFE LAB
+elif st.session_state.current_wing == "Wing 4: Procedural Life Lab":
+    st.markdown('<h2 class="wing-header">🔬 Wing 4: Procedural Life Lab</h2>', unsafe_allow_html=True)
+    st.markdown("### *Design your own alien life form by defining its universe!*")
 
-# Interactive Timeline Feature
-if st.session_state.current_wing == "Wing 1: Life As We Know It":
-    st.markdown("---")
-    st.markdown("## 🕰️ Evolution Timeline Viewer")
-    
-    timeline_years = st.slider(
-        "Select Time Period (Billions of Years Ago)",
-        4.5, 0.0, (3.5, 0.5),
-        key="timeline_slider"
-    )
-    
-    # Evolution events
-    events = [
-        {'time': 4.5, 'event': 'Earth Formation', 'color': 'gray'},
-        {'time': 3.8, 'event': 'First Life (Prokaryotes)', 'color': 'blue'},
-        {'time': 2.7, 'event': 'Photosynthesis Begins', 'color': 'green'},
-        {'time': 2.0, 'event': 'Eukaryotic Cells', 'color': 'purple'},
-        {'time': 1.2, 'event': 'Sexual Reproduction', 'color': 'pink'},
-        {'time': 0.6, 'event': 'Cambrian Explosion', 'color': 'red'},
-        {'time': 0.4, 'event': 'Plants Colonize Land', 'color': 'lightgreen'},
-        {'time': 0.25, 'event': 'Dinosaurs Appear', 'color': 'orange'},
-        {'time': 0.065, 'event': 'Dinosaur Extinction', 'color': 'darkred'},
-        {'time': 0.002, 'event': 'Homo Sapiens', 'color': 'gold'}
-    ]
-    
-    filtered_events = [e for e in events if timeline_years[1] <= e['time'] <= timeline_years[0]]
-    
-    if filtered_events:
-        fig = go.Figure()
+    # Helper function to draw the creature
+    def visualize_creature(params):
+        """Generates a PIL image of the creature based on morphological parameters."""
+        img_size = (400, 400)
+        img = Image.new('RGBA', img_size, (255, 255, 255, 0))
+        draw = ImageDraw.Draw(img)
         
-        for event in filtered_events:
-            fig.add_trace(go.Scatter(
-                x=[event['time']],
-                y=[1],
-                mode='markers+text',
-                marker=dict(size=20, color=event['color']),
-                text=event['event'],
-                textposition='top center',
-                name=event['event'],
-                hovertemplate=f"<b>{event['event']}</b><br>{event['time']} BYA<extra></extra>"
-            ))
+        center_x, center_y = img_size[0] // 2, img_size[1] // 2
         
-        fig.update_layout(
-            title="Evolutionary Milestones",
-            xaxis_title="Billions of Years Ago",
-            xaxis=dict(autorange='reversed'),
-            yaxis=dict(visible=False),
-            height=300,
-            showlegend=False
-        )
-        st.plotly_chart(fig, use_container_width=True, key="evolution_timeline")
+        # Body
+        body_width = params['body_size']
+        body_height = body_width * (2 if params['body_plan'] == 'Bilateral' else 1)
+        body_color = {'Carbon': (100, 180, 100), 'Silicon': (150, 150, 180)}[params['base_element']]
+        draw.ellipse([center_x - body_width/2, center_y - body_height/2, 
+                      center_x + body_width/2, center_y + body_height/2], fill=body_color)
 
-# Biosignature Detection Game
-if st.session_state.current_wing == "Wing 2: Life As We Don't Know It":
-    st.markdown("---")
-    st.markdown("## 🔬 Biosignature Detection Challenge")
-    st.markdown("*Can you identify signs of life in atmospheric data?*")
-    
-    if 'game_score' not in st.session_state:
-        st.session_state.game_score = 0
-        st.session_state.game_attempts = 0
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        # Generate random atmospheric spectrum
-        if st.button("🌍 Scan New Planet", key="scan_planet"):
-            has_life = np.random.random() > 0.5
-            st.session_state.current_planet_life = has_life
-            st.session_state.game_attempts += 1
+        # Legs
+        if params['locomotion'] == 'Legs':
+            leg_length = body_height * 0.7
+            for i in range(params['appendages']):
+                angle = (360 / params['appendages']) * i
+                rad = np.deg2rad(angle)
+                start_x = center_x + (body_width/2) * np.cos(rad)
+                start_y = center_y + (body_height/2) * np.sin(rad)
+                end_x = center_x + (body_width/2 + leg_length) * np.cos(rad)
+                end_y = center_y + (body_height/2 + leg_length/2) * np.sin(rad)
+                draw.line([start_x, start_y, end_x, end_y], fill=(50,50,50), width=5)
+
+        # Eyes
+        eye_color = (255, 255, 0) if params['senses'] == 'Vision' else (100,100,100)
+        for i in range(params['eyes']):
+            eye_angle = (180 / (params['eyes'] + 1)) * (i + 1) - 90
+            rad = np.deg2rad(eye_angle)
+            eye_x = center_x + (body_width/2.5) * np.cos(rad)
+            eye_y = center_y - (body_height/2.5) * np.sin(rad)
+            draw.ellipse([eye_x-5, eye_y-5, eye_x+5, eye_y+5], fill=eye_color)
             
-            wavelengths = np.linspace(300, 2500, 500)
-            baseline = np.random.normal(50, 5, 500)
-            
-            if has_life:
-                # Add biosignature spikes
-                o2_spike = 30 * np.exp(-((wavelengths - 760) ** 2) / 100)
-                ch4_spike = 20 * np.exp(-((wavelengths - 1650) ** 2) / 500)
-                h2o_spike = 25 * np.exp(-((wavelengths - 950) ** 2) / 200)
-                spectrum = baseline + o2_spike + ch4_spike + h2o_spike
-            else:
-                # Just baseline noise
-                spectrum = baseline + np.random.normal(0, 3, 500)
-            
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=wavelengths,
-                y=spectrum,
-                mode='lines',
-                line=dict(color='cyan', width=2),
-                fill='tozeroy'
-            ))
-            
-            # Mark key biosignature wavelengths
-            fig.add_vline(x=760, line_dash="dash", line_color="red", 
-                         annotation_text="O₂", annotation_position="top")
-            fig.add_vline(x=1650, line_dash="dash", line_color="green", 
-                         annotation_text="CH₄", annotation_position="top")
-            fig.add_vline(x=950, line_dash="dash", line_color="blue", 
-                         annotation_text="H₂O", annotation_position="top")
-            
-            fig.update_layout(
-                title="Atmospheric Spectrum",
-                xaxis_title="Wavelength (nm)",
-                yaxis_title="Absorption Intensity",
-                height=400
-            )
-            st.plotly_chart(fig, use_container_width=True, key="biosig_spectrum")
-    
-    with col2:
-        st.markdown("### 🎮 Your Analysis")
+        return img
+
+    # Main generator function
+    def generate_procedural_life(params):
+        """Generates a description based on a dictionary of parameters."""
+        desc = f"### Creature Profile: {params['name']}\n\n"
         
-        if 'current_planet_life' in st.session_state:
-            user_guess = st.radio(
-                "Does this planet have life?",
-                ["Yes - Life Present", "No - Lifeless"],
-                key="life_guess"
-            )
-            
-            if st.button("Submit Analysis", key="submit_analysis"):
-                user_says_life = user_guess == "Yes - Life Present"
-                correct = user_says_life == st.session_state.current_planet_life
-                
-                if correct:
-                    st.success("✅ Correct! Well done!")
-                    st.session_state.game_score += 1
-                else:
-                    st.error("❌ Incorrect. Study the biosignature peaks!")
-                
-                st.markdown("---")
-                st.metric("Score", f"{st.session_state.game_score}/{st.session_state.game_attempts}")
-                st.progress(st.session_state.game_score / max(st.session_state.game_attempts, 1))
+        # Biochemistry
+        desc += f"This is a **{params['base_element']}-based** life form that thrives in a solvent of **{params['solvent']}**. "
+        desc += f"Its genetic information is stored in a **{params['genetics']}-like** molecule. "
+        
+        # Environment
+        desc += f"It originates from a planet with **{params['gravity']:.1f}g** of gravity and an atmospheric pressure of **{params['pressure']:.1f} atm**. "
+        desc += f"The environment is rich in **{params['atmosphere']}** and has an average temperature of **{params['temperature']}°C**. "
+        
+        # Morphology
+        desc += f"\n\n**Morphology & Adaptation:**\n"
+        desc += f"- **Body Plan:** The creature exhibits a **{params['body_plan']}** symmetry with a body size relative index of **{params['body_size']}**. "
+        if params['gravity'] > 1.5:
+            desc += "Its form is low and wide to cope with the high gravity. "
         else:
-            st.info("Click 'Scan New Planet' to start the challenge!")
+            desc += "Its form is more elongated, suitable for lower gravity. "
+            
+        desc += f"- **Skeleton:** It possesses a **{params['skeleton']}** skeleton. "
+        if params['skeleton'] == 'Exoskeleton':
+            desc += "This provides excellent protection in its harsh environment. "
+        else:
+            desc += "This allows for greater flexibility and size. "
+            
+        desc += f"- **Locomotion:** It moves via **{params['locomotion']}**. With **{params['appendages']}** appendages, it is well-suited for its terrain. "
+        desc += f"- **Senses:** Its primary sense is **{params['senses']}**, supported by **{params['eyes']}** eye-like organs. "
+        if params['senses'] == 'Chemoreception':
+            desc += "These organs 'taste' the chemical composition of the atmosphere. "
+        else:
+            desc += "These organs are adapted to the light spectrum of its star. "
+            
+        return desc
 
-# Comparative Anatomy Tool
-if st.session_state.current_wing == "Wing 3: Environmental Sculpting":
-    st.markdown("---")
-    st.markdown("## 🦴 Comparative Anatomy Lab")
-    st.markdown("*Compare anatomical features across different gravity levels*")
-    
-    anatomy_feature = st.selectbox(
-        "Select Anatomical System",
-        ["Skeletal Structure", "Circulatory System", "Respiratory System", "Muscular System"],
-        key="anatomy_feature"
-    )
-    
-    gravity_levels = [0.3, 0.5, 1.0, 1.5, 2.0, 3.0]
-    
-    if anatomy_feature == "Skeletal Structure":
-        bone_data = pd.DataFrame({
-            'Gravity': gravity_levels,
-            'Bone_Density': [50, 70, 100, 130, 160, 200],
-            'Bone_Thickness': [0.5, 0.7, 1.0, 1.5, 2.0, 3.0],
-            'Joint_Strength': [30, 50, 100, 150, 200, 250]
-        })
+    # --- UI FOR PARAMETERS ---
+    params = {}
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        st.subheader("Creature Parameters")
+        params['name'] = st.text_input("Creature Name", "Gleep Glorp")
+
+        with st.expander("🪐 Planetary Environment", expanded=True):
+            params['gravity'] = st.slider("Gravity (g)", 0.1, 5.0, 1.0, 0.1)
+            params['temperature'] = st.slider("Surface Temperature (°C)", -200, 500, 15, 1)
+            params['pressure'] = st.slider("Atmospheric Pressure (atm)", 0.01, 10.0, 1.0, 0.1)
+            params['atmosphere'] = st.selectbox("Primary Gas", ["Nitrogen-Oxygen", "Methane", "Carbon Dioxide", "Hydrogen"])
+
+        with st.expander("🧬 Biochemistry", expanded=True):
+            params['base_element'] = st.selectbox("Base Element", ["Carbon", "Silicon"])
+            params['solvent'] = st.selectbox("Solvent", ["Water", "Ammonia", "Methane"])
+            params['genetics'] = st.selectbox("Genetic Molecule", ["DNA", "XNA", "PNA", "TNA"])
+
+        with st.expander("🦾 Morphology", expanded=True):
+            params['body_plan'] = st.radio("Body Plan", ["Bilateral", "Radial"], horizontal=True)
+            params['skeleton'] = st.radio("Skeleton Type", ["Endoskeleton", "Exoskeleton", "Hydrostatic"], horizontal=True)
+            params['locomotion'] = st.selectbox("Locomotion", ["Legs", "Fins", "Wings", "Slithering"])
+            params['appendages'] = st.slider("Number of Appendages", 0, 16, 4, 1)
+            params['body_size'] = st.slider("Relative Body Size", 10, 100, 50, 5)
+
+        with st.expander("👁️ Sensory Organs"):
+            params['senses'] = st.selectbox("Primary Sense", ["Vision", "Chemoreception", "Echolocation", "Electroreception"])
+            params['eyes'] = st.slider("Number of 'Eyes'", 0, 10, 2, 1)
+
+    with col2:
+        st.subheader("Generated Life Form")
         
-        fig = go.Figure()
-        fig.add_trace(go.Bar(x=bone_data['Gravity'], y=bone_data['Bone_Density'], 
-                            name='Bone Density', marker_color='lightblue'))
-        fig.add_trace(go.Bar(x=bone_data['Gravity'], y=bone_data['Bone_Thickness']*50, 
-                            name='Bone Thickness', marker_color='lightcoral'))
-        fig.add_trace(go.Scatter(x=bone_data['Gravity'], y=bone_data['Joint_Strength'], 
-                                name='Joint Strength', mode='lines+markers', 
-                                line=dict(color='green', width=3)))
-        fig.update_layout(title="Skeletal Adaptations Across Gravity Levels", 
-                         xaxis_title="Gravity (g)", barmode='group', height=400)
-        st.plotly_chart(fig, use_container_width=True, key="skeletal_comp")
-    
-    elif anatomy_feature == "Circulatory System":
-        cardio_data = pd.DataFrame({
-            'Gravity': gravity_levels,
-            'Heart_Size': [80, 90, 100, 120, 150, 200],
-            'Blood_Pressure': [60, 80, 100, 130, 160, 200],
-            'Vessel_Thickness': [0.8, 0.9, 1.0, 1.3, 1.6, 2.0]
-        })
-        
-        fig = px.line(cardio_data, x='Gravity', y=['Heart_Size', 'Blood_Pressure', 'Vessel_Thickness'],
-                     title="Cardiovascular System Scaling",
-                     labels={'value': 'Relative Size/Pressure', 'variable': 'Feature'})
-        fig.update_traces(mode='lines+markers', line_shape='spline')
-        fig.update_layout(height=400)
-        st.plotly_chart(fig, use_container_width=True, key="cardio_comp")
+        # Generate and display the creature
+        if st.button("✨ Generate Life Form"):
+            st.session_state.creature_params = params
+
+        if 'creature_params' in st.session_state:
+            current_params = st.session_state.creature_params
+            
+            # Display visualization
+            with st.container():
+                st.markdown(f"<div class='exhibit-card' style='text-align: center;'>", unsafe_allow_html=True)
+                creature_image = visualize_creature(current_params)
+                st.image(creature_image, caption=f"Procedural visualization of {current_params['name']}", use_container_width=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            # Display description
+            description = generate_procedural_life(current_params)
+            st.markdown(f"<div class='info-box'>{description}</div>", unsafe_allow_html=True)
+        else:
+            st.info("Adjust the parameters on the left and click 'Generate Life Form' to begin.")
+
 
 # Footer
 st.markdown("---")
@@ -1434,6 +980,5 @@ st.markdown("""
 <div style='text-align: center; color: gray;'>
     <p>🌌 The Museum of Universal Life | Powered by Scientific Speculation 🔬</p>
     <p><em>"The universe is not only stranger than we imagine, it is stranger than we can imagine." - J.B.S. Haldane</em></p>
-    <p style='font-size: 0.8em; margin-top: 10px;'>Advanced Research Labs • Evolutionary Simulators • Exoplanet Database</p>
 </div>
 """, unsafe_allow_html=True)
