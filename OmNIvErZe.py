@@ -1014,8 +1014,16 @@ if st.session_state.current_wing == "Home":
                 st.info("Directly edit the organism's base genetic code. Each character is a parameter. Small changes can have massive, unpredictable effects.")
                 
                 # Generate a long, deterministic genetic code based on other params
-                seed_text = f"{sim_gravity}{sim_temp}{sim_pressure}{adv_solvent}{adv_genetic_material}"
-                np.random.seed(hash(seed_text) & 0xffffffff)
+                seed_string = (
+                    f"{sim_gravity}{sim_temp}{sim_pressure}{''.join(sim_atmosphere)}{sim_water}"
+                    f"{sim_radiation}{sim_chemistry}{sim_energy}{adv_geothermal}{adv_volcanism}"
+                    f"{adv_mineral_density}{adv_solvent}{adv_magnetic_field}{adv_axial_tilt}"
+                    f"{adv_o2}{adv_n2}{adv_co2}{adv_ch4}{adv_genetic_material}{adv_mutation_stability}"
+                    f"{adv_base_lifespan}{adv_predator_pressure}{adv_food_competition}{adv_sentience_potential}"
+                    f"{deep_ribosome_eff}{deep_membrane_fluid}{deep_energy_storage}{deep_error_correction}"
+                    f"{deep_waste_recycling}{deep_quantum_tunneling}"
+                )
+                np.random.seed(hash(seed_string) & 0xffffffff)
                 
                 genetic_bases = list("GATTACA" * 100) # Use bases from DNA
                 if adv_genetic_material == "XNA": genetic_bases = list("XENOS" * 100)
