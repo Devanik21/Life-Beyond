@@ -1198,14 +1198,13 @@ if st.session_state.current_wing == "Home":
             if 'evolution_run' in st.session_state and st.session_state.evolution_run:
                 # Simulate evolution
                 pressure_multiplier = {"Weak": 0.5, "Moderate": 1.0, "Strong": 1.5, "Extreme": 2.0}[selection_pressure]
-                stress_factor = len(environmental_stress) * 0.2
-                
                 gen_data = []
                 fitness = 50
                 genetic_diversity = 100
                 
                 for gen in range(0, generations, 10):
                     # Fitness increases with selection, decreases with stress
+                    stress_factor = len(environmental_stress) * 0.2
                     fitness += np.random.normal(pressure_multiplier * 2 - stress_factor, 1)
                     fitness = np.clip(fitness, 0, 100)
                     
