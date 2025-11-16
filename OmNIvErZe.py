@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
+import plotly.io as pio
 import numpy as np
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
@@ -14,38 +15,98 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Set default plotly theme for dark mode
+pio.templates.default = "plotly_dark"
+
 # Custom CSS
 st.markdown("""
 <style>
+    /* Import Google Font */
+    @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&display=swap');
+
+    /* Core App Styling */
+    body {
+        font-family: 'Exo 2', sans-serif;
+    }
+
+    /* Main container background */
+    .main > div {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%232d3748' fill-opacity='0.4'%3E%3Cpath d='M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41zM0 1.4l2.83 2.83 1.41-1.41L1.41 0H0v1.41zM38.59 40l-2.83-2.83 1.41-1.41L40 38.59V40h-1.41zM40 1.41l-2.83 2.83-1.41-1.41L38.59 0H40v1.41zM20 18.6l2.83-2.83 1.41 1.41L21.41 20l2.83 2.83-1.41 1.41L20 21.41l-2.83 2.83-1.41-1.41L18.59 20l-2.83-2.83 1.41-1.41L20 18.59z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        background-color: #0D1117; /* Near-black */
+    }
+
+    /* Sidebar styling */
+    .st-emotion-cache-16txtl3 {
+        background-color: rgba(13, 17, 23, 0.8);
+        backdrop-filter: blur(5px);
+    }
+
+    /* Main Header */
     .main-header {
         font-size: 3rem;
         font-weight: bold;
         text-align: center;
-        background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Exo 2', sans-serif;
+        background: linear-gradient(45deg, #00BCD4 0%, #FFD700 100%); /* Cyan to Gold */
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         padding: 20px;
     }
+
+    /* Wing Header */
     .wing-header {
         font-size: 2rem;
-        color: #667eea;
-        border-bottom: 3px solid #667eea;
+        font-family: 'Exo 2', sans-serif;
+        color: #00BCD4; /* Accent Cyan */
+        border-bottom: 3px solid #00BCD4;
         padding-bottom: 10px;
         margin-top: 20px;
     }
+
+    /* Glassmorphism Cards */
     .exhibit-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: rgba(45, 55, 72, 0.5); /* Semi-transparent dark blue-gray */
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
         padding: 20px;
         border-radius: 10px;
         color: white;
         margin: 10px 0;
+        height: 100%; /* Make cards in a row equal height */
     }
+
+    /* Glassmorphism Info Box */
     .info-box {
-        background-color: #f0f2f6;
+        background: rgba(45, 55, 72, 0.4); /* Semi-transparent dark blue-gray */
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         padding: 15px;
         border-radius: 8px;
-        border-left: 4px solid #667eea;
+        border-left: 4px solid #00BCD4; /* Accent Cyan */
         margin: 10px 0;
+        color: #E2E8F0; /* Light gray text */
+    }
+
+    /* Improve tab styling for dark mode */
+    .st-emotion-cache-1s44j7o button {
+        background-color: transparent;
+        color: #A0AEC0; /* Muted text for inactive tabs */
+        border-radius: 8px 8px 0 0;
+        border-bottom: 2px solid transparent;
+    }
+    .st-emotion-cache-1s44j7o button:hover {
+        background-color: rgba(0, 188, 212, 0.1);
+        color: #00BCD4;
+    }
+    .st-emotion-cache-1s44j7o button[aria-selected="true"] {
+        color: #00BCD4; /* Active tab color */
+        border-bottom: 2px solid #00BCD4;
+    }
+
+    /* General text color */
+    .st-emotion-cache-1r4qj8v, .st-emotion-cache-1y4p8pa, .st-emotion-cache-1kyxreq {
+        color: #E2E8F0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -127,9 +188,9 @@ def create_molecule_3d(molecule_type):
             'y': [0, 0.5, 0, 0.5, 0],
             'z': [0, 0, 0, 0, 0],
             'atom': ['C', 'C', 'C', 'C', 'C'],
-            'size': [20, 20, 20, 20, 20]
+            'size': [20, 20, 20, 20, 20],
+            'color': ['#A0AEC0', '#A0AEC0', '#A0AEC0', '#A0AEC0', '#A0AEC0']
         })
-        color = 'gray'
     else:  # silicon
         atoms = pd.DataFrame({
             'x': [0, 1, 2],
@@ -138,14 +199,14 @@ def create_molecule_3d(molecule_type):
             'atom': ['Si', 'Si', 'Si'],
             'size': [25, 25, 25]
         })
-        color = 'darkblue'
+        atoms['color'] = ['#63B3ED', '#63B3ED', '#63B3ED'] # Blue
     
     fig = go.Figure(data=[go.Scatter3d(
         x=atoms['x'],
         y=atoms['y'],
         z=atoms['z'],
         mode='markers+text',
-        marker=dict(size=atoms['size'], color=color, opacity=0.8),
+        marker=dict(size=atoms['size'], color=atoms['color'], opacity=0.9),
         text=atoms['atom'],
         textposition="top center",
         textfont=dict(size=14, color='white')
@@ -158,19 +219,12 @@ def create_molecule_3d(molecule_type):
             y=[atoms.loc[i, 'y'], atoms.loc[i+1, 'y']],
             z=[atoms.loc[i, 'z'], atoms.loc[i+1, 'z']],
             mode='lines',
-            line=dict(color='white', width=5),
+            line=dict(color='rgba(255, 255, 255, 0.5)', width=5),
             showlegend=False,
             hoverinfo='skip'
         ))
     
     fig.update_layout(
-        scene=dict(
-            xaxis=dict(showbackground=False, showticklabels=False, showgrid=False),
-            yaxis=dict(showbackground=False, showticklabels=False, showgrid=False),
-            zaxis=dict(showbackground=False, showticklabels=False, showgrid=False),
-            bgcolor='rgba(0,0,0,0)'
-        ),
-        paper_bgcolor='rgba(0,0,0,0)',
         height=400,
         title=f"{molecule_type.title()}-Based Molecular Chain"
     )
@@ -178,8 +232,8 @@ def create_molecule_3d(molecule_type):
     return fig
 
 # Main header
-st.markdown('<h1 class="main-header">🌌 The Museum of Universal Life 👽</h1>', unsafe_allow_html=True)
-st.markdown("### *Exploring Every Possible Form of Life in the Universe*")
+st.markdown('<h1 class="main-header">The Museum of Universal Life</h1>', unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #A0AEC0;'>*Exploring Every Possible Form of Life in the Universe*</h3>", unsafe_allow_html=True)
 
 # Sidebar navigation
 with st.sidebar:
@@ -246,7 +300,7 @@ if st.session_state.current_wing == "Home":
         path=['Type', 'Element'],
         values='Percentage',
         color='Percentage',
-        color_continuous_scale='Viridis',
+        color_continuous_scale='Cividis',
         title='Elemental Composition in Known Life'
     )
     fig.update_layout(height=500)
@@ -292,14 +346,14 @@ elif st.session_state.current_wing == "Wing 1: Life As We Know It":
                 theta=properties_df['Property'],
                 fill='toself',
                 name='Carbon',
-                line_color='green'
+                line_color='#48BB78' # Green
             ))
             fig.add_trace(go.Scatterpolar(
                 r=properties_df['Silicon'],
                 theta=properties_df['Property'],
                 fill='toself',
                 name='Silicon',
-                line_color='blue'
+                line_color='#00BCD4' # Cyan
             ))
             fig.update_layout(
                 polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
@@ -330,7 +384,7 @@ elif st.session_state.current_wing == "Wing 1: Life As We Know It":
             x=convergent_examples['Feature'],
             y=convergent_examples['Times_Evolved_on_Earth'],
             name='Times Evolved on Earth',
-            marker_color='lightblue'
+            marker_color='#00BCD4'
         ))
         fig.add_trace(go.Scatter(
             x=convergent_examples['Feature'],
@@ -338,7 +392,7 @@ elif st.session_state.current_wing == "Wing 1: Life As We Know It":
             name='Likelihood on Exoplanets (%)',
             yaxis='y2',
             mode='lines+markers',
-            marker=dict(size=10, color='orange'),
+            marker=dict(size=10, color='#FFD700'), # Gold
             line=dict(width=3)
         ))
         fig.update_layout(
@@ -432,14 +486,14 @@ elif st.session_state.current_wing == "Wing 2: Life As We Don't Know It":
                 y=temp_data['Carbon_Viability'],
                 fill='tozeroy',
                 name='Carbon Life',
-                line=dict(color='green')
+                line=dict(color='#48BB78') # Green
             ))
             fig.add_trace(go.Scatter(
                 x=temp_data['Temperature (K)'],
                 y=temp_data['Silicon_Viability'],
                 fill='tozeroy',
                 name='Silicon Life',
-                line=dict(color='blue')
+                line=dict(color='#00BCD4') # Cyan
             ))
             fig.update_layout(
                 title='Temperature Viability Ranges',
@@ -532,7 +586,7 @@ elif st.session_state.current_wing == "Wing 2: Life As We Don't Know It":
             x=neutron_data['Particle_Density'],
             y=neutron_data['Life_Probability'],
             fill='tozeroy',
-            line=dict(color='purple', width=3),
+            line=dict(color='#B794F4', width=3), # Purple
             name='Theoretical Viability'
         ))
         fig.update_layout(
@@ -590,13 +644,13 @@ elif st.session_state.current_wing == "Wing 3: Environmental Sculpting":
                 x=body_proportions['Body_Part'],
                 y=body_proportions['Thickness'],
                 name='Bone Thickness',
-                marker_color='lightcoral'
+                marker_color='#F56565' # Red
             ))
             fig.add_trace(go.Bar(
                 x=body_proportions['Body_Part'],
                 y=body_proportions['Strength_Required'],
                 name='Muscle Mass Required',
-                marker_color='lightblue'
+                marker_color='#4299E1' # Blue
             ))
             fig.update_layout(
                 title=f'Body Structure at {gravity_level}',
@@ -637,7 +691,7 @@ elif st.session_state.current_wing == "Wing 3: Environmental Sculpting":
                 y=plant_heights['Max_Plant_Height_m'],
                 mode='lines+markers',
                 name='Max Plant Height',
-                line=dict(color='green', width=3),
+                line=dict(color='#48BB78', width=3), # Green
                 marker=dict(size=10)
             ))
             fig.add_trace(go.Scatter(
@@ -645,7 +699,7 @@ elif st.session_state.current_wing == "Wing 3: Environmental Sculpting":
                 y=plant_heights['Animal_Jump_Height_m'],
                 mode='lines+markers',
                 name='Animal Jump Height',
-                line=dict(color='orange', width=3),
+                line=dict(color='#ED8936', width=3), # Orange
                 marker=dict(size=10),
                 yaxis='y2'
             ))
@@ -657,7 +711,7 @@ elif st.session_state.current_wing == "Wing 3: Environmental Sculpting":
                 height=400
             )
             # Add current gravity marker
-            fig.add_vline(x=g_value, line_dash="dash", line_color="red", 
+            fig.add_vline(x=g_value, line_dash="dash", line_color="#FFD700", 
                          annotation_text="Selected", annotation_position="top")
             st.plotly_chart(fig, use_container_width=True, key="gravity_impact")
     
@@ -673,9 +727,9 @@ elif st.session_state.current_wing == "Wing 3: Environmental Sculpting":
         
         # Star properties
         star_data = {
-            "Red Dwarf": {"temp": 3000, "color": "red", "brightness": 0.3},
-            "Yellow Sun (Earth)": {"temp": 5778, "color": "yellow", "brightness": 1.0},
-            "Blue Giant": {"temp": 15000, "color": "blue", "brightness": 3.0}
+            "Red Dwarf": {"temp": 3000, "color": "#F56565", "brightness": 0.3},
+            "Yellow Sun (Earth)": {"temp": 5778, "color": "#FFD700", "brightness": 1.0},
+            "Blue Giant": {"temp": 15000, "color": "#4299E1", "brightness": 3.0}
         }
         
         current_star = star_data[star_type]
@@ -708,12 +762,12 @@ elif st.session_state.current_wing == "Wing 3: Environmental Sculpting":
             line=dict(color=current_star['color'], width=2),
             name=star_type
         ))
-        fig.add_vrect(x0=380, x1=450, fillcolor="violet", opacity=0.2, annotation_text="Violet")
-        fig.add_vrect(x0=450, x1=495, fillcolor="blue", opacity=0.2, annotation_text="Blue")
-        fig.add_vrect(x0=495, x1=570, fillcolor="green", opacity=0.2, annotation_text="Green")
-        fig.add_vrect(x0=570, x1=590, fillcolor="yellow", opacity=0.2, annotation_text="Yellow")
-        fig.add_vrect(x0=590, x1=620, fillcolor="orange", opacity=0.2, annotation_text="Orange")
-        fig.add_vrect(x0=620, x1=750, fillcolor="red", opacity=0.2, annotation_text="Red")
+        fig.add_vrect(x0=380, x1=450, fillcolor="purple", opacity=0.1, annotation_text="Violet")
+        fig.add_vrect(x0=450, x1=495, fillcolor="blue", opacity=0.1, annotation_text="Blue")
+        fig.add_vrect(x0=495, x1=570, fillcolor="green", opacity=0.1, annotation_text="Green")
+        fig.add_vrect(x0=570, x1=590, fillcolor="yellow", opacity=0.1, annotation_text="Yellow")
+        fig.add_vrect(x0=590, x1=620, fillcolor="orange", opacity=0.1, annotation_text="Orange")
+        fig.add_vrect(x0=620, x1=750, fillcolor="red", opacity=0.1, annotation_text="Red")
         
         fig.update_layout(
             title=f'Light Spectrum from {star_type}',
@@ -814,7 +868,7 @@ elif st.session_state.current_wing == "Wing 3: Environmental Sculpting":
             x='Star_Type',
             y='Efficiency',
             color='Color',
-            color_discrete_map={'Black': 'black', 'Green': 'green', 'Red': 'red', 'Purple': 'purple'},
+            color_discrete_map={'Black': '#4A5568', 'Green': '#48BB78', 'Red': '#F56565', 'Purple': '#B794F4'},
             title='Photosynthetic Efficiency Across Different Star Systems',
             text='Pigment'
         )
@@ -945,8 +999,8 @@ if st.session_state.current_wing == "Home":
                     r=trait_comparison['Value'],
                     theta=trait_comparison['Trait'],
                     fill='toself',
-                    line_color='cyan',
-                    fillcolor='rgba(0, 255, 255, 0.3)'
+                    line_color='#00BCD4',
+                    fillcolor='rgba(0, 188, 212, 0.3)'
                 ))
                 fig.update_layout(
                     polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
@@ -998,12 +1052,12 @@ if st.session_state.current_wing == "Home":
                 title={'text': "Habitability Score"},
                 delta={'reference': 50},
                 gauge={
-                    'axis': {'range': [None, 100]},
-                    'bar': {'color': "lightblue"},
+                    'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "darkblue"},
+                    'bar': {'color': "#00BCD4"},
                     'steps': [
-                        {'range': [0, 30], 'color': "red"},
-                        {'range': [30, 60], 'color': "yellow"},
-                        {'range': [60, 100], 'color': "lightgreen"}
+                        {'range': [0, 30], 'color': "#742A2A"},
+                        {'range': [30, 60], 'color': "#B7791F"},
+                        {'range': [60, 100], 'color': "#2F855A"}
                     ],
                     'threshold': {
                         'line': {'color': "green", 'width': 4},
@@ -1031,7 +1085,7 @@ if st.session_state.current_wing == "Home":
             fig = px.bar(factors_df, x='Factor', y='Score', 
                         title="Habitability Factor Breakdown",
                         color='Score',
-                        color_continuous_scale='RdYlGn')
+                        color_continuous_scale=px.colors.diverging.RdYlGn)
             fig.update_layout(height=300)
             st.plotly_chart(fig, use_container_width=True, key="hab_factors")
             
@@ -1106,17 +1160,17 @@ if st.session_state.current_wing == "Home":
                 fig.add_trace(go.Scatter(
                     x=evo_df['Generation'], y=evo_df['Fitness'],
                     mode='lines', name='Population Fitness',
-                    line=dict(color='green', width=3)
+                    line=dict(color='#48BB78', width=3)
                 ))
                 fig.add_trace(go.Scatter(
                     x=evo_df['Generation'], y=evo_df['Diversity'],
                     mode='lines', name='Genetic Diversity',
-                    line=dict(color='blue', width=3)
+                    line=dict(color='#4299E1', width=3)
                 ))
                 fig.add_trace(go.Scatter(
                     x=evo_df['Generation'], y=evo_df['Beneficial_Mutations'] * 100,
                     mode='markers', name='Beneficial Mutations',
-                    marker=dict(color='red', size=8)
+                    marker=dict(color='#F56565', size=8)
                 ))
                 fig.update_layout(
                     title="Evolution Simulation Results",
@@ -1233,7 +1287,7 @@ if st.session_state.current_wing == "Home":
             title='Exoplanet Discoveries Over Time',
             labels={'Discovery_Year': 'Year', 'Count': 'Number of Planets'}
         )
-        fig.update_traces(line_color='cyan', fillcolor='rgba(0, 255, 255, 0.3)')
+        fig.update_traces(line_color='#00BCD4', fillcolor='rgba(0, 188, 212, 0.3)')
         fig.update_layout(height=300)
         st.plotly_chart(fig, use_container_width=True, key="discovery_timeline")
         
@@ -1257,16 +1311,16 @@ if st.session_state.current_wing == "Wing 1: Life As We Know It":
     
     # Evolution events
     events = [
-        {'time': 4.5, 'event': 'Earth Formation', 'color': 'gray'},
-        {'time': 3.8, 'event': 'First Life (Prokaryotes)', 'color': 'blue'},
-        {'time': 2.7, 'event': 'Photosynthesis Begins', 'color': 'green'},
-        {'time': 2.0, 'event': 'Eukaryotic Cells', 'color': 'purple'},
-        {'time': 1.2, 'event': 'Sexual Reproduction', 'color': 'pink'},
-        {'time': 0.6, 'event': 'Cambrian Explosion', 'color': 'red'},
-        {'time': 0.4, 'event': 'Plants Colonize Land', 'color': 'lightgreen'},
-        {'time': 0.25, 'event': 'Dinosaurs Appear', 'color': 'orange'},
-        {'time': 0.065, 'event': 'Dinosaur Extinction', 'color': 'darkred'},
-        {'time': 0.002, 'event': 'Homo Sapiens', 'color': 'gold'}
+        {'time': 4.5, 'event': 'Earth Formation', 'color': '#A0AEC0'},
+        {'time': 3.8, 'event': 'First Life (Prokaryotes)', 'color': '#4299E1'},
+        {'time': 2.7, 'event': 'Photosynthesis Begins', 'color': '#48BB78'},
+        {'time': 2.0, 'event': 'Eukaryotic Cells', 'color': '#B794F4'},
+        {'time': 1.2, 'event': 'Sexual Reproduction', 'color': '#F687B3'},
+        {'time': 0.6, 'event': 'Cambrian Explosion', 'color': '#F56565'},
+        {'time': 0.4, 'event': 'Plants Colonize Land', 'color': '#9AE6B4'},
+        {'time': 0.25, 'event': 'Dinosaurs Appear', 'color': '#ED8936'},
+        {'time': 0.065, 'event': 'Dinosaur Extinction', 'color': '#C53030'},
+        {'time': 0.002, 'event': 'Homo Sapiens', 'color': '#FFD700'}
     ]
     
     filtered_events = [e for e in events if timeline_years[1] <= e['time'] <= timeline_years[0]]
@@ -1333,16 +1387,16 @@ if st.session_state.current_wing == "Wing 2: Life As We Don't Know It":
                 x=wavelengths,
                 y=spectrum,
                 mode='lines',
-                line=dict(color='cyan', width=2),
+                line=dict(color='#00BCD4', width=2),
                 fill='tozeroy'
             ))
             
             # Mark key biosignature wavelengths
-            fig.add_vline(x=760, line_dash="dash", line_color="red", 
+            fig.add_vline(x=760, line_dash="dash", line_color="#F56565", 
                          annotation_text="O₂", annotation_position="top")
-            fig.add_vline(x=1650, line_dash="dash", line_color="green", 
+            fig.add_vline(x=1650, line_dash="dash", line_color="#48BB78", 
                          annotation_text="CH₄", annotation_position="top")
-            fig.add_vline(x=950, line_dash="dash", line_color="blue", 
+            fig.add_vline(x=950, line_dash="dash", line_color="#4299E1", 
                          annotation_text="H₂O", annotation_position="top")
             
             fig.update_layout(
@@ -1403,12 +1457,12 @@ if st.session_state.current_wing == "Wing 3: Environmental Sculpting":
         
         fig = go.Figure()
         fig.add_trace(go.Bar(x=bone_data['Gravity'], y=bone_data['Bone_Density'], 
-                            name='Bone Density', marker_color='lightblue'))
+                            name='Bone Density', marker_color='#4299E1'))
         fig.add_trace(go.Bar(x=bone_data['Gravity'], y=bone_data['Bone_Thickness']*50, 
-                            name='Bone Thickness', marker_color='lightcoral'))
+                            name='Bone Thickness', marker_color='#F56565'))
         fig.add_trace(go.Scatter(x=bone_data['Gravity'], y=bone_data['Joint_Strength'], 
                                 name='Joint Strength', mode='lines+markers', 
-                                line=dict(color='green', width=3)))
+                                line=dict(color='#48BB78', width=3)))
         fig.update_layout(title="Skeletal Adaptations Across Gravity Levels", 
                          xaxis_title="Gravity (g)", barmode='group', height=400)
         st.plotly_chart(fig, use_container_width=True, key="skeletal_comp")
@@ -1434,31 +1488,31 @@ elif st.session_state.current_wing == "Tree of Universal Life":
     st.markdown("*A speculative graph connecting all known and theoretical forms of life.*")
 
     # Create a graphlib graph object
-    graph = graphviz.Digraph('UniversalTree', engine='dot')
-    graph.attr('node', shape='box', style='rounded,filled', fontname='Helvetica', color='skyblue', fillcolor='lightyellow')
-    graph.attr('edge', fontname='Helvetica', fontsize='10')
-    graph.attr(rankdir='TB', size='10,10', splines='ortho')
+    graph = graphviz.Digraph('UniversalTree', engine='dot', graph_attr={'bgcolor': 'transparent'})
+    graph.attr('node', shape='box', style='rounded,filled', fontname='Exo 2', color='#00BCD4', fillcolor='#2D3748', fontcolor='#E2E8F0')
+    graph.attr('edge', fontname='Exo 2', fontsize='10', color='#A0AEC0', fontcolor='#A0AEC0')
+    graph.attr(rankdir='TB', size='10,10', splines='curved')
 
     # Nodes
-    graph.node('LUCA', 'Last Universal Common Ancestor (LUCA)', fillcolor='gold')
+    graph.node('LUCA', 'Last Universal Common Ancestor (LUCA)', fillcolor='#B7791F', fontcolor='white')
     
     # Carbon-based branch
     with graph.subgraph(name='cluster_carbon') as c:
-        c.attr(label='Carbon-Based Life', style='filled', color='lightgreen')
+        c.attr(label='Carbon-Based Life', style='rounded,filled', color='#2F855A', fillcolor='rgba(47, 133, 90, 0.2)', fontname='Exo 2', fontcolor='#9AE6B4')
         c.node('Prokaryotes')
         c.node('Eukaryotes')
         c.node('Animals')
         c.node('Plants')
         c.node('Fungi')
-        c.edge('LUCA', 'Prokaryotes', label='First Life')
-        c.edge('Prokaryotes', 'Eukaryotes', label='Endosymbiosis')
+        c.edge('LUCA', 'Prokaryotes', label=' First Life')
+        c.edge('Prokaryotes', 'Eukaryotes', label=' Endosymbiosis')
         c.edge('Eukaryotes', 'Animals')
         c.edge('Eukaryotes', 'Plants')
         c.edge('Eukaryotes', 'Fungi')
 
     # Exotic/Theoretical branch
     with graph.subgraph(name='cluster_exotic') as c:
-        c.attr(label='Exotic & Theoretical Life', style='filled', color='lightcoral')
+        c.attr(label='Exotic & Theoretical Life', style='rounded,filled', color='#C53030', fillcolor='rgba(197, 48, 48, 0.2)', fontname='Exo 2', fontcolor='#FEB2B2')
         c.node('SiliconLife', 'Silicon-Based Life\n(e.g., on Titan)')
         c.node('PlasmaLife', 'Plasma-Based Life\n(Cosmic Clouds)')
         c.node('NuclearLife', 'Macronuclei Life\n(Neutron Stars)')
@@ -1471,8 +1525,8 @@ elif st.session_state.current_wing == "Tree of Universal Life":
 # Footer
 st.markdown("---")
 st.markdown("""
-<div style='text-align: center; color: gray;'>
-    <p>🌌 The Museum of Universal Life | Powered by Scientific Speculation 🔬</p>
+<div style='text-align: center; color: #A0AEC0;'>
+    <p>The Museum of Universal Life | Powered by Scientific Speculation</p>
     <p><em>"The universe is not only stranger than we imagine, it is stranger than we can imagine." - J.B.S. Haldane</em></p>
     <p style='font-size: 0.8em; margin-top: 10px;'>Advanced Research Labs • Evolutionary Simulators • Exoplanet Database</p>
 </div>
