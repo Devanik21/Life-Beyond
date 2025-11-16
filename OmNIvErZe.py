@@ -1494,17 +1494,19 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
 
                 # --- UX CONTROLS & DOWNLOADS ---
                 with st.expander("Graph Controls & Export"):
-                    export_cols = st.columns(2)
+                    export_cols = st.columns(3)
                     with export_cols[0]:
                         st.session_state.graph_layout = st.selectbox(
                             "Graph Layout Engine",
                             ['dot', 'neato', 'fdp', 'sfdp', 'twopi', 'circo'],
                             key="layout_engine"
                         )
-                    with export_cols[1]:
-                        st.write(" ") # Spacer
-                        if 'final_graph_source' in st.session_state and st.session_state.final_graph_source:
-                            st.download_button("⬇️ Download SVG", st.session_state.final_graph_svg, file_name="architecture.svg", mime="image/svg+xml")
+                    
+                    if 'final_graph_source' in st.session_state and st.session_state.final_graph_source:
+                        with export_cols[1]:
+                            st.download_button("⬇️ Download PNG", st.session_state.final_graph_png, file_name="architecture.png", mime="image/png")
+                            st.download_button("⬇️ Download JPG", st.session_state.final_graph_jpg, file_name="architecture.jpg", mime="image/jpeg")
+                        with export_cols[2]:
                             st.download_button("⬇️ Download DOT Source", st.session_state.final_graph_source, file_name="architecture.dot", mime="text/vnd.graphviz")
 
                 blueprint_placeholder = st.empty()
@@ -1546,8 +1548,9 @@ if st.session_state.current_wing == "Home" and 'evolution_run' in st.session_sta
                     
                     # After animation, store final graph for download
                     st.session_state.final_graph_source = graph.source
-                    # Render to SVG bytes for download
-                    st.session_state.final_graph_svg = graph.pipe(format='svg')
+                    # Render to image bytes for download
+                    st.session_state.final_graph_png = graph.pipe(format='png')
+                    st.session_state.final_graph_jpg = graph.pipe(format='jpg')
 
 
         # --- TAB 2: Genealogy & Ancestry ---
