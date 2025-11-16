@@ -117,6 +117,13 @@ if 'current_wing' not in st.session_state:
     st.session_state.current_wing = "Home"
 if 'current_exhibit' not in st.session_state:
     st.session_state.current_exhibit = None
+if 'evolution_run' not in st.session_state:
+    st.session_state.evolution_run = False
+if 'sim_selection_pressure' not in st.session_state:
+    st.session_state.sim_selection_pressure = "Moderate"
+if 'sim_env_stress' not in st.session_state:
+    st.session_state.sim_env_stress = []
+
 
 # Helper function to generate alien landscape
 def generate_alien_landscape(color_scheme, gravity_level, star_type):
