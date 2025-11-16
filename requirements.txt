@@ -1,5 +1,9 @@
 streamlit
+numpy
 pandas
 plotly
-numpy
-Pillow
+scipy
+networkx
+tinydb
+pygraphviz
+statsmodels
