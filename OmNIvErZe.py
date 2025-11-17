@@ -2077,15 +2077,29 @@ def main():
         st.session_state.analytics_lab_visible = False
     
     # --- Password Protection ---
+    # --- Password Protection (Updated) ---
     def check_password_on_change():
+        # 1. Try to fetch the password safely
+        correct_pass = None
         try:
-            correct_pass = st.secrets["passwords"]["app_password"]
-        except (KeyError, AttributeError):
-            st.error("FATAL ERROR: No password found in Streamlit Secrets.")
-            st.info("Please ensure you have a .streamlit/secrets.toml file with:\n\n[passwords]\napp_password = 'your_password'")
-            st.session_state.password_correct = False
+            # Check for nested format [passwords] -> app_password
+            if "passwords" in st.secrets and "app_password" in st.secrets["passwords"]:
+                correct_pass = st.secrets["passwords"]["app_password"]
+            # Check for top-level format -> app_password
+            elif "app_password" in st.secrets:
+                correct_pass = st.secrets["app_password"]
+        except (KeyError, AttributeError, FileNotFoundError):
+            pass # correct_pass remains None
+
+        # 2. Handle missing password configuration
+        if correct_pass is None:
+            st.warning("⚠️ Debug Mode: No 'app_password' found in secrets. Access allowed for testing.")
+            # Uncomment the line below to enforce a hard crash if you prefer:
+            # st.error("FATAL ERROR: Please add 'app_password' to .streamlit/secrets.toml"); st.stop()
+            st.session_state.password_correct = True
             return
 
+        # 3. Validate Input
         if st.session_state.password_input_key == correct_pass:
             st.session_state.password_correct = True
             st.session_state.password_attempts = 0
@@ -2099,18 +2113,20 @@ def main():
         st.stop()
         
     if not st.session_state.password_correct:
-        st.text_input(
-            "Password", 
-            type="password", 
-            on_change=check_password_on_change,
-            key="password_input_key"
-        )
-        
-        if st.session_state.password_attempts > 0:
-            st.error("Password incorrect")
+        # If we are already logged in via Debug Mode, skip this
+        if not st.session_state.get('password_correct', False):
+            st.text_input(
+                "Password", 
+                type="password", 
+                on_change=check_password_on_change,
+                key="password_input_key"
+            )
+            
+            if st.session_state.password_attempts > 0:
+                st.error("Password incorrect")
 
-        st.info("Enter password to access the Museum of Universal Life.")
-        st.stop()
+            st.info("Enter password to access the Museum of Universal Life.")
+            st.stop()
 
     # --- Database Setup ---
     db = TinyDB('museum_of_life_db.json', indent=4)
