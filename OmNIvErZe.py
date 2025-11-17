@@ -57,6 +57,7 @@ import hashlib
 import colorsys
 import copy # Added for deep copying presets
 import zipfile
+import matplotlib as plt
 import io
 
 # =================================================================
@@ -2407,4 +2408,2583 @@ def main():
         s['grid_height'] = st.slider("Grid Height", 50, 500, s.get('grid_height', 100), 10)
         s['light_intensity'] = st.slider("Light Energy Intensity", 0.0, 5.0, s.get('light_intensity', 1.0), 0.1)
         s['mineral_richness'] = st.slider("Mineral Richness", 0.0, 5.0, s.get('mineral_richness', 1.0), 0.1)
-        s['water_abundance
+        s['water_abundance'] = st.slider("Water Abundance", 0.0, 5.0, s.get('water_abundance', 1.0), 0.1)
+        s['temp_equator'] = st.slider("Equator Temperature (°C)", 0, 100, s.get('temp_equator', 30), 1)
+        s['temp_pole'] = st.slider("Pole Temperature (°C)", -100, 0, s.get('temp_pole', -20), 1)
+        s['resource_diffusion_rate'] = st.slider("Resource Diffusion Rate", 0.0, 0.5, s.get('resource_diffusion_rate', 0.01), 0.005)
+        
+    st.sidebar.markdown("### 🌱 Primordial Soup & Seeding")
+    with st.sidebar.expander("Initial Life & Complexity", expanded=False):
+        s['initial_population'] = st.slider("Initial Population Size", 10, 500, s.get('initial_population', 50), 10)
+        s['zygote_energy'] = st.slider("Initial Zygote Energy", 1.0, 100.0, s.get('zygote_energy', 10.0), 1.0)
+        s['new_cell_energy'] = st.slider("New Cell Energy", 0.1, 5.0, s.get('new_cell_energy', 1.0), 0.1, help="Energy given to a newly grown cell.")
+        s['development_steps'] = st.slider("Development Steps (Embryogeny)", 10, 200, s.get('development_steps', 50), 5)
+        s['max_organism_lifespan'] = st.slider("Max Organism Lifespan (Epochs)", 50, 1000, s.get('max_organism_lifespan', 200), 10)
+        all_bases = list(CHEMICAL_BASES_REGISTRY.keys())
+        saved_bases = s.get('chemical_bases')
+
+        if not saved_bases or len(saved_bases) < 20:
+            default_selection = all_bases
+        else:
+            default_selection = saved_bases
+
+        s['chemical_bases'] = st.multiselect("Allowed Chemical Bases (Kingdoms)", 
+                                             all_bases, 
+                                             default_selection)
+
+    
+    st.sidebar.markdown("### ⚖️ Fundamental Pressures of Life")
+    with st.sidebar.expander("Multi-Objective Fitness Weights", expanded=False):
+        st.markdown("Define what 'success' means for an exhibit. (Normalized)")
+        s['w_lifespan'] = st.slider("Weight: Longevity", 0.0, 1.0, s.get('w_lifespan', 0.4), 0.01)
+        s['w_efficiency'] = st.slider("Weight: Energy Efficiency", 0.0, 1.0, s.get('w_efficiency', 0.3), 0.01)
+        s['w_reproduction'] = st.slider("Weight: Reproduction", 0.0, 1.0, s.get('w_reproduction', 0.3), 0.01)
+        s['w_complexity_pressure'] = st.slider("Pressure: Complexity", -3.0, 3.0, s.get('w_complexity_pressure', 0.0), 0.01, help="Push for/against complexity.")
+        s['w_motility_pressure'] = st.slider("Pressure: Motility", 0.0, 1.0, s.get('w_motility_pressure', 0.0), 0.01, help="Reward for evolving movement.")
+        s['w_compute_pressure'] = st.slider("Pressure: Intelligence", 0.0, 1.0, s.get('w_compute_pressure', 0.0), 0.01, help="Reward for evolving 'compute' genes.")
+        s['reproduction_energy_threshold'] = st.slider("Reproduction Energy Threshold", 10.0, 200.0, s.get('reproduction_energy_threshold', 50.0))
+        s['reproduction_bonus'] = st.slider("Reproduction Bonus", 0.0, 2.0, s.get('reproduction_bonus', 0.5))
+
+    st.sidebar.markdown("### ⚙️ Simulation Mechanics & Genetics")
+    with st.sidebar.expander("Core Genetic Operators", expanded=True):
+        st.number_input(
+                "Epochs to Simulate",
+                min_value=10,
+                max_value=50000,
+                step=10,
+                value=s.get('num_generations', 200),
+                key="generation_simulator_sync_key",
+            )
+            
+        s['num_generations'] = st.session_state.generation_simulator_sync_key
+        s['selection_pressure'] = st.slider("Selection Pressure", 0.1, 0.9, s.get('selection_pressure', 0.4), 0.05)
+        s['mutation_rate'] = st.slider("Base Mutation Rate (μ)", 0.01, 0.9, s.get('mutation_rate', 0.2), 0.01)
+        s['crossover_rate'] = st.slider("Crossover Rate", 0.0, 1.0, s.get('crossover_rate', 0.7), 0.05)
+        s['innovation_rate'] = st.slider("Rule Innovation Rate (σ)", 0.01, 0.5, s.get('innovation_rate', 0.05), 0.01, help="Rate of creating new GRN rules.")
+        s['component_innovation_rate'] = st.slider("Component Innovation Rate (α)", 0.0, 0.1, s.get('component_innovation_rate', 0.01), 0.001, help="Rate of inventing new chemical components.")
+        s['meta_innovation_rate'] = st.slider("Meta-Innovation Rate (Sensor)", 0.0, 0.01, s.get('meta_innovation_rate', 0.005), 0.0001, help="Rate of inventing new *types* of senses.")
+        s['max_rule_conditions'] = st.slider("Max Rule Conditions", 1, 5, s.get('max_rule_conditions', 3), 1)
+
+    with st.sidebar.expander("Speciation & Ecosystem Dynamics", expanded=False):
+        s['enable_speciation'] = st.checkbox("Enable Speciation", s.get('enable_speciation', True), help="Group similar organisms into 'species' to protect innovation.")
+        s['compatibility_threshold'] = st.slider("Compatibility Threshold", 1.0, 50.0, s.get('compatibility_threshold', 10.0), 0.5, help="Genomic distance to be in the same species.")
+        s['niche_competition_factor'] = st.slider("Niche Competition", 0.0, 5.0, s.get('niche_competition_factor', 1.5), 0.1, help="How strongly members of the same species compete (fitness sharing).")
+        s['gene_flow_rate'] = st.slider("Gene Flow (Hybridization)", 0.0, 0.2, s.get('gene_flow_rate', 0.01), 0.005, help="Chance for crossover between different species.")
+        s['reintroduction_rate'] = st.slider("Fossil Record Reintroduction", 0.0, 0.5, s.get('reintroduction_rate', 0.05), 0.01, help="Chance to reintroduce an ancient genotype from the archive.")
+        s['max_archive_size'] = st.slider("Max Gene Archive Size", 1000, 1000000, s.get('max_archive_size', 100000), 5000)
+    
+    with st.sidebar.expander("Advanced Biological Dynamics", expanded=False):
+        s['enable_baldwin'] = st.checkbox("Enable Baldwin Effect (Learning)", s.get('enable_baldwin', True), help="Organisms can 'learn' (e.g., adapt to local temp) in their lifetime. Favors adaptable genotypes.")
+        s['enable_epigenetics'] = st.checkbox("Enable Epigenetic Inheritance", s.get('enable_epigenetics', True), help="Learned adaptations are partially passed to offspring (Lamarckian).")
+        s['enable_endosymbiosis'] = st.checkbox("Enable Endosymbiosis (Merging)", s.get('enable_endosymbiosis', True), help="Rare event where one organism absorbs another, merging their genomes.")
+        s['endosymbiosis_rate'] = st.slider("Endosymbiosis Rate", 0.0, 0.1, s.get('endosymbiosis_rate', 0.005), 0.001)
+
+    with st.sidebar.expander("🌋 Environmental & Cataclysmic Events", expanded=False):
+        s['enable_cataclysms'] = st.checkbox("Enable Cataclysms", s.get('enable_cataclysms', True), help="Enable rare, random mass extinction events.")
+        s['cataclysm_probability'] = st.slider("Cataclysm Probability", 0.0, 0.5, s.get('cataclysm_probability', 0.01), 0.005, help="Per-epoch chance of a cataclysm.")
+        s['cataclysm_extinction_severity'] = st.slider("Extinction Severity", 0.1, 1.0, s.get('cataclysm_extinction_severity', 0.9), 0.05, help="Percentage of population wiped out.")
+        s['cataclysm_landscape_shift_magnitude'] = st.slider("Landscape Shift Magnitude", 0.0, 1.0, s.get('cataclysm_landscape_shift_magnitude', 0.5), 0.05, help="How drastically resource maps change.")
+        s['post_cataclysm_hypermutation_multiplier'] = st.slider("Hypermutation Multiplier", 1.0, 10.0, s.get('post_cataclysm_hypermutation_multiplier', 2.0), 0.5, help="Mutation spike after cataclysm (adaptive radiation).")
+        s['post_cataclysm_hypermutation_duration'] = st.slider("Hypermutation Duration (Epochs)", 0, 50, s.get('post_cataclysm_hypermutation_duration', 10), 1)
+        s['enable_red_queen'] = st.checkbox("Enable Red Queen (Co-evolution)", s.get('enable_red_queen', True), help="A co-evolving 'parasite' targets the most common organism type, forcing an arms race.")
+        s['red_queen_virulence'] = st.slider("Parasite Virulence", 0.0, 1.0, s.get('red_queen_virulence', 0.15), 0.05, help="Fitness penalty inflicted by the parasite.")
+        s['red_queen_adaptation_speed'] = st.slider("Parasite Adaptation Speed", 0.0, 1.0, s.get('red_queen_adaptation_speed', 0.2), 0.05)
+        
+    with st.sidebar.expander("🔬 Meta-Evolution & Self-Configuration (ADVANCED)", expanded=False):
+        st.markdown("**DANGER:** Evolve the laws of evolution itself.")
+        s['enable_hyperparameter_evolution'] = st.checkbox("Enable Hyperparameter Co-evolution", s.get('enable_hyperparameter_evolution', False))
+        s['evolvable_params'] = st.multiselect("Evolvable Parameters", 
+            ['mutation_rate', 'crossover_rate', 'innovation_rate', 'niche_competition_factor', 'selection_pressure', 'meta_innovation_rate'], 
+            s.get('evolvable_params', ['mutation_rate']))
+        s['hyper_mutation_rate'] = st.slider("Meta-Mutation Rate", 0.0, 0.2, s.get('hyper_mutation_rate', 0.05), 0.01)
+        s['enable_genetic_code_evolution'] = st.checkbox("Enable Genetic Code Evolution", s.get('enable_genetic_code_evolution', False), help="Allow invention of new *types* of rules and conditions.")
+        s['enable_objective_evolution'] = st.checkbox("Enable Objective Evolution (Autotelic)", s.get('enable_objective_evolution', False), help="Allow organisms to evolve their *own* fitness goals.")
+        st.markdown("---")
+        st.markdown("**THE TRUE INFINITE:** Evolve the laws of physics.")
+        s['enable_physics_drift'] = st.checkbox("Enable Physics Co-evolution", s.get('enable_physics_drift', False), help="Allow the archetypes in the CHEMICAL_BASES_REGISTRY to 'mutate' over time.")
+        s['physics_drift_rate'] = st.slider("Physics Drift Rate", 0.0, 0.01, s.get('physics_drift_rate', 0.001), 0.0001, help="Per-epoch chance of a random physical archetype mutating.")
+
+    with st.sidebar.expander("♾️ Deep Evolutionary Physics & Information Dynamics (EXPANDED)", expanded=False):
+        st.markdown("**THEORETICAL APEX:** Model deep physical and informational principles.")
+        s['enable_deep_physics'] = st.checkbox("Enable Deep Physics Engine", s.get('enable_deep_physics', False))
+        
+        st.markdown("##### 1. Information-Theoretic Dynamics")
+        s['kolmogorov_pressure'] = st.slider("Kolmogorov Pressure (Simplicity)", 0.0, 1.0, s.get('kolmogorov_pressure', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['pred_info_bottleneck'] = st.slider("Predictive Info Bottleneck", 0.0, 1.0, s.get('pred_info_bottleneck', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['causal_emergence_factor'] = st.slider("Causal Emergence Factor", 0.0, 1.0, s.get('causal_emergence_factor', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['phi_target'] = st.slider("Integrated Information (Φ) Target", 0.0, 1.0, s.get('phi_target', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['fep_gradient'] = st.slider("Free Energy Principle (FEP) Gradient", 0.0, 1.0, s.get('fep_gradient', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['self_modelling_capacity_bonus'] = st.slider("Self-Modelling Capacity Bonus", 0.0, 1.0, s.get('self_modelling_capacity_bonus', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['epistemic_uncertainty_drive'] = st.slider("Epistemic Uncertainty Drive", 0.0, 1.0, s.get('epistemic_uncertainty_drive', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        
+        st.markdown("##### 2. Thermodynamics of Life")
+        s['landauer_efficiency'] = st.slider("Landauer Limit Efficiency", 0.0, 1.0, s.get('landauer_efficiency', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['metabolic_power_law'] = st.slider("Metabolic Power Law (Exponent)", 0.5, 1.5, s.get('metabolic_power_law', 0.75), 0.01, disabled=not s['enable_deep_physics'])
+        s['heat_dissipation_constraint'] = st.slider("Heat Dissipation Constraint", 0.0, 1.0, s.get('heat_dissipation_constraint', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['homeostatic_pressure'] = st.slider("Homeostatic Regulation Pressure", 0.0, 1.0, s.get('homeostatic_pressure', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['structural_decay_rate'] = st.slider("Structural Integrity Decay Rate", 0.0, 0.1, s.get('structural_decay_rate', 0.0), 0.001, disabled=not s['enable_deep_physics'])
+        s['jarzynski_equality_deviation'] = st.slider("Jarzynski Equality Deviation", 0.0, 1.0, s.get('jarzynski_equality_deviation', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['negentropy_import_cost'] = st.slider("Negentropy Import Cost", 0.0, 1.0, s.get('negentropy_import_cost', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        
+        st.markdown("##### 3. Quantum & Field-Theoretic Effects")
+        s['quantum_annealing_fluctuation'] = st.slider("Quantum Tunneling Fluctuation", 0.0, 1.0, s.get('quantum_annealing_fluctuation', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['holographic_constraint'] = st.slider("Holographic Principle Constraint", 0.0, 1.0, s.get('holographic_constraint', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['symmetry_breaking_pressure'] = st.slider("Symmetry Breaking Pressure", 0.0, 1.0, s.get('symmetry_breaking_pressure', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['wave_function_coherence_bonus'] = st.slider("Wave Function Coherence Bonus", 0.0, 1.0, s.get('wave_function_coherence_bonus', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['zpf_extraction_rate'] = st.slider("Zero-Point Field Extraction Rate", 0.0, 1.0, s.get('zpf_extraction_rate', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+
+        st.markdown("##### 4. Topological & Geometric Constraints")
+        s['manifold_adherence'] = st.slider("Manifold Hypothesis Adherence", 0.0, 1.0, s.get('manifold_adherence', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['homological_scaffold_stability'] = st.slider("Homological Scaffold Stability", 0.0, 1.0, s.get('homological_scaffold_stability', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['fractal_dimension_target'] = st.slider("Fractal Dimension Target", 1.0, 3.0, s.get('fractal_dimension_target', 1.0), 0.05, disabled=not s['enable_deep_physics'])
+        s['hyperbolic_embedding_factor'] = st.slider("Hyperbolic Embedding Factor", 0.0, 1.0, s.get('hyperbolic_embedding_factor', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['small_world_bias'] = st.slider("Small-World Network Bias", 0.0, 1.0, s.get('small_world_bias', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['scale_free_exponent'] = st.slider("Scale-Free Network Exponent", 2.0, 4.0, s.get('scale_free_exponent', 2.0), 0.05, disabled=not s['enable_deep_physics'])
+        s['brane_leakage_rate'] = st.slider("Brane Leakage Rate (Hyper-Dim)", 0.0, 1.0, s.get('brane_leakage_rate', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        
+        st.markdown("##### 5. Cognitive & Agency Pressures")
+        s['curiosity_drive'] = st.slider("Curiosity Drive (Information Gap)", 0.0, 1.0, s.get('curiosity_drive', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['world_model_accuracy'] = st.slider("World Model Accuracy Pressure", 0.0, 1.0, s.get('world_model_accuracy', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['tom_emergence_pressure'] = st.slider("Theory of Mind (ToM) Pressure", 0.0, 1.0, s.get('tom_emergence_pressure', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['cognitive_dissonance_penalty'] = st.slider("Cognitive Dissonance Penalty", 0.0, 1.0, s.get('cognitive_dissonance_penalty', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+        s['prospect_theory_bias'] = st.slider("Prospect Theory Bias (Risk)", -1.0, 1.0, s.get('prospect_theory_bias', 0.0), 0.05, disabled=not s['enable_deep_physics'])
+        s['symbol_grounding_constraint'] = st.slider("Symbol Grounding Constraint", 0.0, 1.0, s.get('symbol_grounding_constraint', 0.0), 0.01, disabled=not s['enable_deep_physics'])
+
+    with st.sidebar.expander("🌌 Advanced Algorithmic Frameworks (EXPANDED)", expanded=False):
+        s['enable_advanced_frameworks'] = st.checkbox("Enable Advanced Frameworks Engine", s.get('enable_advanced_frameworks', False), help="DANGER: Apply priors from abstract math and logic.")
+        st.markdown("##### 1. Computational Logic & Metamathematics")
+        s['chaitin_omega_bias'] = st.slider("Chaitin's Omega Bias", 0.0, 1.0, s.get('chaitin_omega_bias', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['godel_incompleteness_penalty'] = st.slider("Gödelian Incompleteness Penalty", 0.0, 1.0, s.get('godel_incompleteness_penalty', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['turing_completeness_bonus'] = st.slider("Turing Completeness Bonus", 0.0, 1.0, s.get('turing_completeness_bonus', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['lambda_calculus_isomorphism'] = st.slider("Lambda Calculus Isomorphism", 0.0, 1.0, s.get('lambda_calculus_isomorphism', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['busy_beaver_limitation'] = st.slider("Busy Beaver Limitation", 0.0, 1.0, s.get('busy_beaver_limitation', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+
+        st.markdown("##### 2. Advanced Statistical Learning Theory")
+        s['pac_bayes_bound_minimization'] = st.slider("PAC-Bayes Bound Minimization", 0.0, 1.0, s.get('pac_bayes_bound_minimization', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['vc_dimension_constraint'] = st.slider("VC Dimension Constraint", 0.0, 1.0, s.get('vc_dimension_constraint', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['rademacher_complexity_penalty'] = st.slider("Rademacher Complexity Penalty", 0.0, 1.0, s.get('rademacher_complexity_penalty', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['causal_inference_engine_bonus'] = st.slider("Causal Inference Engine Bonus", 0.0, 1.0, s.get('causal_inference_engine_bonus', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+
+        st.markdown("##### 3. Morphogenetic Engineering (Artificial Embryogeny)")
+        s['reaction_diffusion_activator_rate'] = st.slider("Reaction-Diffusion Activator", 0.0, 1.0, s.get('reaction_diffusion_activator_rate', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['reaction_diffusion_inhibitor_rate'] = st.slider("Reaction-Diffusion Inhibitor", 0.0, 1.0, s.get('reaction_diffusion_inhibitor_rate', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['morphogen_gradient_decay'] = st.slider("Morphogen Gradient Decay", 0.0, 1.0, s.get('morphogen_gradient_decay', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['cell_adhesion_factor'] = st.slider("Cell Adhesion Factor", 0.0, 1.0, s.get('cell_adhesion_factor', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['hox_gene_expression_control'] = st.slider("Hox Gene Expression Control", 0.0, 1.0, s.get('hox_gene_expression_control', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['gastrulation_topology_target'] = st.slider("Gastrulation Topology Target", 0.0, 1.0, s.get('gastrulation_topology_target', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+
+        st.markdown("##### 4. Collective Intelligence & Socio-Cultural Dynamics")
+        s['stigmergy_potential_factor'] = st.slider("Stigmergy Potential (Indirect Comm.)", 0.0, 1.0, s.get('stigmergy_potential_factor', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['quorum_sensing_threshold'] = st.slider("Quorum Sensing Threshold", 0.0, 1.0, s.get('quorum_sensing_threshold', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['cultural_transmission_rate'] = st.slider("Cultural Transmission (Memetics)", 0.0, 1.0, s.get('cultural_transmission_rate', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['division_of_labor_incentive'] = st.slider("Division of Labor Incentive", 0.0, 1.0, s.get('division_of_labor_incentive', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['memetic_virulence_factor'] = st.slider("Memetic Virulence Factor", 0.0, 1.0, s.get('memetic_virulence_factor', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['groupthink_penalty'] = st.slider("Groupthink Penalty", 0.0, 1.0, s.get('groupthink_penalty', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+
+        st.markdown("##### 5. Advanced Game Theory & Economic Models")
+        s['hawk_dove_strategy_ratio'] = st.slider("Hawk-Dove Strategy Ratio", 0.0, 1.0, s.get('hawk_dove_strategy_ratio', 0.5), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['ultimatum_game_fairness_pressure'] = st.slider("Ultimatum Game Fairness Pressure", 0.0, 1.0, s.get('ultimatum_game_fairness_pressure', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['principal_agent_alignment_bonus'] = st.slider("Principal-Agent Alignment Bonus", 0.0, 1.0, s.get('principal_agent_alignment_bonus', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['tragedy_of_commons_penalty'] = st.slider("Tragedy of Commons Penalty", 0.0, 1.0, s.get('tragedy_of_commons_penalty', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        
+        st.markdown("##### 6. Advanced Neuromodulation (Conceptual)")
+        s['dopamine_reward_prediction_error'] = st.slider("Dopaminergic RPE Modulation", 0.0, 1.0, s.get('dopamine_reward_prediction_error', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['serotonin_uncertainty_signal'] = st.slider("Serotonergic Uncertainty Signal", 0.0, 1.0, s.get('serotonin_uncertainty_signal', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['acetylcholine_attentional_gain'] = st.slider("Cholinergic Attentional Gain", 0.0, 1.0, s.get('acetylcholine_attentional_gain', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['qualia_binding_efficiency'] = st.slider("Qualia Binding Efficiency", 0.0, 1.0, s.get('qualia_binding_efficiency', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        
+        st.markdown("##### 7. Abstract Algebra & Category Theory Priors")
+        s['group_theory_symmetry_bonus'] = st.slider("Group Theory Symmetry Bonus", 0.0, 1.0, s.get('group_theory_symmetry_bonus', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['category_theory_functorial_bonus'] = st.slider("Category Theory Functorial Bonus", 0.0, 1.0, s.get('category_theory_functorial_bonus', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['monad_structure_bonus'] = st.slider("Monad Structure Bonus", 0.0, 1.0, s.get('monad_structure_bonus', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+        s['sheaf_computation_consistency'] = st.slider("Sheaf Computation Consistency", 0.0, 1.0, s.get('sheaf_computation_consistency', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
+
+    with st.sidebar.expander("Alternate Deep Physics & Info-Dynamics (EXPERIMENTAL)", expanded=False):
+        st.markdown("**THEORETICAL APEX 2:** Model alternate deep physical principles.")
+        s['enable_deep_physics_alt'] = st.checkbox("Enable Alternate Deep Physics", s.get('enable_deep_physics_alt', False))
+        
+        st.markdown("##### 1. Alternate Info-Theoretic Dynamics")
+        s['alt_kolmogorov_pressure'] = st.slider("Alt. Kolmogorov Pressure", 0.0, 1.0, s.get('alt_kolmogorov_pressure', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_pred_info_bottleneck'] = st.slider("Alt. Predictive Info Bottleneck", 0.0, 1.0, s.get('alt_pred_info_bottleneck', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_causal_emergence_factor'] = st.slider("Alt. Causal Emergence Factor", 0.0, 1.0, s.get('alt_causal_emergence_factor', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_phi_target'] = st.slider("Alt. Integrated Information (Φ) Target", 0.0, 1.0, s.get('alt_phi_target', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_fep_gradient'] = st.slider("Alt. Free Energy Principle (FEP) Gradient", 0.0, 1.0, s.get('alt_fep_gradient', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_self_modelling_capacity_bonus'] = st.slider("Alt. Self-Modelling Capacity Bonus", 0.0, 1.0, s.get('alt_self_modelling_capacity_bonus', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_epistemic_uncertainty_drive'] = st.slider("Alt. Epistemic Uncertainty Drive", 0.0, 1.0, s.get('alt_epistemic_uncertainty_drive', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        
+        st.markdown("##### 2. Alternate Thermodynamics of Life")
+        s['alt_landauer_efficiency'] = st.slider("Alt. Landauer Limit Efficiency", 0.0, 1.0, s.get('alt_landauer_efficiency', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_metabolic_power_law'] = st.slider("Alt. Metabolic Power Law (Exponent)", 0.5, 1.5, s.get('alt_metabolic_power_law', 0.75), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_heat_dissipation_constraint'] = st.slider("Alt. Heat Dissipation Constraint", 0.0, 1.0, s.get('alt_heat_dissipation_constraint', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_homeostatic_pressure'] = st.slider("Alt. Homeostatic Regulation Pressure", 0.0, 1.0, s.get('alt_homeostatic_pressure', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_structural_decay_rate'] = st.slider("Alt. Structural Integrity Decay Rate", 0.0, 0.1, s.get('alt_structural_decay_rate', 0.0), 0.001, disabled=not s['enable_deep_physics_alt'])
+        s['alt_jarzynski_equality_deviation'] = st.slider("Alt. Jarzynski Equality Deviation", 0.0, 1.0, s.get('alt_jarzynski_equality_deviation', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_negentropy_import_cost'] = st.slider("Alt. Negentropy Import Cost", 0.0, 1.0, s.get('alt_negentropy_import_cost', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        
+        st.markdown("##### 3. Alternate Quantum & Field-Theoretic Effects")
+        s['alt_quantum_annealing_fluctuation'] = st.slider("Alt. Quantum Tunneling Fluctuation", 0.0, 1.0, s.get('alt_quantum_annealing_fluctuation', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_holographic_constraint'] = st.slider("Alt. Holographic Principle Constraint", 0.0, 1.0, s.get('alt_holographic_constraint', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_symmetry_breaking_pressure'] = st.slider("Alt. Symmetry Breaking Pressure", 0.0, 1.0, s.get('alt_symmetry_breaking_pressure', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_wave_function_coherence_bonus'] = st.slider("Alt. Wave Function Coherence Bonus", 0.0, 1.0, s.get('alt_wave_function_coherence_bonus', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+        s['alt_zpf_extraction_rate'] = st.slider("Alt. Zero-Point Field Extraction Rate", 0.0, 1.0, s.get('alt_zpf_extraction_rate', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
+
+    with st.sidebar.expander("🛰️ Co-evolution & Embodiment Dynamics", expanded=False):
+        st.markdown("Simulate arms races and the evolution of 'bodies'.")
+        s['enable_adversarial_coevolution'] = st.checkbox("Enable Adversarial Critic Population", s.get('enable_adversarial_coevolution', False))
+        s['critic_population_size'] = st.slider("Critic Population Size", 5, 100, s.get('critic_population_size', 10), 5)
+        s['adversarial_fitness_weight'] = st.slider("Adversarial Fitness Weight", 0.0, 1.0, s.get('adversarial_fitness_weight', 0.2), 0.05)
+        s['enable_morphological_coevolution'] = st.checkbox("Enable Morphological Co-evolution", s.get('enable_morphological_coevolution', False))
+        s['cost_per_module'] = st.slider("Metabolic Cost per Cell", 0.0, 0.1, s.get('cost_per_module', 0.01), 0.001)
+        s['bilateral_symmetry_bonus'] = st.slider("Bilateral Symmetry Bonus", 0.0, 0.5, s.get('bilateral_symmetry_bonus', 0.0), 0.01)
+        s['segmentation_bonus'] = st.slider("Segmentation Bonus", 0.0, 0.5, s.get('segmentation_bonus', 0.0), 0.01)
+
+    with st.sidebar.expander("👑 Multi-Level Selection (Major Transitions)", expanded=False):
+        st.markdown("Evolve colonies and 'superorganisms'.")
+        s['enable_multi_level_selection'] = st.checkbox("Enable Multi-Level Selection (MLS)", s.get('enable_multi_level_selection', False))
+        s['colony_size'] = st.slider("Colony Size", 5, 50, s.get('colony_size', 10), 5)
+        s['group_fitness_weight'] = st.slider("Group Fitness Weight (Altruism)", 0.0, 1.0, s.get('group_fitness_weight', 0.3), 0.05)
+        s['selfishness_suppression_cost'] = st.slider("Selfishness Suppression Cost", 0.0, 0.2, s.get('selfishness_suppression_cost', 0.05), 0.01)
+        s['caste_specialization_bonus'] = st.slider("Caste Specialization Bonus", 0.0, 0.5, s.get('caste_specialization_bonus', 0.1), 0.01)
+
+    with st.sidebar.expander("🗂️ Exhibit Management", expanded=False):
+        s['experiment_name'] = st.text_input("Exhibit Name", s.get('experiment_name', 'Primordial Run'))
+        s['random_seed'] = st.number_input("Random Seed", -1, value=s.get('random_seed', 42), help="-1 for random.")
+        s['enable_early_stopping'] = st.checkbox("Enable Early Stopping", s.get('enable_early_stopping', True))
+        s['early_stopping_patience'] = st.slider("Early Stopping Patience", 5, 100, s.get('early_stopping_patience', 25))
+        s['num_ranks_to_display'] = st.slider("Number of Elite Ranks to Display", 1, 10, s.get('num_ranks_to_display', 3))
+
+    with st.sidebar.expander("📊 Custom Analytics Lab", expanded=False):
+        st.markdown("Configure the custom analytics tab.")
+        s['num_custom_plots'] = st.slider("Number of Custom Plots", 0, 12, s.get('num_custom_plots', 1), 1)
+        
+    st.sidebar.markdown("---")
+
+    with st.sidebar.expander("📖 The Curator's Compendium: A Guide to Infinite Life", expanded=False):
+        
+        st.markdown(
+            """
+            ### **PART I: A BEGINNER'S GUIDE TO CURATION**
+            
+            Welcome, Curator. You have been given a "Curator's Console"—a set of dials that define the fundamental laws of a new exhibit. Your goal is to bring life into this void and nurture it from a simple, primordial soup into a complex, diverse ecosystem for display.
+            
+            This guide will walk you through handling your first exhibit and then mastering the advanced principles of "infinite" evolution.
+            
+            ---
+            
+            #### **Section 1.1: Your First "Genesis Event"**
+            
+            The core loop of this museum is simple: **Tweak, Simulate, Observe.**
+            
+            1.  **Do Nothing.** For your very first exhibit, the best choice is to change nothing at all. The default settings are a good starting point.
+            2.  **Simulate:** Find the **"🚀 BEGIN SIMULATION"** button at the top of the sidebar. This will begin the simulation.
+            3.  **Observe:** As the simulation runs, you will see the **"📈 Simulation Dashboard"** on the main page come to life. This is the "book of life" for your exhibit, showing you the average fitness, complexity, and population of your new creatures.
+            4.  **Meet Your Creatures:** When the run is complete, click the **"🔬 Specimen Viewer"** tab. Here you will see the "phenotypes" (the body plans) of the organisms that evolved. They are the first lifeforms in your new reality.
+            
+            You have just completed your first act of curation.
+            
+            ---
+            
+            #### **Section 1.2: Reading the Book of Life**
+            
+            The main screen gives you three critical views:
+            
+            * **📈 Simulation Dashboard:** This is your high-level overview. The most important chart is **"Kingdom Dominance Over Time."** You will often see one color (e.g., 'Carbon') completely take over. This is called **convergence,** and it's the enemy of diversity. The **"3D Fitness Landscape"** shows you the "peaks" that evolution is trying to climb.
+            
+            * **🔬 Specimen Viewer:** This is your microscope. It shows you the physical bodies of your most successful organisms. You can see their **"Component Composition"** (what they're made of) and their **"Genetic Regulatory Network (GRN)"** (the "code" or "DNA" that built them).
+            
+            * **🧬 Elite Lineage Analysis:** This is your "Hall of Fame." It shows you the *best* organism from each **Kingdom** (e.g., the best 'Carbon' life, the best 'Silicon' life, etc.). This is the best place to find and analyze the most interesting and diverse creatures that emerged.
+            
+            ---
+            
+            #### **Section 1.3: Playing Curator (Your First Experiment)**
+            
+            Now you are ready for your first true experiment.
+            
+            1.  Go to the sidebar and open the **"Grid & Resource Distribution"** expander.
+            2.  Find the **"Light Energy Intensity"** slider and move it all the way to the maximum.
+            3.  Find the **"Mineral Richness"** slider and move it all the way to the *minimum*.
+            
+            You have just created an exhibit that is *drowning* in light but *starving* for minerals.
+            
+            Hit **"🚀 BEGIN SIMULATION"** again.
+            
+            Now, go to the **"🔬 Specimen Viewer."** Your new organisms will look completely different. They will have evolved to have massive `photosynthesis` values and almost zero `chemosynthesis`. Their body plans will be different. Their GRNs will be different.
+            
+            You have just performed your first act of *curation* by shaping the evolutionary pressures of your exhibit.
+            
+            ---
+            
+            ### **PART II: THE PATH TO INFINITY (A TREATISE ON EMERGENT COMPLEXITY)**
+            
+            You will soon discover a problem. After a few runs, all your creatures look the same. You'll get simple, 10-cell blobs. Every. Single. Time.
+            
+            This is the **"Convergence Trap."** Evolution is lazy. It will *always* find the simplest, "good enough" solution and stop.
+            
+            Your goal as a Curator is to *fight convergence* and *force novelty.* You must create an exhibit that *rewards* complexity and *punishes* boredom. This is how you achieve "truly infinite" forms.
+            
+            ---
+            
+            #### **Section 2.1: The Engine of Creation (Mastering Innovation)**
+            
+            You must give your organisms the "building blocks" of complexity.
+            
+            * **The "Words" (`component_innovation_rate`):** This is the rate at which life *invents new body parts.* If this is zero, your organisms will *never* evolve beyond the basic "Struct" and "Energy" cells. Increasing this allows them to invent `Neuro-Gel` (brains), `Bio-Steel` (armor), or `Cryo-Fluid` (heat processors) from the chemical bases you allow.
+            
+            * **The "Senses" (`meta_innovation_rate`):** This is the most "infinite" tool you have. It's the rate at which life *invents new senses.* Life cannot evolve eyes if it has not first "invented" the concept of `sense_light`. Life cannot evolve brains if it has not invented `sense_neighbor_complexity`. This dial creates entirely new logical pathways for the GRN, enabling true, unpredicted evolution.
+            
+            * **The "Elements" (`chemical_bases`):** Why stick to 'Carbon'? Enable **'Silicon', 'Plasma', 'Void', and 'Psionic'**. This allows for the emergence of entirely alien kingdoms. You cannot get silicon-based life if you do not add silicon to the primordial soup.
+            
+            ---
+            
+            #### **Section 2.2: The "Why" of Life (Rewarding Complexity)**
+            
+            Giving life building blocks is not enough. You must give it a *reason* to use them.
+            
+            * **The Prime Directive (`w_complexity_pressure`):** This is your **most important dial.** By default, it's at `0.0`. This means evolution *does not care* about complexity. A 5-cell blob that survives is just as "fit" as a 500-cell brain-creature.
+            * **Set this to a positive value (e.g., `0.2`).** You are now *explicitly telling your exhibit* that complexity is a goal. You are adding a direct fitness bonus to any organism that evolves a more complex GRN and body plan. This is how you pay your organisms to evolve brains.
+            
+            * **The "Time" (`development_steps`):** A complex, 500-cell creature cannot grow in 50 steps. If this value is too low, you are *artificially selecting for simple blobs* because they are the only things that can finish "growing" before the simulation stops them. **Increase this to 100 or 150** to give complex embryos time to gestate.
+            
+            ---
+            
+            #### **Section 2.3: The "Shakedown" (Waging War on Boredom)**
+            
+            Your exhibit is now primed for complexity. But the "Convergence Trap" is strong. You must actively *destabilize* your exhibit to force it out of its rut.
+            
+            * **Tool 1: The "Parasite" (`enable_red_queen`):** This is your **#1 weapon against boredom.** When enabled, a digital "parasite" emerges that *constantly adapts to hunt the most common, dominant lifeform.*
+            * Suddenly, being a simple, common blob is a death sentence. It creates a "Red Queen's Race" where life must *constantly* evolve new forms just to survive. This is the single fastest way to create a 'Cambrian Explosion' of diversity.
+            
+            * **Tool 2: The "Asteroid" (`enable_cataclysms`):** This enables random, periodic mass extinction events. A "boring" exhibit, dominated by one blob, will be wiped out. This allows the few, weird, experimental survivors to "inherit the earth" and repopulate the empty world. This is called "adaptive radiation" and it's how you get explosive new growth.
+            
+            * **Tool 3: The "Sanctuary" (`enable_speciation`):** This is a *protective* tool. It groups similar organisms into "species." This is crucial because it *protects* a brand-new, "weird" lifeform (e.g., the first creature with a 'Psionic' sense) from having to compete with the 10,000 hyper-optimized "Carbon" blobs. It gives innovation a safe harbor to develop.
+            
+            ---
+            
+            #### **Section 2.4: The "Curator-Mode" Levers (Evolving Evolution Itself)**
+            
+            These are the most advanced, dangerous, and powerful dials you possess. Here, you stop just *guiding* evolution and start *evolving the laws of evolution itself.*
+            
+            * **`enable_objective_evolution`:** This lets organisms *evolve their own fitness goals.* You are no longer the one defining "success." You might get a "philosopher" species that evolves to value `w_complexity_pressure` above all else, creating complex, beautiful, useless forms. You might get a "berserker" species that evolves to value only reproduction. This creates radical diversity in *strategy*.
+            
+            * **`enable_hyperparameter_evolution`:** This lets organisms *evolve their own mutation rates.* You will see organisms in stable environments evolve *low* mutation rates to protect their success, while organisms in chaotic, Red Queen-driven environments will evolve *high* mutation rates to adapt faster.
+            
+            * **`enable_physics_drift`:** This is the ultimate "infinite" tool. When enabled, the very *laws of physics* will slowly mutate over eons. The `CHEMICAL_BASES_REGISTRY` itself will change. The "mass_range" of 'Carbon' might increase. The "thermosynthesis_bias" of 'Plasma' might invert.
+            * This means life can *never* find one single, perfect solution. The very ground beneath its feet is shifting. It is forced to adapt, innovate, and evolve... truly, infinitely.
+
+            
+            ---
+            ---
+
+            ### **PART III: THE NEW CODES OF LIFE (MASTERING BIZARRE GENETICS)**
+
+            You have successfully upgraded the very "language" of genetics in your exhibit. Your organisms are no longer limited to simple, reactive logic. You have given them the tools for true computation.
+
+            But what did you *actually* do?
+
+            #### **Section 3.1: You Gave Life MEMORY (Proposal A: Timers)**
+
+            * **The Old Limit:** Your cells had no concept of time. They were "goldfish" with no memory, only reacting to the present moment. They couldn't run a sequence of events, like "first grow a stem, *then* grow a leaf."
+            * **The New Power (Temporal Logic):** By adding `SET_TIMER` and `timer_` conditions, you've given cells an **internal clock**.
+            * **What It Unlocks (Oscillators & Sequences):** A GRN can now evolve logic like:
+                * `IF timer_pulse == 0 THEN GROW("Struct") AND SET_TIMER("pulse", 10)`
+                * This creates an **oscillator**. The organism will grow in 10-tick "bursts," creating segmented body plans (like a worm or a tree ring) instead of a simple blob.
+                * It also allows **developmental stages**: `IF self_age < 3 THEN SET_TIMER("phase_B", 5)`... `IF timer_phase_B == 1 THEN DIFFERENTIATE("Neuro-Gel")`. This cell *waits* 5 ticks, then becomes a brain.
+
+            #### **Section 3.2: You Gave Life LOGIC (Proposal B: Cascades)**
+
+            * **The Old Limit:** Your GRN was a "flat list." Every rule was checked on every tick. It was a simple checklist, not a program.
+            * **The New Power (Genetic Cascades):** By adding `ENABLE_RULE` and `DISABLE_RULE`, you've turned your flat list into a **computational network**. Rules can now *trigger other rules*.
+            * **What It Unlocks (Genetic Switches & Programs):** This is the core of real genetics. You can now evolve:
+                * **A "Genetic Switch":** `IF self_age < 5 THEN GROW("Struct") AND DISABLE_RULE("this_rule") AND ENABLE_RULE("adult_rule")`
+                * This is a one-way path. The "embryo" rule runs, builds the foundation, then *permanently switches itself off* and "wakes up" the "adult" logic.
+                * You can now evolve feedback loops, logic gates, and complex programs where one gene (rule) controls the expression of 10 others.
+
+            #### **Section 3.3: You Gave Life SENSES (Proposal C: Signaling)**
+
+            * **The Old Limit:** Your cells were "deaf and blind" to each other. A cell knew its *neighbor* existed, but it had no idea what that neighbor was *thinking* or *doing*. They couldn't coordinate to build a pattern.
+            * **The New Power (Morphogenesis):** By adding `EMIT_SIGNAL` and `signal_` conditions, you've given cells a way to **talk to each other**. This is **morphogenesis**: the creation of shape.
+            * **What It Unlocks (Reaction-Diffusion & Patterns):** You've unlocked the logic behind spots, stripes, and organs. A GRN can now evolve:
+                * `Rule 1: IF self_type == "Core" THEN EMIT_SIGNAL("inhibitor", 1.0)`
+                * `Rule 2: IF signal_inhibitor > 0.5 THEN DIFFERENTIATE("Shell")`
+                * This simple logic creates a "Shell" cell *around* every "Core" cell, forming a boundary. This is how you get layers, skins, and self-organizing structures. You've given your cells the power to create **Turing Patterns**.
+
+            ### **FINAL COMMANDMENT: USE YOUR NEW POWER**
+
+            This new, complex "language" of life is powerful, but it's also *expensive* for evolution to use. It will be "lazy" and *avoid* using these tools unless you force it.
+
+            You **must** use your Curator's Console to create evolutionary pressure.
+            * **Turn ON `enable_red_queen`:** This punishes simple, common GRNs.
+            * **Turn UP `w_complexity_pressure`:** This *rewards* organisms for evolving complex, bizarre GRNs.
+
+            Combine your new code with these settings, and you will finally force life to evolve the truly alien and intelligent forms you've been looking for. Now go, and curate.
+            """
+        )
+
+    with st.sidebar.expander("🔬 A Researcher's Guide to the GRN Encyclopedia", expanded=False):
+        st.markdown(
+            """
+            This guide explains the meaning and scientific significance of each of the 16 unique
+            GRN plots. Each plot is a different mathematical 'lens' to view the same 
+            genetic network, and each lens reveals different, hidden truths about the 
+            organism's underlying logic.
+            
+            ---
+            
+            ### Part I: The Force-Directed (Physics) Layouts 🕸️
+            
+            **Overall Significance:** These plots reveal the 'natural' clusters and communities
+            within the network. They treat nodes like magnets repelling each other and
+            edges like springs pulling them together. They are the best views for
+            answering: **"Which genes and rules naturally work together?"**
+            
+            * **GRN 1: Default Spring (`nx.spring_layout`)**
+                * **What it is:** The standard physics simulation. It's a "baseline" view of the graph's natural clustering.
+                * **Significance:** This is your first look. It quickly shows you the main, obvious clusters of genes and rules. If the graph looks like a "hairball," it means the network is very dense.
+            
+            * **GRN 2: Kamada-Kawai (`nx.kamada_kawai_layout`)**
+                * **What it is:** A different physics model that tries to make the visual distance between nodes proportional to their "path distance" (how many steps it takes to get from one to the other).
+                * **Significance:** This layout is often much cleaner and more symmetrical than the default. It is *excellent* for revealing the core **backbone and symmetry** of a network.
+            
+            * **GRN 9: Tight Spring (`k=0.1`)**
+                * **What it is:** A `spring_layout` where the "repulsion" force is very high (low `k`).
+                * **Significance:** This layout smashes clusters tightly together. It's the perfect tool for seeing **how dense** a cluster is and identifying its "core" nodes, which will be packed into the very center.
+            
+            * **GRN 10: Loose Spring (`k=2.0`)**
+                * **What it is:** A `spring_layout` where "repulsion" is very low (high `k`).
+                * **Significance:** This layout spreads the entire graph out. It's fantastic for untangling complex "hairballs" and clearly seeing **long-range connections** between distant clusters that would otherwise overlap.
+            
+            * **GRN 12: Settled Spring (`iterations=200`)**
+                * **What it is:** A `spring_layout` that runs the physics simulation for 200 iterations instead of the default 50.
+                * **Significance:** This shows a more "final" and stable version of GRN 1. It's less random and often produces a more reliable structure, as the nodes have had more time to "settle" into their optimal positions.
+            
+            * **GRN 15: Graphviz NEATO (`prog='neato'`)**
+                * **What it is:** This uses the powerful, external Graphviz engine to run a "spring" physics model.
+                * **Significance:** This is a "second opinion" from a different physics engine. `neato` is often superior to the `networkx` layouts for large, messy, "real-world" graphs, producing a very clean and readable result.
+            
+            * **GRN 16: Alternate Seed (`seed=99`)**
+                * **What it is:** The same as GRN 1, but with a different random starting position.
+                * **Significance:** This is a crucial **sanity check**. If this plot looks *completely different* from GRN 1, it tells you the network is complex and has many different "stable" layouts. If it looks similar, it means the structure is very strong and robust.
+
+            ---
+
+            ### Part II: The Structural (Geometric) Layouts 🏗️
+            
+            **Overall Significance:** These plots *ignore* natural physics and instead
+            force the nodes into specific, pre-defined shapes. This is a powerful
+            technique for revealing patterns that physics-based layouts hide. They answer:
+            **"Are there non-obvious patterns or long-range connections?"**
+            
+            * **GRN 3: Circular Layout (`nx.circular_layout`)**
+                * **What it is:** Arranges all nodes in a perfect circle.
+                * **Significance:** This is the *ultimate* plot for seeing **"cross-cutting" connections**. A gene (edge) that cuts directly across the center of the circle is a very important, non-obvious link connecting two parts of the network that *seem* unrelated.
+            
+            * **GRN 4: Random Layout (`nx.random_layout`)**
+                * **What it is:** Pure chaos. It places all nodes in a random scatter-plot.
+                * **Significance:** This seems useless, but it's a vital scientific control! This is your "null hypothesis"—it shows what the network looks like with *zero* intelligent organization. It makes the beautiful structures in the other 15 plots even more meaningful.
+            
+            * **GRN 6: Shell Layout (`nx.shell_layout`)**
+                * **What it is:** Arranges nodes in concentric circles (shells).
+                * **Significance:** This can be used to visualize "ranks" or "classes" of genes, though GRN 11 does this more intelligently.
+            
+            * **GRN 7: Spiral Layout (`nx.spiral_layout`)**
+                * **What it is:** Arranges all nodes in a single, continuous spiral.
+                * **Significance:** This is a unique layout that can be surprisingly good at showing a single, long **"chain of command"** or a developmental sequence, which might naturally follow the path of the spiral.
+            
+            * **GRN 8: Planar Layout (`nx.planar_layout`)**
+                * **What it is:** A fascinating layout that *tries* to draw the graph with **zero edges crossing**.
+                * **Significance:** This is a deep analytical test. If this layout *succeeds*, it proves your GRN is "simple" (mathematically planar). If it *fails* (and falls back to a random layout), it proves your GRN is "complex" (non-planar).
+            
+            * **GRN 11: Dual-Shell (Custom Logic)**
+                * **What it is:** This is your *custom* layout. It programmatically puts all **Components (genes)** in the outer shell and all **Actions (rules)** in the inner shell.
+                * **Significance:** This is one of the most useful plots for understanding the *logic* of the GRN. It clearly separates the "what" (the available body parts) from the "how" (the rules that assemble them), letting you see which genes are targets for many rules.
+
+            ---
+            
+            ### Part III: The Hierarchical (Graphviz) Layouts ιε
+            
+            **Overall Significance:** These are the most powerful plots for
+            understanding a *regulatory* network. They are designed to show
+            **hierarchy, control, and the flow of information**. They answer:
+            **"What gene controls what?"**
+            
+            * **GRN 13: Hierarchical (Top-Down) (`prog='dot'`)**
+                * **What it is:** The "classic" flowchart layout. It uses a powerful algorithm to figure out the "flow" of the graph and arranges it from top to bottom.
+                * **Significance:** This is the **most important plot for understanding control**. The nodes at the very *top* of the chart are the **"master regulators"**—the genes and rules that control everything else. The nodes at the bottom are the final "worker" genes.
+            
+            * **GRN 14: Hierarchical (Radial) (`prog='twopi'`)**
+                * **What it is:** It picks a "root" node (often the graph's center) and draws all other nodes in concentric circles around it, based on their distance from the root.
+                * **Significance:** This shows the "blast wave" of gene influence. It's perfect for seeing how "far" a gene's control signal can spread through the network. A gene in the center with 5 rings around it is a very powerful regulator.
+
+            ---
+            
+            ### Part IV: The Mathematical (Spectral) Layout 📈
+            
+            **Overall Significance:** This plot is a true "X-Ray" of your network's
+            deepest structure, based on advanced linear algebra. It's often
+            hard to interpret but mathematically the "most true" view.
+            
+            * **GRN 5: Spectral Layout (`nx.spectral_layout`)**
+                * **What it is:** It uses the *eigenvectors* of the graph's matrix (the "Laplacian") to position the nodes.
+                * **Significance:** This is the **most mathematically profound** layout. It is the absolute best way to identify the *most fundamental, tightly-knit, and separate clusters* of genes. If two nodes are close in this layout, they are *deeply* related on a mathematical level, even if they look far apart in other plots.
+            """
+        )
+
+    st.sidebar.markdown("---")
+
+    if s != st.session_state.settings:
+        st.session_state.settings = copy.deepcopy(s)
+        if settings_table.get(doc_id=1):
+            settings_table.update(s, doc_ids=[1])
+        else:
+            settings_table.insert(s)
+        st.toast("Exhibit constants saved.", icon="⚙️")
+
+    if st.session_state.history:
+        last_gen = st.session_state.history[-1]['generation']
+        st.sidebar.info(f"**Status:** Loaded archive at **Epoch {last_gen}**. Ready to extend simulation.", icon="ℹ️")
+    else:
+        st.sidebar.info("**Status:** Ready for a new simulation.", icon="ℹ️")
+
+    col1, col2 = st.sidebar.columns(2)
+    
+    if col1.button("🚀 BEGIN SIMULATION", type="primary", width='stretch', key="initiate_evolution_button"):
+        st.session_state.history = []
+        st.session_state.evolutionary_metrics = []
+        st.session_state.genesis_events = []
+        
+        st.session_state.seen_kingdoms = set()
+        st.session_state.crossed_complexity_thresholds = set()
+        st.session_state.last_dominant_kingdom = None
+        st.session_state.has_logged_colonial_emergence = False
+        st.session_state.has_logged_philosophy_divergence = False
+        st.session_state.has_logged_computation_dawn = False
+        st.session_state.has_logged_first_communication = False
+        st.session_state.has_logged_memory_invention = False
+
+        st.session_state.gene_archive = []
+        
+        if s.get('random_seed', 42) != -1:
+            random.seed(s.get('random_seed', 42))
+            np.random.seed(s.get('random_seed', 42))
+            st.toast(f"Using fixed random seed: {s.get('random_seed', 42)}", icon="🎲")
+            
+        population = []
+        for _ in range(s.get('initial_population', 50)):
+            genotype = get_primordial_soup_genotype(s)
+            genotype = mutate(genotype, s)
+            genotype = mutate(genotype, s)
+            population.append(genotype)
+        
+        if not population:
+            st.error("Failed to create initial population! Check settings.")
+            st.stop()
+            
+        st.session_state.gene_archive = [g.copy() for g in population]
+
+        exhibit_grid = ExhibitGrid(s)
+        
+        progress_container = st.empty()
+        metrics_container = st.empty()
+        status_text = st.empty()
+        
+        last_best_fitness = -1
+        early_stop_counter = 0
+        current_mutation_rate = s.get('mutation_rate', 0.2)
+        hypermutation_duration = 0
+        
+        red_queen = RedQueenParasite()
+        
+        if 'seen_kingdoms' not in st.session_state: st.session_state.seen_kingdoms = set()
+        if 'crossed_complexity_thresholds' not in st.session_state: st.session_state.crossed_complexity_thresholds = set()
+        if 'last_dominant_kingdom' not in st.session_state: st.session_state.last_dominant_kingdom = None
+        if 'has_logged_colonial_emergence' not in st.session_state: st.session_state.has_logged_colonial_emergence = False
+        if 'has_logged_philosophy_divergence' not in st.session_state: st.session_state.has_logged_philosophy_divergence = False
+        if 'has_logged_computation_dawn' not in st.session_state: st.session_state.has_logged_computation_dawn = False
+        if 'has_logged_first_communication' not in st.session_state: st.session_state.has_logged_first_communication = False
+        if 'has_logged_memory_invention' not in st.session_state: st.session_state.has_logged_memory_invention = False
+
+        complexity_thresholds_to_log = [10, 25, 50, 100, 200, 500]
+
+        for gen in range(s.get('num_generations', 200)):
+            status_text.markdown(f"### 🏛️ Simulating Epoch {gen + 1}/{s.get('num_generations', 200)}")
+            
+            fitness_scores = []
+            for genotype in population:
+                organism_grid = ExhibitGrid(s) 
+                individual_fitness = evaluate_fitness(genotype, organism_grid, s)
+                genotype.individual_fitness = individual_fitness
+                genotype.fitness = individual_fitness
+                genotype.generation = gen
+                genotype.age += 1
+            
+            if s.get('enable_red_queen', True):
+                if population:
+                    kingdom_counts = Counter(g.kingdom_id for g in population)
+                    most_common_kingdom, _ = kingdom_counts.most_common(1)[0]
+                    
+                    if random.random() < s.get('red_queen_adaptation_speed', 0.2):
+                        red_queen.target_kingdom_id = most_common_kingdom
+                        st.toast(f"👑 Red Queen Adapts! Parasite now targets **{most_common_kingdom}**.", icon="🦠")
+                        event_desc = f"A co-evolving parasite has adapted, now specifically targeting the dominant **{most_common_kingdom}** kingdom. This forces an evolutionary arms race."
+                        st.session_state.genesis_events.append({
+                            'generation': gen,
+                            'type': 'Red Queen',
+                            'title': f"Parasite Adapts to {most_common_kingdom}",
+                            'description': event_desc,
+                            'icon': '👑'
+                        })
+
+                for genotype in population:
+                    if genotype.kingdom_id == red_queen.target_kingdom_id:
+                        penalty = genotype.fitness * s.get('red_queen_virulence', 0.15)
+                        genotype.fitness = max(1e-6, genotype.fitness - penalty)
+
+            if s.get('enable_multi_level_selection', False):
+                colonies: Dict[str, List[Genotype]] = {}
+                sorted_pop = sorted(population, key=lambda g: g.lineage_id)
+                colony_size = s.get('colony_size', 10)
+                num_colonies = (len(sorted_pop) + colony_size - 1) // colony_size
+
+                for i in range(num_colonies):
+                    colony_id = f"col_{gen}_{i}"
+                    colony_members = sorted_pop[i*colony_size:(i+1)*colony_size]
+                    colonies[colony_id] = []
+                    for member in colony_members:
+                        member.colony_id = colony_id
+                        colonies[colony_id].append(member)
+
+                group_fitness_scores: Dict[str, float] = {}
+                for colony_id, members in colonies.items():
+                    if not members: continue
+                    
+                    mean_individual_fitness = np.mean([m.individual_fitness for m in members])
+                    
+                    all_components = set()
+                    for member in members:
+                        all_components.update(member.component_genes.keys())
+                    specialization_bonus = len(all_components) * s.get('caste_specialization_bonus', 0.1)
+
+                    group_fitness = mean_individual_fitness + specialization_bonus
+                    group_fitness_scores[colony_id] = group_fitness
+
+                group_weight = s.get('group_fitness_weight', 0.3)
+                for genotype in population:
+                    if genotype.colony_id in group_fitness_scores:
+                        group_fitness = group_fitness_scores[genotype.colony_id]
+                        genotype.fitness = (genotype.individual_fitness * (1 - group_weight)) + (group_fitness * group_weight)
+
+                if not st.session_state.get('has_logged_colonial_emergence', False):
+                    pop_mean_fitness = np.mean([g.individual_fitness for g in population])
+                    if any(gf > pop_mean_fitness * 1.2 for gf in group_fitness_scores.values()):
+                        event_desc = "For the first time, individual organisms have aggregated into a cooperative colony whose group success surpasses that of average individuals. This marks a major transition towards higher-level superorganisms."
+                        st.session_state.genesis_events.append({
+                            'generation': gen, 'type': 'Major Transition', 'title': 'Emergence of Colonial Life',
+                            'description': event_desc, 'icon': '🤝'
+                        })
+                        st.session_state.has_logged_colonial_emergence = True
+                        st.toast("🤝 Major Transition! Colonial life has emerged!", icon="🎉")
+
+            if hypermutation_duration > 0:
+                current_mutation_rate = s.get('mutation_rate', 0.2) * s.get('post_cataclysm_hypermutation_multiplier', 2.0)
+                hypermutation_duration -= 1
+                if hypermutation_duration == 0:
+                    st.toast("Hypermutation period has ended. Mutation rates returning to normal.", icon="📉")
+            else:
+                current_mutation_rate = s.get('mutation_rate', 0.2)
+
+            if s.get('enable_cataclysms', True) and random.random() < s.get('cataclysm_probability', 0.01):
+                st.warning(f"🌋 **CATACLYSM!** A gallery-shaking event has occurred in Epoch {gen+1}!", icon="💥")
+                event_desc = f"A random environmental event has caused a mass extinction, wiping out **{s.get('cataclysm_extinction_severity', 0.9)*100:.0f}%** of all life and radically altering the exhibit's resource maps."
+                st.session_state.genesis_events.append({
+                    'generation': gen,
+                    'type': 'Cataclysm',
+                    'title': 'Mass Extinction Event',
+                    'description': event_desc,
+                    'icon': '🌋'
+                })
+                
+                extinction_severity = s.get('cataclysm_extinction_severity', 0.9)
+                survivors_after_cataclysm = int(len(population) * (1.0 - extinction_severity))
+                population.sort(key=lambda x: x.fitness, reverse=True)
+                population = population[:survivors_after_cataclysm]
+                st.toast(f"Mass extinction! {extinction_severity*100:.0f}% of life has been wiped out.", icon="💀")
+
+                exhibit_grid = ExhibitGrid(s)
+                st.toast("The environment has been radically altered! Resource maps have shifted.", icon="🌍")
+
+                hypermutation_duration = s.get('post_cataclysm_hypermutation_duration', 10)
+                st.toast(f"Adaptive radiation begins! Hypermutation enabled for {hypermutation_duration} epochs.", icon="📈")
+
+                while len(population) < s.get('initial_population', 50) and population:
+                    parent = random.choice(population)
+                    child = mutate(parent, s)
+                    population.append(child)
+
+            fitness_scores = [g.fitness for g in population]
+            
+            if not fitness_scores:
+                st.error("EXTINCTION EVENT. All life has perished.")
+                break
+                
+            fitness_array = np.array(fitness_scores)
+            
+            current_kingdoms = set(g.kingdom_id for g in population)
+            
+            newly_emerged_kingdoms = current_kingdoms - st.session_state.seen_kingdoms
+            for kingdom in newly_emerged_kingdoms:
+                if kingdom != "Unknown" and kingdom != "Unclassified":
+                    event_desc = f"For the first time in this exhibit's history, life based on the **{kingdom}** chemical archetype has emerged from the primordial soup, opening a new evolutionary frontier."
+                    st.session_state.genesis_events.append({
+                        'generation': gen, 'type': 'Genesis', 'title': f"Genesis of {kingdom} Life",
+                        'description': event_desc, 'icon': '✨'
+                    })
+                    st.session_state.seen_kingdoms.add(kingdom)
+
+            kingdom_counts = Counter(g.kingdom_id for g in population)
+            if kingdom_counts:
+                current_dominant_kingdom, _ = kingdom_counts.most_common(1)[0]
+                if st.session_state.last_dominant_kingdom and current_dominant_kingdom != st.session_state.last_dominant_kingdom:
+                    event_desc = f"A major ecological shift has occurred. Life based on **{current_dominant_kingdom}** has overthrown the previous era's dominant **{st.session_state.last_dominant_kingdom}**-based lifeforms."
+                    st.session_state.genesis_events.append({
+                        'generation': gen, 'type': 'Succession', 'title': f"The {current_dominant_kingdom} Era Begins",
+                        'description': event_desc, 'icon': '👑'
+                    })
+                st.session_state.last_dominant_kingdom = current_dominant_kingdom
+
+            max_complexity_in_gen = 0
+            if population:
+                max_complexity_in_gen = max(p.compute_complexity() for p in population)
+            
+            for threshold in complexity_thresholds_to_log:
+                if max_complexity_in_gen >= threshold and threshold not in st.session_state.crossed_complexity_thresholds:
+                    fittest_organism = max(population, key=lambda p: p.fitness)
+                    event_desc = f"A new era of biological organization has been reached. An organism from the **{fittest_organism.kingdom_id}** kingdom has achieved a genomic complexity of over **{threshold}**, enabling far more sophisticated body plans and behaviors."
+                    st.session_state.genesis_events.append({
+                        'generation': gen, 'type': 'Complexity Leap', 'title': f"Complexity Barrier Broken ({threshold})",
+                        'description': event_desc, 'icon': '🧠'
+                    })
+                    st.session_state.crossed_complexity_thresholds.add(threshold)
+
+            st.session_state.seen_kingdoms.update(current_kingdoms)
+            
+            for org in population:
+                if s.get('enable_objective_evolution', False) and not st.session_state.get('has_logged_philosophy_divergence', False):
+                    default_weights = np.array([s.get('w_lifespan', 0.4), s.get('w_efficiency', 0.3), s.get('w_reproduction', 0.3)])
+                    org_weights_dict = org.objective_weights
+                    org_weights = np.array([org_weights_dict.get('w_lifespan', 0), org_weights_dict.get('w_efficiency', 0), org_weights_dict.get('w_reproduction', 0)])
+                    distance = np.linalg.norm(default_weights - org_weights)
+                    if distance > 0.5:
+                        top_objective = max(org_weights_dict, key=org_weights_dict.get)
+                        event_desc = f"A lineage has evolved its own 'philosophy of life,' radically altering its fitness objectives. Instead of pursuing the exhibit's default goals, it now prioritizes '{top_objective}', marking the dawn of autotelic (self-directed) evolution."
+                        st.session_state.genesis_events.append({
+                            'generation': gen, 'type': 'Cognitive Leap', 'title': 'Philosophical Divergence',
+                            'description': event_desc, 'icon': '📜'
+                        })
+                        st.session_state.has_logged_philosophy_divergence = True
+                        st.toast("📜 Cognitive Leap! An organism evolved its own goals!", icon="🎉")
+                        break
+
+                if not st.session_state.get('has_logged_computation_dawn', False):
+                    if any(rule.action_type in ["ENABLE_RULE", "DISABLE_RULE"] for rule in org.rule_genes):
+                        event_desc = "A genetic regulatory network has evolved a 'genetic switch,' where one rule can enable or disable another. This allows for complex, stateful developmental programs, a primitive form of biological computation."
+                        st.session_state.genesis_events.append({
+                            'generation': gen, 'type': 'Complexity Leap', 'title': 'Dawn of Computation',
+                            'description': event_desc, 'icon': '⚙️'
+                        })
+                        st.session_state.has_logged_computation_dawn = True
+                        st.toast("⚙️ Complexity Leap! Life evolved a genetic switch!", icon="🎉")
+                        break
+
+                if not st.session_state.get('has_logged_first_communication', False):
+                    if any(rule.action_type == "EMIT_SIGNAL" for rule in org.rule_genes):
+                        event_desc = "An organism has evolved the ability for its cells to emit chemical signals. This is the first step towards intercellular communication, allowing for coordinated growth and the formation of complex patterns (morphogenesis)."
+                        st.session_state.genesis_events.append({
+                            'generation': gen, 'type': 'Major Transition', 'title': 'First Communication',
+                            'description': event_desc, 'icon': '📡'
+                        })
+                        st.session_state.has_logged_first_communication = True
+                        st.toast("📡 Major Transition! Cells have learned to communicate!", icon="🎉")
+                        break
+
+                if not st.session_state.get('has_logged_memory_invention', False):
+                    if any(rule.action_type in ["SET_TIMER", "MODIFY_TIMER"] for rule in org.rule_genes):
+                        event_desc = "For the first time, an organism's genetic code includes instructions for an internal timer. This gives its cells a rudimentary memory and a sense of time, enabling sequential developmental programs and biological rhythms."
+                        st.session_state.genesis_events.append({
+                            'generation': gen, 'type': 'Cognitive Leap', 'title': 'Invention of Memory',
+                            'description': event_desc, 'icon': '⏳'
+                        })
+                        st.session_state.has_logged_memory_invention = True
+                        st.toast("⏳ Cognitive Leap! An organism evolved internal timers!", icon="🎉")
+                        break
+
+            for individual in population:
+                st.session_state.history.append({
+                    'generation': gen,
+                    'kingdom_id': individual.kingdom_id,
+                    'fitness': individual.fitness,
+                    'cell_count': individual.cell_count,
+                    'complexity': individual.compute_complexity(),
+                    'lifespan': individual.lifespan,
+                    'energy_production': individual.energy_production,
+                    'energy_consumption': individual.energy_consumption,
+                    'lineage_id': individual.lineage_id,
+                    'parent_ids': getattr(individual, 'parent_ids', []),
+                })
+            
+            diversity = entropy(np.histogram(fitness_array, bins=10)[0])
+            selection_differential = 0.0
+            
+            st.session_state.evolutionary_metrics.append({
+                'generation': gen,
+                'diversity': diversity,
+                'best_fitness': fitness_array.max(),
+                'mean_fitness': fitness_array.mean(),
+                'selection_differential': selection_differential,
+                'mutation_rate': current_mutation_rate,
+            })
+            
+            with metrics_container.container():
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Best Fitness", f"{fitness_array.max():.4f}")
+                c2.metric("Mean Fitness", f"{fitness_array.mean():.4f}")
+                c3.metric("Diversity (H)", f"{diversity:.3f}")
+                c4.metric("Mutation Rate (μ)", f"{current_mutation_rate:.3f}")
+
+            population.sort(key=lambda x: x.fitness, reverse=True)
+            
+            if s.get('enable_multi_level_selection', False) and 'colonies' in locals() and colonies:
+                num_surviving_colonies = max(1, int(len(colonies) * (1 - s.get('selection_pressure', 0.4))))
+                sorted_colonies = sorted(colonies.items(), key=lambda item: group_fitness_scores[item[0]], reverse=True)
+                
+                survivors = []
+                for colony_id, members in sorted_colonies[:num_surviving_colonies]:
+                    survivors.extend(members)
+                
+                if not survivors:
+                    num_survivors = max(2, int(len(population) * (1 - s.get('selection_pressure', 0.4))))
+                    survivors = population[:num_survivors]
+            else:
+                num_survivors = max(2, int(len(population) * (1 - s.get('selection_pressure', 0.4))))
+                survivors = population[:num_survivors]
+            
+            offspring = []
+            pop_size = s.get('initial_population', 50)
+            
+            if not survivors:
+                st.error("EXTINCTION EVENT. No survivors to reproduce.")
+                break
+                
+            while len(survivors) + len(offspring) < pop_size:
+                parent1 = random.choice(survivors)
+                parent2 = random.choice(survivors)
+
+                if s.get('enable_endosymbiosis', True) and random.random() < s.get('endosymbiosis_rate', 0.005):
+                    host = parent1.copy()
+                    symbiote = parent2.copy()
+
+                    for comp_name, comp_gene in symbiote.component_genes.items():
+                        if comp_name not in host.component_genes:
+                            host.component_genes[comp_name] = comp_gene
+                    
+                    num_rules_to_take = int(len(symbiote.rule_genes) * random.uniform(0.2, 0.5))
+                    if symbiote.rule_genes:
+                        rules_to_take = random.sample(symbiote.rule_genes, num_rules_to_take)
+                        host.rule_genes.extend(rules_to_take)
+
+                    host.parent_ids.extend(symbiote.parent_ids)
+                    host.update_kingdom()
+                    host.generation = gen + 1
+                    
+                    child = mutate(host, s)
+                    offspring.append(child)
+                    st.toast(f"💥 ENDOSYMBIOSIS! Organisms merged into a new lifeform!", icon="🧬")
+                    
+                    event_desc = f"Two distinct organisms from lineages `{parent1.lineage_id}` and `{parent2.lineage_id}` have merged into a single, more complex entity, combining their genetic material."
+                    st.session_state.genesis_events.append({
+                        'generation': gen,
+                        'type': 'Endosymbiosis',
+                        'title': 'Genomes Merged',
+                        'description': event_desc,
+                        'icon': '🧬'
+                    })
+
+                else:
+                    child = parent1.copy()
+                    child = mutate(child, s)
+                    child.generation = gen + 1
+                    offspring.append(child)
+            
+            population = survivors + offspring
+            st.session_state.gene_archive.extend([c.copy() for c in offspring])
+
+            meta_innovate_condition_source(s)
+
+            if s.get('enable_physics_drift', False):
+                apply_physics_drift(s)
+                
+            max_archive = s.get('max_archive_size', 10000)
+            if len(st.session_state.gene_archive) > max_archive:
+                st.session_state.gene_archive = random.sample(st.session_state.gene_archive, max_archive)
+                
+            current_best = fitness_array.max()
+            if current_best > last_best_fitness:
+                last_best_fitness = current_best
+                early_stop_counter = 0
+            else:
+                early_stop_counter += 1
+                
+            if s.get('enable_early_stopping', True) and early_stop_counter > s.get('early_stopping_patience', 25):
+                st.success(f"**EARLY STOPPING:** Simulation converged after {gen + 1} epochs.")
+                break
+                
+            progress_container.progress((gen + 1) / s.get('num_generations', 200))
+        
+        st.session_state.current_population = population
+        status_text.markdown("### ✅ Simulation Complete! Results archived.")
+        
+        results_to_save = {
+            'history': st.session_state.history,
+            'evolutionary_metrics': st.session_state.evolutionary_metrics,
+        }
+        if results_table.get(doc_id=1):
+            results_table.update(results_to_save, doc_ids=[1])
+        else:
+            results_table.insert(results_to_save)
+
+    if col2.button("🧬 EXTEND SIMULATION", width='stretch', key="continue_evolution_button"):
+        if not st.session_state.current_population:
+            st.error("Cannot continue: No population found. Load an archive or 'Begin' a new simulation first.")
+            st.stop()
+        
+        population = st.session_state.current_population
+        s = st.session_state.settings
+        
+        start_gen = 0
+        if st.session_state.history:
+            start_gen = st.session_state.history[-1]['generation'] + 1
+        
+        num_generations_to_run = s.get('num_generations', 200)
+        end_gen = start_gen + num_generations_to_run
+
+        st.toast(f"Extending simulation from Epoch {start_gen} to {end_gen}...")
+
+        if s.get('random_seed', 42) != -1:
+            random.seed(s.get('random_seed', 42))
+            np.random.seed(s.get('random_seed', 42))
+            st.toast(f"Using fixed random seed: {s.get('random_seed', 42)}", icon="🎲")
+            
+        exhibit_grid = ExhibitGrid(s)
+        
+        progress_container = st.empty()
+        metrics_container = st.empty()
+        status_text = st.empty()
+        
+        last_best_fitness = -1
+        if st.session_state.evolutionary_metrics:
+            last_best_fitness = st.session_state.evolutionary_metrics[-1]['best_fitness']
+        early_stop_counter = 0
+        current_mutation_rate = s.get('mutation_rate', 0.2)
+        hypermutation_duration = 0
+
+        red_queen = RedQueenParasite()
+        if s.get('enable_red_queen', True) and st.session_state.history:
+            last_gen_df = pd.DataFrame(st.session_state.history)
+            last_gen_df = last_gen_df[last_gen_df['generation'] == last_gen_df['generation'].max()]
+            if not last_gen_df.empty:
+                kingdom_counts = Counter(last_gen_df['kingdom_id'])
+                if kingdom_counts:
+                    red_queen.target_kingdom_id = kingdom_counts.most_common(1)[0][0]
+        
+        for gen in range(start_gen, end_gen):
+            status_text.markdown(f"### 🏛️ Simulating Epoch {gen + 1}/{end_gen}")
+            
+            fitness_scores = []
+            for genotype in population:
+                organism_grid = ExhibitGrid(s) 
+                individual_fitness = evaluate_fitness(genotype, organism_grid, s)
+                genotype.individual_fitness = individual_fitness
+                genotype.fitness = individual_fitness
+                genotype.generation = gen
+                genotype.age += 1
+            
+            if s.get('enable_red_queen', True):
+                if population:
+                    kingdom_counts = Counter(g.kingdom_id for g in population)
+                    most_common_kingdom, _ = kingdom_counts.most_common(1)[0]
+                    
+                    if random.random() < s.get('red_queen_adaptation_speed', 0.2):
+                        red_queen.target_kingdom_id = most_common_kingdom
+                        st.toast(f"👑 Red Queen Adapts! Parasite now targets **{most_common_kingdom}**.", icon="🦠")
+                        event_desc = f"A co-evolving parasite has adapted, now specifically targeting the dominant **{most_common_kingdom}** kingdom. This forces an evolutionary arms race."
+                        st.session_state.genesis_events.append({
+                            'generation': gen,
+                            'type': 'Red Queen',
+                            'title': f"Parasite Adapts to {most_common_kingdom}",
+                            'description': event_desc,
+                            'icon': '👑'
+                        })
+
+                for genotype in population:
+                    if genotype.kingdom_id == red_queen.target_kingdom_id:
+                        penalty = genotype.fitness * s.get('red_queen_virulence', 0.15)
+                        genotype.fitness = max(1e-6, genotype.fitness - penalty)
+
+            if s.get('enable_multi_level_selection', False):
+                colonies: Dict[str, List[Genotype]] = {}
+                sorted_pop = sorted(population, key=lambda g: g.lineage_id)
+                colony_size = s.get('colony_size', 10)
+                num_colonies = (len(sorted_pop) + colony_size - 1) // colony_size
+
+                for i in range(num_colonies):
+                    colony_id = f"col_{gen}_{i}"
+                    colony_members = sorted_pop[i*colony_size:(i+1)*colony_size]
+                    colonies[colony_id] = []
+                    for member in colony_members:
+                        member.colony_id = colony_id
+                        colonies[colony_id].append(member)
+
+                group_fitness_scores: Dict[str, float] = {}
+                for colony_id, members in colonies.items():
+                    if not members: continue
+                    
+                    mean_individual_fitness = np.mean([m.individual_fitness for m in members])
+                    
+                    all_components = set()
+                    for member in members:
+                        all_components.update(member.component_genes.keys())
+                    specialization_bonus = len(all_components) * s.get('caste_specialization_bonus', 0.1)
+
+                    group_fitness = mean_individual_fitness + specialization_bonus
+                    group_fitness_scores[colony_id] = group_fitness
+
+                group_weight = s.get('group_fitness_weight', 0.3)
+                for genotype in population:
+                    if genotype.colony_id in group_fitness_scores:
+                        group_fitness = group_fitness_scores[genotype.colony_id]
+                        genotype.fitness = (genotype.individual_fitness * (1 - group_weight)) + (group_fitness * group_weight)
+
+                if not st.session_state.get('has_logged_colonial_emergence', False):
+                    pop_mean_fitness = np.mean([g.individual_fitness for g in population])
+                    if any(gf > pop_mean_fitness * 1.2 for gf in group_fitness_scores.values()):
+                        event_desc = "For the first time, individual organisms have aggregated into a cooperative colony whose group success surpasses that of average individuals. This marks a major transition towards higher-level superorganisms."
+                        st.session_state.genesis_events.append({
+                            'generation': gen, 'type': 'Major Transition', 'title': 'Emergence of Colonial Life',
+                            'description': event_desc, 'icon': '🤝'
+                        })
+                        st.session_state.has_logged_colonial_emergence = True
+                        st.toast("🤝 Major Transition! Colonial life has emerged!", icon="🎉")
+
+            if hypermutation_duration > 0:
+                current_mutation_rate = s.get('mutation_rate', 0.2) * s.get('post_cataclysm_hypermutation_multiplier', 2.0)
+                hypermutation_duration -= 1
+                if hypermutation_duration == 0:
+                    st.toast("Hypermutation period has ended. Mutation rates returning to normal.", icon="📉")
+            else:
+                current_mutation_rate = s.get('mutation_rate', 0.2)
+
+            if s.get('enable_cataclysms', True) and random.random() < s.get('cataclysm_probability', 0.01):
+                st.warning(f"🌋 **CATACLYSM!** A gallery-shaking event has occurred in Epoch {gen+1}!", icon="💥")
+                event_desc = f"A random environmental event has caused a mass extinction, wiping out **{s.get('cataclysm_extinction_severity', 0.9)*100:.0f}%** of all life and radically altering the exhibit's resource maps."
+                st.session_state.genesis_events.append({
+                    'generation': gen,
+                    'type': 'Cataclysm',
+                    'title': 'Mass Extinction Event',
+                    'description': event_desc,
+                    'icon': '🌋'
+                })
+                
+                extinction_severity = s.get('cataclysm_extinction_severity', 0.9)
+                survivors_after_cataclysm = int(len(population) * (1.0 - extinction_severity))
+                population.sort(key=lambda x: x.fitness, reverse=True)
+                population = population[:survivors_after_cataclysm]
+                st.toast(f"Mass extinction! {extinction_severity*100:.0f}% of life has been wiped out.", icon="💀")
+
+                exhibit_grid = ExhibitGrid(s)
+                st.toast("The environment has been radically altered! Resource maps have shifted.", icon="🌍")
+
+                hypermutation_duration = s.get('post_cataclysm_hypermutation_duration', 10)
+                st.toast(f"Adaptive radiation begins! Hypermutation enabled for {hypermutation_duration} epochs.", icon="📈")
+
+                while len(population) < s.get('initial_population', 50) and population:
+                    parent = random.choice(population)
+                    child = mutate(parent, s)
+                    population.append(child)
+
+            fitness_scores = [g.fitness for g in population]
+            
+            if not fitness_scores:
+                st.error("EXTINCTION EVENT. All life has perished.")
+                break
+                
+            fitness_array = np.array(fitness_scores)
+            
+            current_kingdoms = set(g.kingdom_id for g in population)
+            
+            newly_emerged_kingdoms = current_kingdoms - st.session_state.seen_kingdoms
+            for kingdom in newly_emerged_kingdoms:
+                if kingdom != "Unknown" and kingdom != "Unclassified":
+                    event_desc = f"For the first time in this exhibit's history, life based on the **{kingdom}** chemical archetype has emerged from the primordial soup, opening a new evolutionary frontier."
+                    st.session_state.genesis_events.append({
+                        'generation': gen, 'type': 'Genesis', 'title': f"Genesis of {kingdom} Life",
+                        'description': event_desc, 'icon': '✨'
+                    })
+                    st.session_state.seen_kingdoms.add(kingdom)
+
+            kingdom_counts = Counter(g.kingdom_id for g in population)
+            if kingdom_counts:
+                current_dominant_kingdom, _ = kingdom_counts.most_common(1)[0]
+                if st.session_state.last_dominant_kingdom and current_dominant_kingdom != st.session_state.last_dominant_kingdom:
+                    event_desc = f"A major ecological shift has occurred. Life based on **{current_dominant_kingdom}** has overthrown the previous era's dominant **{st.session_state.last_dominant_kingdom}**-based lifeforms."
+                    st.session_state.genesis_events.append({
+                        'generation': gen, 'type': 'Succession', 'title': f"The {current_dominant_kingdom} Era Begins",
+                        'description': event_desc, 'icon': '👑'
+                    })
+                st.session_state.last_dominant_kingdom = current_dominant_kingdom
+
+            max_complexity_in_gen = 0
+            if population:
+                max_complexity_in_gen = max(p.compute_complexity() for p in population)
+            
+            complexity_thresholds_to_log = [10, 25, 50, 100, 200, 500]
+            for threshold in complexity_thresholds_to_log:
+                if max_complexity_in_gen >= threshold and threshold not in st.session_state.crossed_complexity_thresholds:
+                    fittest_organism = max(population, key=lambda p: p.fitness)
+                    event_desc = f"A new era of biological organization has been reached. An organism from the **{fittest_organism.kingdom_id}** kingdom has achieved a genomic complexity of over **{threshold}**, enabling far more sophisticated body plans and behaviors."
+                    st.session_state.genesis_events.append({
+                        'generation': gen, 'type': 'Complexity Leap', 'title': f"Complexity Barrier Broken ({threshold})",
+                        'description': event_desc, 'icon': '🧠'
+                    })
+                    st.session_state.crossed_complexity_thresholds.add(threshold)
+
+            st.session_state.seen_kingdoms.update(current_kingdoms)
+            
+            for org in population:
+                if s.get('enable_objective_evolution', False) and not st.session_state.get('has_logged_philosophy_divergence', False):
+                    default_weights = np.array([s.get('w_lifespan', 0.4), s.get('w_efficiency', 0.3), s.get('w_reproduction', 0.3)])
+                    org_weights_dict = org.objective_weights
+                    org_weights = np.array([org_weights_dict.get('w_lifespan', 0), org_weights_dict.get('w_efficiency', 0), org_weights_dict.get('w_reproduction', 0)])
+                    distance = np.linalg.norm(default_weights - org_weights)
+                    if distance > 0.5:
+                        top_objective = max(org_weights_dict, key=org_weights_dict.get)
+                        event_desc = f"A lineage has evolved its own 'philosophy of life,' radically altering its fitness objectives. Instead of pursuing the exhibit's default goals, it now prioritizes '{top_objective}', marking the dawn of autotelic (self-directed) evolution."
+                        st.session_state.genesis_events.append({
+                            'generation': gen, 'type': 'Cognitive Leap', 'title': 'Philosophical Divergence',
+                            'description': event_desc, 'icon': '📜'
+                        })
+                        st.session_state.has_logged_philosophy_divergence = True
+                        st.toast("📜 Cognitive Leap! An organism evolved its own goals!", icon="🎉")
+                        break
+
+                if not st.session_state.get('has_logged_computation_dawn', False):
+                    if any(rule.action_type in ["ENABLE_RULE", "DISABLE_RULE"] for rule in org.rule_genes):
+                        event_desc = "A genetic regulatory network has evolved a 'genetic switch,' where one rule can enable or disable another. This allows for complex, stateful developmental programs, a primitive form of biological computation."
+                        st.session_state.genesis_events.append({
+                            'generation': gen, 'type': 'Complexity Leap', 'title': 'Dawn of Computation',
+                            'description': event_desc, 'icon': '⚙️'
+                        })
+                        st.session_state.has_logged_computation_dawn = True
+                        st.toast("⚙️ Complexity Leap! Life evolved a genetic switch!", icon="🎉")
+                        break
+
+                if not st.session_state.get('has_logged_first_communication', False):
+                    if any(rule.action_type == "EMIT_SIGNAL" for rule in org.rule_genes):
+                        event_desc = "An organism has evolved the ability for its cells to emit chemical signals. This is the first step towards intercellular communication, allowing for coordinated growth and the formation of complex patterns (morphogenesis)."
+                        st.session_state.genesis_events.append({
+                            'generation': gen, 'type': 'Major Transition', 'title': 'First Communication',
+                            'description': event_desc, 'icon': '📡'
+                        })
+                        st.session_state.has_logged_first_communication = True
+                        st.toast("📡 Major Transition! Cells have learned to communicate!", icon="🎉")
+                        break
+
+                if not st.session_state.get('has_logged_memory_invention', False):
+                    if any(rule.action_type in ["SET_TIMER", "MODIFY_TIMER"] for rule in org.rule_genes):
+                        event_desc = "For the first time, an organism's genetic code includes instructions for an internal timer. This gives its cells a rudimentary memory and a sense of time, enabling sequential developmental programs and biological rhythms."
+                        st.session_state.genesis_events.append({
+                            'generation': gen, 'type': 'Cognitive Leap', 'title': 'Invention of Memory',
+                            'description': event_desc, 'icon': '⏳'
+                        })
+                        st.session_state.has_logged_memory_invention = True
+                        st.toast("⏳ Cognitive Leap! An organism evolved internal timers!", icon="🎉")
+                        break
+
+            for individual in population:
+                st.session_state.history.append({
+                    'generation': gen,
+                    'kingdom_id': individual.kingdom_id,
+                    'fitness': individual.fitness,
+                    'cell_count': individual.cell_count,
+                    'complexity': individual.compute_complexity(),
+                    'lifespan': individual.lifespan,
+                    'energy_production': individual.energy_production,
+                    'energy_consumption': individual.energy_consumption,
+                    'lineage_id': individual.lineage_id,
+                    'parent_ids': getattr(individual, 'parent_ids', []),
+                })
+            
+            diversity = entropy(np.histogram(fitness_array, bins=10)[0])
+            selection_differential = 0.0
+            
+            st.session_state.evolutionary_metrics.append({
+                'generation': gen,
+                'diversity': diversity,
+                'best_fitness': fitness_array.max(),
+                'mean_fitness': fitness_array.mean(),
+                'selection_differential': selection_differential,
+                'mutation_rate': current_mutation_rate,
+            })
+            
+            with metrics_container.container():
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Best Fitness", f"{fitness_array.max():.4f}")
+                c2.metric("Mean Fitness", f"{fitness_array.mean():.4f}")
+                c3.metric("Diversity (H)", f"{diversity:.3f}")
+                c4.metric("Mutation Rate (μ)", f"{current_mutation_rate:.3f}")
+
+            population.sort(key=lambda x: x.fitness, reverse=True)
+            
+            if s.get('enable_multi_level_selection', False) and 'colonies' in locals():
+                num_surviving_colonies = max(1, int(len(colonies) * (1 - s.get('selection_pressure', 0.4))))
+                sorted_colonies = sorted(colonies.items(), key=lambda item: group_fitness_scores.get(item[0], 0), reverse=True)
+                
+                survivors = []
+                for colony_id, members in sorted_colonies[:num_surviving_colonies]:
+                    survivors.extend(members)
+                
+                if not survivors:
+                    num_survivors = max(2, int(len(population) * (1 - s.get('selection_pressure', 0.4))))
+                    survivors = population[:num_survivors]
+            else:
+                num_survivors = max(2, int(len(population) * (1 - s.get('selection_pressure', 0.4))))
+                survivors = population[:num_survivors]
+            
+            offspring = []
+            pop_size = s.get('initial_population', 50)
+            
+            if not survivors:
+                st.error("EXTINCTION EVENT. No survivors to reproduce.")
+                break
+                
+            while len(survivors) + len(offspring) < pop_size:
+                parent1 = random.choice(survivors)
+                parent2 = random.choice(survivors)
+
+                if s.get('enable_endosymbiosis', True) and random.random() < s.get('endosymbiosis_rate', 0.005):
+                    host = parent1.copy()
+                    symbiote = parent2.copy()
+
+                    for comp_name, comp_gene in symbiote.component_genes.items():
+                        if comp_name not in host.component_genes:
+                            host.component_genes[comp_name] = comp_gene
+                    
+                    num_rules_to_take = int(len(symbiote.rule_genes) * random.uniform(0.2, 0.5))
+                    if symbiote.rule_genes:
+                        rules_to_take = random.sample(symbiote.rule_genes, num_rules_to_take)
+                        host.rule_genes.extend(rules_to_take)
+
+                    host.parent_ids.extend(symbiote.parent_ids)
+                    host.update_kingdom()
+                    host.generation = gen + 1
+                    
+                    child = mutate(host, s)
+                    offspring.append(child)
+                    st.toast(f"💥 ENDOSYMBIOSIS! Organisms merged into a new lifeform!", icon="🧬")
+                    
+                    event_desc = f"Two distinct organisms from lineages `{parent1.lineage_id}` and `{parent2.lineage_id}` have merged into a single, more complex entity, combining their genetic material."
+                    st.session_state.genesis_events.append({
+                        'generation': gen,
+                        'type': 'Endosymbiosis',
+                        'title': 'Genomes Merged',
+                        'description': event_desc,
+                        'icon': '🧬'
+                    })
+
+                else:
+                    child = parent1.copy()
+                    child = mutate(child, s)
+                    child.generation = gen + 1
+                    offspring.append(child)
+            
+            population = survivors + offspring
+            st.session_state.gene_archive.extend([c.copy() for c in offspring])
+
+            meta_innovate_condition_source(s)
+
+            if s.get('enable_physics_drift', False):
+                apply_physics_drift(s)
+                
+            max_archive = s.get('max_archive_size', 10000)
+            if len(st.session_state.gene_archive) > max_archive:
+                st.session_state.gene_archive = random.sample(st.session_state.gene_archive, max_archive)
+                
+            current_best = fitness_array.max()
+            if current_best > last_best_fitness:
+                last_best_fitness = current_best
+                early_stop_counter = 0
+            else:
+                early_stop_counter += 1
+                
+            if s.get('enable_early_stopping', True) and early_stop_counter > s.get('early_stopping_patience', 25):
+                st.success(f"**EARLY STOPPING:** Simulation converged after {gen + 1} epochs.")
+                break
+            
+            progress_container.progress((gen - start_gen + 1) / num_generations_to_run)
+        
+        st.session_state.current_population = population
+        status_text.markdown("### ✅ Simulation Complete! Results archived.")
+        
+        results_to_save = {
+            'history': st.session_state.history,
+            'evolutionary_metrics': st.session_state.evolutionary_metrics,
+        }
+        if results_table.get(doc_id=1):
+            results_table.update(results_to_save, doc_ids=[1])
+        else:
+            results_table.insert(results_to_save)
+
+    st.markdown('<h1 class="main-header">Museum of Universal Life: Exhibit Results</h1>', unsafe_allow_html=True)
+    
+    if not st.session_state.history:
+        st.info("This exhibit is empty. Adjust the physical constants in the Curator's Console and press '🚀 BEGIN SIMULATION' to populate it.")
+    else:
+        history_df = pd.DataFrame(st.session_state.history)
+        metrics_df = pd.DataFrame(st.session_state.evolutionary_metrics)
+        population = st.session_state.current_population
+        
+        tab_list = [
+            "📈 Simulation Dashboard", 
+            "🔬 Specimen Viewer", 
+            "🧬 Elite Lineage Analysis",
+            "🌌 The Genesis Chronicle",
+            "📊 Custom Analytics Lab"
+        ]
+        tab_dashboard, tab_viewer, tab_elites, tab_genesis, tab_analytics_lab = st.tabs(tab_list)
+        
+        with tab_dashboard:
+            if st.session_state.dashboard_visible:
+                st.header("Simulation Trajectory Dashboard")
+                st.plotly_chart(
+                    create_simulation_dashboard(history_df, metrics_df),
+                    width='stretch',
+                    key="main_dashboard_plot_museum"
+                )
+                visualize_fitness_landscape(history_df)
+
+                st.markdown("---")
+                if st.button("Clear & Hide Dashboard", key="hide_dashboard_button"):
+                    st.session_state.dashboard_visible = False
+                    st.rerun()
+            
+            else:
+                st.info("This tab renders the main dashboard with large plots. It is paused to save memory.")
+                if st.button("📈 Render Simulation Dashboard", key="render_dashboard_button"):
+                    st.session_state.dashboard_visible = True
+                    st.rerun()
+
+        with tab_viewer:
+            st.header("🔬 Specimen Viewer")
+            st.markdown("Observe the phenotypes (body plans) of the organisms that evolved. This is the **shape of life** your exhibit created.")
+            
+            if population:
+                gen_to_view = st.slider("Select Epoch to View", 0, history_df['generation'].max(), history_df['generation'].max())
+                
+                gen_pop_df = history_df[history_df['generation'] == gen_to_view]
+                if gen_pop_df.empty:
+                    st.warning(f"No data for epoch {gen_to_view}. Showing final epoch.")
+                    gen_pop_df = history_df[history_df['generation'] == history_df['generation'].max()]
+                    
+                gen_pop_df = gen_pop_df.sort_values('fitness', ascending=False)
+                
+                num_to_display = s.get('num_ranks_to_display', 3)
+                
+                final_pop_sorted = sorted(population, key=lambda x: x.fitness, reverse=True)
+                top_specimens = final_pop_sorted[:num_to_display]
+                st.info(f"Showing top {num_to_display} specimens from the *final* population (Epoch {population[0].generation}).")
+                
+                cols = st.columns(len(top_specimens))
+                for i, specimen in enumerate(top_specimens):
+                    with cols[i], st.spinner(f"Growing specimen {i+1}..."):
+                        vis_grid = ExhibitGrid(s)
+                        phenotype = Phenotype(specimen, vis_grid, s)
+
+                        st.markdown(f"**Rank {i+1} (Epoch {specimen.generation})**")
+                        st.metric("Fitness", f"{specimen.fitness:.4f}")
+                        st.metric("Cell Count", f"{specimen.cell_count}")
+
+                        fig = visualize_phenotype_2d(phenotype, vis_grid)
+                        st.plotly_chart(fig, width='stretch', key=f"pheno_vis_{i}")
+
+                        st.markdown("##### **Component Composition**")
+                        component_counts = Counter(cell.component.name for cell in phenotype.cells.values())
+                        if component_counts:
+                            comp_df = pd.DataFrame.from_dict(component_counts, orient='index', columns=['Count']).reset_index()
+                            comp_df = comp_df.rename(columns={'index': 'Component'})
+                            color_map = {c.name: c.color for c in specimen.component_genes.values()}
+                            fig_pie = px.pie(comp_df, values='Count', names='Component', 
+                                             color='Component', color_discrete_map=color_map)
+                            fig_pie.update_layout(showlegend=False, margin=dict(l=0, r=0, t=0, b=0), height=200)
+                            st.plotly_chart(fig_pie, width='stretch', key=f"pheno_pie_{i}")
+                        else:
+                            st.info("No cells to analyze.")
+
+                        st.markdown("##### **Evolved Objectives**")
+                        if specimen.objective_weights:
+                            obj_df = pd.DataFrame.from_dict(specimen.objective_weights, orient='index', columns=['Weight']).reset_index()
+                            obj_df = obj_df.rename(columns={'index': 'Objective'})
+                            fig_bar = px.bar(obj_df, x='Objective', y='Weight', color='Objective')
+                            fig_bar.update_layout(showlegend=False, margin=dict(l=0, r=0, t=0, b=0), height=200)
+                            st.plotly_chart(fig_bar, width='stretch', key=f"pheno_bar_{i}")
+                        else:
+                            st.info("Global objectives are in use.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN)**")
+                        G = nx.DiGraph()
+                        for comp_name, comp_gene in specimen.component_genes.items():
+                            G.add_node(comp_name, type='component', color=comp_gene.color)
+                        for rule in specimen.rule_genes:
+                            action_node = f"{rule.action_type}\n({rule.action_param})"
+                            G.add_node(action_node, type='action', color='#FFB347')
+                            
+                            source_node = list(specimen.component_genes.keys())[0]
+                            if rule.conditions:
+                                type_cond = next((c for c in rule.conditions if c['source'] == 'self_type'), None)
+                                if type_cond and type_cond['target_value'] in G.nodes():
+                                    source_node = type_cond['target_value']
+                                    
+                            G.add_edge(source_node, action_node, label=f"P={rule.probability:.1f}")
+                            if rule.action_param in G.nodes():
+                                G.add_edge(action_node, rule.action_param)
+
+                        if G.nodes:
+                            try:
+                                fig_grn, ax = plt.subplots(figsize=(4, 3))
+                                pos = nx.spring_layout(G, k=0.9, seed=42)
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos, ax=ax, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos, labels=labels, font_size=7, ax=ax)
+                                st.pyplot(fig_grn)
+                                plt.clf()
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 2**")
+                        if G.nodes:
+                            try:
+                                fig_grn_2, ax_2 = plt.subplots(figsize=(4, 3))
+                                pos_2 = nx.kamada_kawai_layout(G)
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_2, ax=ax_2, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_2, labels=labels, font_size=7, ax=ax_2)
+                                st.pyplot(fig_grn_2)
+                                plt.clf()
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 2: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 3**")
+                        if G.nodes:
+                            try:
+                                fig_grn_3, ax_3 = plt.subplots(figsize=(4, 3))
+                                pos_3 = nx.circular_layout(G)
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_3, ax=ax_3, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_3, labels=labels, font_size=7, ax=ax_3)
+                                st.pyplot(fig_grn_3)
+                                plt.clf()
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 3: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 4**")
+                        if G.nodes:
+                            try:
+                                fig_grn_4, ax_4 = plt.subplots(figsize=(4, 3))
+                                pos_4 = nx.random_layout(G, seed=42) 
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_4, ax=ax_4, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_4, labels=labels, font_size=7, ax=ax_4)
+                                st.pyplot(fig_grn_4)
+                                plt.clf()
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 4: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 5**")
+                        if G.nodes:
+                            try:
+                                fig_grn_5, ax_5 = plt.subplots(figsize=(4, 3))
+                                pos_5 = nx.spectral_layout(G) 
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_5, ax=ax_5, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_5, labels=labels, font_size=7, ax=ax_5)
+                                st.pyplot(fig_grn_5)
+                                plt.clf()
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 5: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 6**")
+                        if G.nodes:
+                            try:
+                                fig_grn_6, ax_6 = plt.subplots(figsize=(4, 3))
+                                pos_6 = nx.shell_layout(G) 
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_6, ax=ax_6, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_6, labels=labels, font_size=7, ax=ax_6)
+                                st.pyplot(fig_grn_6)
+                                plt.clf()
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 6: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 7**")
+                        if G.nodes:
+                            try:
+                                fig_grn_7, ax_7 = plt.subplots(figsize=(4, 3))
+                                pos_7 = nx.spiral_layout(G) 
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_7, ax=ax_7, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_7, labels=labels, font_size=7, ax=ax_7)
+                                st.pyplot(fig_grn_7)
+                                plt.clf()
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 7: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 8**")
+                        if G.nodes:
+                            try:
+                                fig_grn_8, ax_8 = plt.subplots(figsize=(4, 3))
+                                try:
+                                    pos_8 = nx.planar_layout(G)
+                                except nx.NetworkXException:
+                                    st.caption("GRN 8: Not planar, falling back to random.")
+                                    pos_8 = nx.random_layout(G, seed=43)
+                                
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_8, ax=ax_8, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_8, labels=labels, font_size=7, ax=ax_8)
+                                st.pyplot(fig_grn_8)
+                                plt.clf()
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 8: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 9**")
+                        if G.nodes:
+                            try:
+                                fig_grn_9, ax_9 = plt.subplots(figsize=(4, 3))
+                                pos_9 = nx.spring_layout(G, k=0.1, seed=42) 
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_9, ax=ax_9, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_9, labels=labels, font_size=7, ax=ax_9)
+                                st.pyplot(fig_grn_9)
+                                plt.clf()
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 9: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 10**")
+                        if G.nodes:
+                            try:
+                                fig_grn_10, ax_10 = plt.subplots(figsize=(4, 3))
+                                pos_10 = nx.spring_layout(G, k=2.0, seed=42) 
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_10, ax=ax_10, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_10, labels=labels, font_size=7, ax=ax_10)
+                                st.pyplot(fig_grn_10)
+                                plt.clf()
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 10: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 11**")
+                        if G.nodes:
+                            try:
+                                fig_grn_11, ax_11 = plt.subplots(figsize=(4, 3))
+                                component_nodes = [n for n, data in G.nodes(data=True) if data.get('type') == 'component']
+                                action_nodes = [n for n, data in G.nodes(data=True) if data.get('type') == 'action']
+                                shell_list = [component_nodes, action_nodes]
+                                
+                                pos_11 = nx.shell_layout(G, nlist=shell_list) 
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_11, ax=ax_11, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_11, labels=labels, font_size=7, ax=ax_11)
+                                st.pyplot(fig_grn_11)
+                                plt.clf()
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 11: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 12**")
+                        if G.nodes:
+                            try:
+                                fig_grn_12, ax_12 = plt.subplots(figsize=(4, 3))
+                                pos_12 = nx.spring_layout(G, iterations=200, seed=42) 
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_12, ax=ax_12, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_12, labels=labels, font_size=7, ax=ax_12)
+                                st.pyplot(fig_grn_12)
+                                plt.clf()
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 12: {e}")
+                        else:
+                            st.info("No GRN to display.")
+                            
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 13: Hierarchical (Top-Down)**")
+                        if G.nodes:
+                            try:
+                                fig_grn_13, ax_13 = plt.subplots(figsize=(4, 3))
+                                pos_13 = nx.nx_pydot.graphviz_layout(G, prog='dot') 
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_13, ax=ax_13, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_13, labels=labels, font_size=7, ax=ax_13)
+                                st.pyplot(fig_grn_13)
+                                plt.clf()
+                            except ImportError:
+                                st.warning("GRN 13 Error: This layout requires 'pydot' (and Graphviz) to be installed. Falling back to 'spring'.")
+                                try:
+                                    fig_grn_13, ax_13 = plt.subplots(figsize=(4, 3))
+                                    pos_13_fallback = nx.spring_layout(G, seed=13)
+                                    node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                    nx.draw(G, pos_13_fallback, ax=ax_13, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                    labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                    nx.draw_networkx_labels(G, pos_13_fallback, labels=labels, font_size=7, ax=ax_13)
+                                    st.pyplot(fig_grn_13)
+                                    plt.clf()
+                                except Exception as e:
+                                    st.warning(f"Could not draw GRN 13 fallback: {e}")
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 13: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 14: Hierarchical (Radial)**")
+                        if G.nodes:
+                            try:
+                                fig_grn_14, ax_14 = plt.subplots(figsize=(4, 3))
+                                pos_14 = nx.nx_pydot.graphviz_layout(G, prog='twopi') 
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_14, ax=ax_14, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_14, labels=labels, font_size=7, ax=ax_14)
+                                st.pyplot(fig_grn_14)
+                                plt.clf()
+                            except ImportError:
+                                st.warning("GRN 14 Error: This layout requires 'pydot' (and Graphviz) to be installed. Skipping.")
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 14: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 15: Force-Directed (NEATO)**")
+                        if G.nodes:
+                            try:
+                                fig_grn_15, ax_15 = plt.subplots(figsize=(4, 3))
+                                pos_15 = nx.nx_pydot.graphviz_layout(G, prog='neato') 
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_15, ax=ax_15, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_15, labels=labels, font_size=7, ax=ax_15)
+                                st.pyplot(fig_grn_15)
+                                plt.clf()
+                            except ImportError:
+                                st.warning("GRN 15 Error: This layout requires 'pydot' (and Graphviz) to be installed. Skipping.")
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 15: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+                        st.markdown("##### **Genetic Regulatory Network (GRN) 16: Spring Layout (Alternate Seed)**")
+                        if G.nodes:
+                            try:
+                                fig_grn_16, ax_16 = plt.subplots(figsize=(4, 3))
+                                pos_16 = nx.spring_layout(G, seed=99) 
+                                node_colors = [data.get('color', '#888888') for _, data in G.nodes(data=True)]
+                                nx.draw(G, pos_16, ax=ax_16, with_labels=False, node_size=500, node_color=node_colors, font_size=6, width=0.5, arrowsize=8)
+                                labels = {n: n.split('\n')[0] for n in G.nodes()}
+                                nx.draw_networkx_labels(G, pos_16, labels=labels, font_size=7, ax=ax_16)
+                                st.pyplot(fig_grn_16)
+                                plt.clf()
+                            except Exception as e:
+                                st.warning(f"Could not draw GRN 16: {e}")
+                        else:
+                            st.info("No GRN to display.")
+
+            else:
+                st.warning("No population data available to view specimens. Run a simulation.")
+
+        with tab_elites:
+            st.header("🧬 Elite Lineage Analysis")
+            st.markdown("A deep dive into the 'DNA' of the most successful organisms. Each rank displays the best organism from a unique Kingdom, showcasing the diversity of life that has evolved.")
+            st.markdown("---")
+
+            if st.session_state.show_elite_analysis:
+                
+                if population:
+                    population.sort(key=lambda x: x.fitness, reverse=True)
+                    num_ranks_to_display = s.get('num_ranks_to_display', 3)
+
+                    elite_specimens = []
+                    seen_kingdoms = set()
+                    for individual in population:
+                        if individual.kingdom_id not in seen_kingdoms:
+                            elite_specimens.append(individual)
+                            seen_kingdoms.add(individual.kingdom_id)
+
+                    for i, individual in enumerate(elite_specimens[:num_ranks_to_display]):
+                        with st.expander(f"**Rank {i+1}:** Kingdom `{individual.kingdom_id}` | Fitness: `{individual.fitness:.4f}`", expanded=(i==0)):
+                            
+                            with st.spinner(f"Growing Rank {i+1}..."):
+                                vis_grid = ExhibitGrid(s)
+                                phenotype = Phenotype(individual, vis_grid, s)
+
+                            col1, col2 = st.columns([1, 1])
+                            with col1:
+                                st.markdown("##### **Core Metrics**")
+                                st.metric("Cell Count", f"{individual.cell_count}")
+                                st.metric("Complexity", f"{individual.compute_complexity():.2f}")
+                                st.metric("Lifespan", f"{individual.lifespan} epochs")
+                                st.metric("Energy Prod.", f"{individual.energy_production:.3f}")
+                                st.metric("Energy Cons.", f"{individual.energy_consumption:.3f}")
+                            
+                            with col2:
+                                st.markdown("##### **Phenotype (Body Plan)**")
+                                fig = visualize_phenotype_2d(phenotype, vis_grid)
+                                st.plotly_chart(fig, width='stretch', key=f"elite_pheno_vis_{i}")
+
+                            st.markdown("---")
+                            
+                            col3, col4 = st.columns(2)
+
+                            with col3:
+                                st.markdown("##### **Component Composition**")
+                                component_counts = Counter(cell.component.name for cell in phenotype.cells.values())
+                                if component_counts:
+                                    comp_df = pd.DataFrame.from_dict(component_counts, orient='index', columns=['Count']).reset_index()
+                                    comp_df = comp_df.rename(columns={'index': 'Component'})
+                                    color_map = {c.name: c.color for c in individual.component_genes.values()}
+                                    fig_pie = px.pie(comp_df, values='Count', names='Component', 
+                                                     color='Component', color_discrete_map=color_map, title="Cell Type Distribution")
+                                    fig_pie.update_layout(showlegend=True, margin=dict(l=0, r=0, t=30, b=0), height=300)
+                                    st.plotly_chart(fig_pie, width='stretch', key=f"elite_pie_{i}")
+                                else:
+                                    st.info("No cells to analyze.")
+                                    
+                                st.markdown("##### **Component Genes (The 'Alphabet')**")
+                                for comp_name, comp_gene in individual.component_genes.items():
+                                    st.code(f"[{comp_gene.color}] {comp_name} (Mass: {comp_gene.mass:.2f}, Struct: {comp_gene.structural:.2f})", language="text")
+
+                            with col4:
+                                st.markdown("##### **Genetic Regulatory Network (GRN Rules)**")
+                                if individual.rule_genes:
+                                    for rule in individual.rule_genes:
+                                        cond_parts = []
+                                        for c in rule.conditions:
+                                            target_val = c['target_value']
+                                            val_str = f"{target_val:.1f}" if isinstance(target_val, (int, float)) else f"'{target_val}'"
+                                            cond_parts.append(f"{c['source']} {c['operator']} {val_str}")
+                                        cond_str = " AND ".join(cond_parts) if cond_parts else "ALWAYS"
+                                        st.code(f"IF {cond_str}\nTHEN {rule.action_type}({rule.action_param}) [P={rule.probability:.2f}, Pri={rule.priority}]", language='sql')
+                                else:
+                                    st.info("No GRN rules.")
+                else:
+                    st.warning("No population data available to analyze.")
+                
+                st.markdown("---")
+                if st.button("Clear & Hide Elite Analysis", key="hide_elite"):
+                    st.session_state.show_elite_analysis = False
+                    st.rerun()
+
+            else:
+                st.info("This tab renders detailed organism data. It is paused to save memory.")
+                if st.button("🧬 Render Elite Analysis", key="show_elite"):
+                    st.session_state.show_elite_analysis = True
+                    st.rerun()
+
+        with tab_genesis:
+            st.header("🌌 The Genesis Chronicle")
+            st.markdown("This is the historical record of your exhibit, chronicling the pivotal moments of creation, innovation, and environmental change. These events are the sparks that drive 'truly infinite' evolution.")
+
+            events = st.session_state.get('genesis_events', [])
+            if not events:
+                st.info("No significant evolutionary events have been recorded yet. Run a simulation with innovation and cataclysms enabled.")
+            else:
+                st.markdown("---")
+                event_types = sorted(list(set(e['type'] for e in events)))
+                
+                col1, col2 = st.columns([1, 3])
+                with col1:
+                    st.markdown("#### Filter Events")
+                    gen_range = st.slider(
+                        "Filter by Epoch",
+                        min_value=0,
+                        max_value=history_df['generation'].max(),
+                        value=(0, history_df['generation'].max())
+                    )
+                    selected_types = st.multiselect(
+                        "Filter by Event Type",
+                        options=event_types,
+                        default=event_types
+                    )
+
+                filtered_events = [
+                    e for e in events 
+                    if gen_range[0] <= e['generation'] <= gen_range[1] and e['type'] in selected_types
+                ]
+
+                with col2:
+                    st.markdown(f"#### Recorded History ({len(filtered_events)} events)")
+                    log_container = st.container(height=400)
+                    for event in sorted(filtered_events, key=lambda x: x['generation']):
+                        log_container.markdown(f"""
+                        <div style="border-left: 3px solid #00aaff; padding-left: 10px; margin-bottom: 15px;">
+                            <small>Epoch {event['generation']}</small><br>
+                            <strong>{event['icon']} {event['title']}</strong>
+                            <p style="font-size: 0.9em; color: #ccc;">{event['description']}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                st.markdown("---")
+                st.markdown("### 🏆 Gallery of Innovation")
+                st.markdown("A showcase of the most novel organisms that emerged directly after key evolutionary leaps.")
+
+                innovation_events = [e for e in filtered_events if e['type'] in ['Component Innovation', 'Sense Innovation', 'Endosymbiosis', 'Genesis', 'Complexity Leap', 'Major Transition', 'Cognitive Leap']]
+                if not innovation_events:
+                    st.info("No innovation events found in the selected range.")
+                else:
+                    gallery_specimens = []
+                    generations_to_check = sorted(list(set(e['generation'] + 1 for e in innovation_events)))
+                    
+                    lineage_lookup = {p.lineage_id: p for p in population}
+
+                    for event in innovation_events:
+                        next_gen = event['generation'] + 1
+                        next_gen_df = history_df[history_df['generation'] == next_gen]
+                        if not next_gen_df.empty:
+                            best_in_gen_idx = next_gen_df['fitness'].idxmax()
+                            best_organism_info = next_gen_df.loc[best_in_gen_idx]
+                            best_lineage_id = best_organism_info['lineage_id']
+                            
+                            specimen = lineage_lookup.get(best_lineage_id)
+                            
+                            if specimen and not any(s['specimen'].id == specimen.id for s in gallery_specimens):
+                                gallery_specimens.append({
+                                    'specimen': specimen,
+                                    'innovation_title': event['title'],
+                                    'innovation_gen': next_gen 
+                                })
+                    
+                    if not gallery_specimens:
+                        st.warning("Could not find representative specimens for the selected innovations.")
+                    else:
+                        for i, item in enumerate(gallery_specimens[:3]):
+                            specimen = item['specimen']
+                            st.markdown(f"#### 🏅 Specimen from Epoch {item['innovation_gen']} (Post-'*{item['innovation_title']}*')")
+                            
+                            with st.spinner(f"Growing and analyzing specimen {i+1}..."):
+                                    vis_grid = ExhibitGrid(s)
+                                    phenotype = Phenotype(specimen, vis_grid, s)
+
+                            col1, col2, col3 = st.columns(3)
+
+                            with col1:
+                                st.markdown("**Phenotype (Body Plan)**")
+                                fig_pheno = visualize_phenotype_2d(phenotype, vis_grid)
+                                fig_pheno.update_layout(height=250, title=None, margin=dict(l=0, r=0, t=0, b=0))
+                                st.plotly_chart(fig_pheno, width='stretch', key=f"gallery_pheno_{i}")
+                                
+                                st.markdown("**Component Composition**")
+                                component_counts = Counter(cell.component.name for cell in phenotype.cells.values())
+                                if component_counts:
+                                    comp_df = pd.DataFrame.from_dict(component_counts, orient='index', columns=['Count']).reset_index()
+                                    comp_df = comp_df.rename(columns={'index': 'Component'})
+                                    color_map = {c.name: c.color for c in specimen.component_genes.values()}
+                                    fig_pie = px.pie(comp_df, values='Count', names='Component', 
+                                                     color='Component', color_discrete_map=color_map)
+                                    fig_pie.update_layout(showlegend=False, margin=dict(l=0, r=0, t=0, b=0), height=200)
+                                    st.plotly_chart(fig_pie, width='stretch', key=f"gallery_pyie_{i}")
+                            with col2:
+                                st.markdown("**Internal Energy Distribution**")
+                                energy_data = np.full((vis_grid.width, vis_grid.height), np.nan)
+                                for (x, y), cell in phenotype.cells.items():
+                                    energy_data[x, y] = cell.energy
+                                fig_energy = px.imshow(energy_data, color_continuous_scale='viridis', aspect='equal')
+                                fig_energy.update_layout(height=250, title=None, margin=dict(l=0, r=0, t=0, b=0), coloraxis_showscale=False)
+                                fig_energy.update_xaxes(showticklabels=False).update_yaxes(showticklabels=False)
+                                st.plotly_chart(fig_energy, width='stretch', key=f"gallery_energye_{i}")
+
+                            with col3:
+                                st.markdown("**Cellular Age Map**")
+                                age_data = np.full((vis_grid.width, vis_grid.height), np.nan)
+                                for (x, y), cell in phenotype.cells.items():
+                                    age_data[x, y] = cell.age
+                                fig_age = px.imshow(age_data, color_continuous_scale='plasma', aspect='equal')
+                                fig_age.update_layout(height=250, title=None, margin=dict(l=0, r=0, t=0, b=0), coloraxis_showscale=False)
+                                fig_age.update_xaxes(showticklabels=False).update_yaxes(showticklabels=False)
+                                st.plotly_chart(fig_age, width='stretch', key=f"galleriey_age_{i}")
+                            st.markdown("---")
+                
+                # --- NEW: Epochs & Phylogeny Section ---
+                st.markdown("---")
+                st.markdown("### 📖 Epochs & Phylogeny")
+                st.markdown("A macro-level analysis of your exhibit's history, identifying distinct eras and visualizing the evolutionary tree of its kingdoms.")
+
+                col1, col2 = st.columns([2, 1])
+
+                with col1:
+                    st.markdown("#### The Great Epochs of History")
+                    # Identify break points for epochs
+                    break_points = {0, history_df['generation'].max()}
+                    major_events = [e for e in events if e['type'] in ['Cataclysm', 'Genesis', 'Succession']]
+                    for event in major_events:
+                        break_points.add(event['generation'])
+                    
+                    sorted_breaks = sorted(list(break_points))
+                    
+                    if len(sorted_breaks) < 2:
+                        st.info("Not enough major events have occurred to define distinct historical epochs.")
+                    else:
+                        for i in range(len(sorted_breaks) - 1):
+                            start_gen = sorted_breaks[i]
+                            end_gen = sorted_breaks[i+1]
+                            
+                            epoch_df = history_df[(history_df['generation'] >= start_gen) & (history_df['generation'] <= end_gen)]
+                            if epoch_df.empty: continue
+
+                            # Determine epoch name from the event that started it
+                            start_event = next((e for e in major_events if e['generation'] == start_gen), None)
+                            epoch_name = f"Epoch {i+1}"
+                            if i == 0 and not start_event: epoch_name = "The Primordial Era"
+                            elif start_event: epoch_name = f"The {start_event['title']} Era"
+
+                            with st.expander(f"**{epoch_name}** (Epochs {start_gen} - {end_gen})"):
+                                # --- NEW: More complex and shocking details ---
+                                c1, c2, c3 = st.columns(3)
+                                
+                                # 1. Core Metrics
+                                with c1:
+                                    st.markdown("##### Core Metrics")
+                                    dominant_kingdom = epoch_df['kingdom_id'].mode()[0] if not epoch_df['kingdom_id'].mode().empty else "N/A"
+                                    mean_fitness = epoch_df['fitness'].mean()
+                                    peak_complexity = epoch_df['complexity'].max()
+                                    st.metric("Dominant Kingdom", dominant_kingdom)
+                                    st.metric("Mean Fitness", f"{mean_fitness:.3f}")
+                                    st.metric("Peak Complexity", f"{peak_complexity:.2f}")
+
+                                # 2. Evolutionary Dynamics
+                                with c2:
+                                    st.markdown("##### Dynamics")
+                                    start_fitness = history_df[history_df['generation'] == start_gen]['fitness'].mean()
+                                    end_fitness = history_df[history_df['generation'] == end_gen]['fitness'].mean()
+                                    velocity = (end_fitness - start_fitness) / max(1, end_gen - start_gen)
+                                    st.metric("Evolutionary Velocity", f"{velocity*100:.2f} ΔF/100epochs")
+
+                                    apex_organism_idx = epoch_df['fitness'].idxmax()
+                                    apex_organism = epoch_df.loc[apex_organism_idx]
+                                    st.markdown(f"**Apex Predator:** A `{apex_organism['kingdom_id']}` organism reached a peak fitness of **{apex_organism['fitness']:.3f}** with complexity **{apex_organism['complexity']:.1f}**.")
+
+                                # 3. Innovations and Extinctions
+                                with c3:
+                                    st.markdown("##### Historical Events")
+                                    epoch_events = [e for e in events if start_gen <= e['generation'] < end_gen]
+                                    innovations = [e['title'] for e in epoch_events if 'Innovation' in e['type']]
+                                    if innovations:
+                                        st.markdown("**Key Innovations:**")
+                                        for innov in innovations[:3]:
+                                            st.markdown(f"- `{innov.replace('New Component: ', '').replace('New Sense: ', '')}`")
+                                    
+                                    kingdoms_at_start = set(history_df[history_df['generation'] == start_gen]['kingdom_id'].unique())
+                                    kingdoms_at_end = set(history_df[history_df['generation'] == end_gen]['kingdom_id'].unique())
+                                    extinct_kingdoms = kingdoms_at_start - kingdoms_at_end
+                                    if extinct_kingdoms:
+                                        st.markdown("**Extinctions:**")
+                                        for kingdom in extinct_kingdoms:
+                                            st.markdown(f"- The **{kingdom}** kingdom perished.")
+
+                with col2:
+                    st.markdown("#### The Tree of Life (Phylogeny)")
+                    phylogeny_graph = nx.DiGraph()
+                    # Find the first occurrence of each kingdom
+                    first_occurrence = history_df.loc[history_df.groupby('kingdom_id')['generation'].idxmin()]
+                    
+                    for _, row in first_occurrence.iterrows():
+                        kingdom = row['kingdom_id']
+                        gen = row['generation']
+                        phylogeny_graph.add_node(kingdom, label=f"{kingdom}\n(Epoch {gen})")
+
+                        # Find parent lineage
+                        parent_ids_list = history_df.loc[history_df['lineage_id'] == row['lineage_id'], 'parent_ids'].iloc[0]
+                        
+                        if isinstance(parent_ids_list, list) and len(parent_ids_list) > 0:
+                            first_parent_id = parent_ids_list[0]
+                            parent_df = history_df[history_df['lineage_id'] == first_parent_id]
+                            
+                            if not parent_df.empty:
+                                parent_kingdom = parent_df.iloc[0]['kingdom_id']
+                                if parent_kingdom != kingdom and parent_kingdom in phylogeny_graph.nodes():
+                                    phylogeny_graph.add_edge(parent_kingdom, kingdom)
+
+                    if not phylogeny_graph.nodes():
+                        st.info("No kingdom data to build a tree of life.")
+                    else:
+                        fig_tree, ax_tree = plt.subplots(figsize=(5, 4))
+                        pos = nx.spring_layout(phylogeny_graph, seed=42, k=0.9)
+                        labels = nx.get_node_attributes(phylogeny_graph, 'label')
+                        nx.draw(phylogeny_graph, pos, labels=labels, with_labels=True, node_size=3000, node_color='#00aaff', font_size=8, font_color='white', arrowsize=20, ax=ax_tree)
+                        ax_tree.set_title("Kingdom Phylogeny")
+                        st.pyplot(fig_tree)
+                        plt.clf()
+                
+                # --- NEW: Dynastic Histories Section ---
+                st.markdown("---")
+                st.markdown("### 👑 Dynastic Histories")
+                st.markdown("Trace the complete story of the most influential lineages in your exhibit. Select a dynasty to view its rise, its peak, and its eventual fate.")
+
+                # Identify major lineages (e.g., from apex predators of each epoch)
+                major_lineages = {}
+                if len(sorted_breaks) > 1:
+                    for i in range(len(sorted_breaks) - 1):
+                        start_gen, end_gen = sorted_breaks[i], sorted_breaks[i+1]
+                        epoch_df = history_df[(history_df['generation'] >= start_gen) & (history_df['generation'] <= end_gen)]
+                        if not epoch_df.empty:
+                            apex_organism_idx = epoch_df['fitness'].idxmax()
+                            apex_organism = epoch_df.loc[apex_organism_idx]
+                            lineage_id = apex_organism['lineage_id']
+                            if lineage_id not in major_lineages:
+                                major_lineages[lineage_id] = f"Apex of Epoch {i+1} (Epoch {apex_organism['generation']})"
+
+                if not major_lineages:
+                    st.info("No major dynasties have been identified yet. Run a longer simulation to establish dominant lineages.")
+                else:
+                    lineage_options = list(major_lineages.keys())
+                    selected_lineage_id = st.selectbox(
+                        "Select a Dynasty to Investigate",
+                        options=lineage_options,
+                        format_func=lambda x: f"Lineage {x} ({major_lineages[x]})"
+                    )
+
+                    if selected_lineage_id:
+                        lineage_df = history_df[history_df['lineage_id'] == selected_lineage_id].sort_values('generation')
+                        universe_avg_df = history_df.groupby('generation')[['fitness', 'complexity']].mean().reset_index()
+
+                        # --- 1. Summary Stats ---
+                        founder = lineage_df.iloc[0]
+                        peak = lineage_df.loc[lineage_df['fitness'].idxmax()]
+                        survived_gens = lineage_df['generation'].nunique()
+
+                        c1, c2, c3, c4 = st.columns(4)
+                        c1.metric("Founded in Epoch", f"{founder['generation']}")
+                        c2.metric("Founder's Kingdom", founder['kingdom_id'])
+                        c3.metric("Peak Fitness", f"{peak['fitness']:.3f}")
+                        c4.metric("Epochs Survived", f"{survived_gens}")
+
+                        # --- 2. Performance Chart ---
+                        fig_lineage = go.Figure()
+                        fig_lineage.add_trace(go.Scatter(x=lineage_df['generation'], y=lineage_df['fitness'], mode='lines', name=f'Lineage {selected_lineage_id} Fitness', line=dict(color='cyan', width=3)))
+                        fig_lineage.add_trace(go.Scatter(x=universe_avg_df['generation'], y=universe_avg_df['fitness'], mode='lines', name='Exhibit Avg. Fitness', line=dict(color='gray', dash='dot')))
+                        fig_lineage.update_layout(title=f"Fitness Trajectory of Dynasty {selected_lineage_id}", height=300, margin=dict(l=0, r=0, t=40, b=0))
+                        st.plotly_chart(fig_lineage, width='stretch', key=f"dynasty_perf_{selected_lineage_id}")
+
+                        # --- NEW: More Complex Details ---
+                        sub_col1, sub_col2 = st.columns(2)
+
+                        with sub_col1:
+                            # --- Dynastic Event Log ---
+                            st.markdown("##### Dynastic Event Log")
+                            dynasty_events = [e for e in events if founder['generation'] <= e['generation'] <= lineage_df.iloc[-1]['generation']]
+                            if not dynasty_events:
+                                st.info("This dynasty's lifespan was uneventful.")
+                            else:
+                                event_log_container = st.container(height=200)
+                                for event in sorted(dynasty_events, key=lambda x: x['generation']):
+                                    event_log_container.markdown(f"**Epoch {event['generation']}:** {event['icon']} {event['title']}")
+
+                            # --- Legacy of Innovation ---
+                            st.markdown("##### Legacy of Innovation")
+                            innovations = [e for e in dynasty_events if 'Innovation' in e['type'] and e.get('lineage_id') == selected_lineage_id]
+                            if not innovations:
+                                st.info("This dynasty was a follower, not an innovator.")
+                            else:
+                                for innov in innovations:
+                                    st.markdown(f"💡 Invented **{innov['title'].split(': ')[1]}** in Epoch {innov['generation']}.")
+
+                        with sub_col2:
+                            # --- Evolved Strategy Profile ---
+                            st.markdown("##### Apex Strategy Profile (GRN Analysis)")
+                            apex_specimen = max((g for g in st.session_state.get('gene_archive', []) if g.lineage_id == peak['lineage_id']), key=lambda g: g.fitness, default=None)
+                            if apex_specimen:
+                                rule_actions = Counter(r.action_type for r in apex_specimen.rule_genes)
+                                action_df = pd.DataFrame.from_dict(rule_actions, orient='index', columns=['Count']).reset_index()
+                                fig_strategy = px.bar(action_df, x='index', y='Count', title="GRN Action Type Frequency", labels={'index': 'Action Type'})
+                                fig_strategy.update_layout(height=300, margin=dict(l=0, r=0, t=40, b=0))
+                                st.plotly_chart(fig_strategy, width='stretch', key=f"dynasty_strat_{selected_lineage_id}")
+
+                        # --- 3. Gallery of Ancestors ---
+                        st.markdown("##### Gallery of Ancestors")
+                        
+                        last_known_member = lineage_df.iloc[-1]
+                        ancestors_to_find = {
+                            'Founder': (founder['generation'], founder['lineage_id']),
+                            'Apex': (peak['generation'], peak['lineage_id']),
+                            'Last Known': (last_known_member['generation'], last_known_member['lineage_id'])
+                        }
+                        
+                        ancestor_specimens = {}
+                        gene_archive = st.session_state.get('gene_archive', [])
+                        for role, (gen, l_id) in ancestors_to_find.items():
+                            candidate = max(
+                                (g for g in gene_archive if g.generation == gen and g.lineage_id == l_id),
+                                key=lambda g: g.fitness, default=None)
+                            if candidate:
+                                ancestor_specimens[role] = candidate
+
+                        if not ancestor_specimens:
+                            st.warning("Could not retrieve ancestor data from the gene archive for this dynasty.")
+                        else:
+                            cols = st.columns(len(ancestor_specimens))
+                            for i, (role, specimen) in enumerate(ancestor_specimens.items()):
+                                with cols[i]:
+                                    st.markdown(f"**The {role}** (Epoch {specimen.generation})")
+                                    st.metric("Fitness", f"{specimen.fitness:.4f}")
+                                    with st.spinner(f"Growing {role}..."):
+                                        vis_grid = ExhibitGrid(s)
+                                        phenotype = Phenotype(specimen, vis_grid, s)
+                                        fig = visualize_phenotype_2d(phenotype, vis_grid)
+                                        fig.update_layout(height=250, title=None, margin=dict(l=0, r=0, t=0, b=0))
+                                        st.plotly_chart(fig, width='stretch', key=f"dynasty_vis_{selected_lineage_id}_{i}")
+                
+                # --- NEW: Pantheon of Genes Section ---
+                st.markdown("---")
+                st.markdown("### 🏛️ The Pantheon of Genes")
+                st.markdown("A hall of fame for the most impactful genetic 'ideas' of your exhibit. This analyzes the entire fossil record to identify the components and rule strategies that defined success.")
+
+                gene_archive = st.session_state.get('gene_archive', [])
+                if not gene_archive:
+                    st.info("The gene archive is empty. Run a simulation to populate the fossil record.")
+                else:
+                    pantheon_col1, pantheon_col2 = st.columns(2)
+
+                    with pantheon_col1:
+                        st.markdown("#### The Component Pantheon")
+                        
+                        # --- Analysis ---
+                        all_components = {}
+                        for genotype in gene_archive:
+                            for comp_name, comp_gene in genotype.component_genes.items():
+                                if comp_name not in all_components:
+                                    all_components[comp_name] = {
+                                        'gene': comp_gene,
+                                        'first_gen': genotype.generation,
+                                        'inventor_lineage': genotype.lineage_id,
+                                        'fitness_sum': 0,
+                                        'usage_count': 0,
+                                        'prevalence_history': Counter()
+                                    }
+                                all_components[comp_name]['fitness_sum'] += genotype.fitness
+                                all_components[comp_name]['usage_count'] += 1
+                                all_components[comp_name]['prevalence_history'][genotype.generation] += 1
+
+                        # Calculate scores
+                        scored_components = []
+                        for name, data in all_components.items():
+                            avg_fitness = data['fitness_sum'] / data['usage_count'] if data['usage_count'] > 0 else 0
+                            longevity = history_df['generation'].max() - data['first_gen']
+                            final_prevalence = sum(1 for g in population if name in g.component_genes) if population else 0
+                            
+                            score = (avg_fitness * 100) + (longevity * 0.1) + (final_prevalence * 1)
+                            data['score'] = score
+                            scored_components.append(data)
+
+                        # Display top components
+                        for i, comp_data in enumerate(sorted(scored_components, key=lambda x: x['score'], reverse=True)[:5]):
+                            comp_gene = comp_data['gene']
+                            with st.expander(f"**{i+1}. {comp_gene.name}** (Score: {comp_data['score']:.0f})", expanded=(i<2)):
+                                st.markdown(f"Invented in **Epoch {comp_data['first_gen']}** by Dynasty `{comp_data['inventor_lineage']}`")
+                                st.code(f"[{comp_gene.color}] Base: {comp_gene.base_kingdom}, Mass: {comp_gene.mass:.2f}, Struct: {comp_gene.structural:.2f}, E.Store: {comp_gene.energy_storage:.2f}", language="text")
+                                
+                                # Prevalence plot
+                                history = comp_data['prevalence_history']
+                                prevalence_df = pd.DataFrame(list(history.items()), columns=['generation', 'count']).sort_values('generation')
+                                fig_prevalence = px.area(prevalence_df, x='generation', y='count', title="Prevalence Over Time")
+                                fig_prevalence.update_layout(height=200, margin=dict(l=0, r=0, t=30, b=0))
+                                st.plotly_chart(fig_prevalence, width='stretch', key=f"pantheon_prevalence_{comp_gene.id}")
+
+                    with pantheon_col2:
+                        st.markdown("#### The Lawgivers: Elite Genetic Strategies")
+                        
+                        # Find elite specimens
+                        elites = []
+                        if population:
+                            sorted_pop = sorted(population, key=lambda x: x.fitness, reverse=True)
+                            seen_kingdoms = set()
+                            for org in sorted_pop:
+                                if org.kingdom_id not in seen_kingdoms:
+                                    elites.append(org)
+                                    seen_kingdoms.add(org.kingdom_id)
+                        
+                        if not elites:
+                            st.info("No elite organisms found to analyze.")
+                        else:
+                            # Analyze rule actions and conditions
+                            elite_actions = Counter()
+                            elite_conditions = Counter()
+                            for elite in elites:
+                                elite_actions.update(r.action_type for r in elite.rule_genes)
+                                for r in elite.rule_genes:
+                                    elite_conditions.update(c['source'] for c in r.conditions)
+
+                            action_df = pd.DataFrame(elite_actions.items(), columns=['Action', 'Count']).sort_values('Count', ascending=False)
+                            cond_df = pd.DataFrame(elite_conditions.items(), columns=['Condition', 'Count']).sort_values('Count', ascending=False)
+
+                            fig_actions = px.bar(action_df, x='Action', y='Count', title="Elite Strategic Blueprint (GRN Actions)")
+                            fig_actions.update_layout(height=250, margin=dict(l=0, r=0, t=40, b=0))
+                            st.plotly_chart(fig_actions, width='stretch', key="pantheon_elite_actions")
+
+                            fig_conds = px.bar(cond_df, x='Condition', y='Count', title="Elite Sensory Profile (GRN Conditions)")
+                            fig_conds.update_layout(height=250, margin=dict(l=0, r=0, t=40, b=0))
+                            st.plotly_chart(fig_conds, width='stretch', key="pantheon_elite_conditions")
+
+
+        with tab_analytics_lab:
+            if st.session_state.analytics_lab_visible:
+                st.header("📊 Custom Analytics Lab")
+                st.markdown("A flexible laboratory for generating custom 2D plots to explore the relationships within your exhibit's evolutionary history. Configure the number of plots in the sidebar.")
+                st.markdown("---")
+
+                num_plots = s.get('num_custom_plots', 4)
+                
+                plot_functions = [
+                    plot_fitness_vs_complexity,
+                    plot_lifespan_vs_cell_count,
+                    plot_energy_dynamics,
+                    plot_complexity_density,
+                    plot_fitness_violin_by_kingdom,
+                    plot_complexity_vs_lifespan,
+                    plot_energy_efficiency_over_time,
+                    plot_cell_count_dist_by_kingdom,
+                    plot_lifespan_dist_by_kingdom,
+                    plot_complexity_vs_energy_prod,
+                    plot_fitness_scatter_over_time,
+                    plot_elite_parallel_coords
+                ]
+
+                cols = st.columns(2)
+                for i in range(num_plots):
+                    with cols[i % 2]:
+                        if i < len(plot_functions):
+                            plot_func = plot_functions[i]
+                            fig = plot_func(history_df, key=f"custom_plot_{i}")
+                            st.plotly_chart(fig, width='stretch', key=f"custom_plotly_chart_{i}")
+                
+                st.markdown("---")
+                if st.button("Clear & Hide Analytics Lab", key="hide_analytics_lab_button"):
+                    st.session_state.analytics_lab_visible = False
+                    st.rerun()
+
+            else:
+                st.info("This tab renders custom plots. It is paused to save memory.")
+                if st.button("📊 Render Custom Analytics Lab", key="render_analytics_lab_button"):
+                    st.session_state.analytics_lab_visible = True
+                    st.rerun()
+        
+        
+        
+        st.markdown("---")
+        
+        try:
+            final_grid_state = {}
+            if 'exhibit_grid' in st.session_state and st.session_state.exhibit_grid is not None:
+                final_grid_state = {name: arr.tolist() for name, arr in st.session_state.exhibit_grid.resource_map.items()}
+
+            download_data = {
+                "settings": st.session_state.settings,
+                "history": st.session_state.history,
+                "evolutionary_metrics": st.session_state.evolutionary_metrics,
+                "genesis_events": st.session_state.get('genesis_events', []),
+                "final_population_genotypes": [asdict(g) for g in population] if population else [],
+                "full_gene_archive": [asdict(g) for g in st.session_state.get('gene_archive', [])],
+                "final_physics_constants": CHEMICAL_BASES_REGISTRY,
+                "final_evolved_senses": st.session_state.get('evolvable_condition_sources', []),
+                "final_grid_state": final_grid_state
+            }
+            
+            zip_buffer = io.BytesIO()
+
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
+                json_string = json.dumps(download_data, indent=4, cls=GenotypeJSONEncoder)
+                
+                file_name_in_zip = f"exhibit_archive_{s.get('experiment_name', 'run').replace(' ', '_')}.json"
+                zf.writestr(file_name_in_zip, json_string.encode('utf-8'))
+
+            st.download_button(
+                label="📥 Download Exhibit Archive as .zip",
+                data=zip_buffer.getvalue(),
+                file_name=f"exhibit_archive_{s.get('experiment_name', 'run').replace(' ', '_')}.zip",
+                mime="application/zip",
+                help="Download the complete exhibit state (settings, history, gene archive) as a compressed ZIP file."
+            )
+            
+        except Exception as e:
+            st.error(f"Could not prepare data for download: {e}")
+            st.exception(e)
+        
+
+if __name__ == "__main__":
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    original_toast = st.toast
+    def chronicle_toast(body, icon=None):
+        if "New component" in body:
+            lineage_id = None
+            if "lineage:" in body:
+                parts = body.split(" lineage:")
+                body = parts[0]
+                lineage_id = parts[1]
+            st.session_state.genesis_events.append({
+                'generation': st.session_state.history[-1]['generation'] if st.session_state.history else 0,
+                'type': 'Component Innovation', 'title': f"New Component: {body.split('**')[1]}",
+                'description': f"A new cellular component, '{body.split('**')[1]}', was invented, expanding the chemical and functional possibilities for life.", 'icon': '💡',
+                'lineage_id': lineage_id
+            })
+        if "new sense" in body:
+            st.session_state.genesis_events.append({
+                'generation': st.session_state.history[-1]['generation'] if st.session_state.history else 0,
+                'type': 'Sense Innovation', 'title': f"New Sense: {body.split('**')[1]}",
+                'description': f"Life has evolved a new way to perceive its environment: '{body.split('**')[1]}'. This opens up entirely new evolutionary pathways.", 'icon': '🧠'
+            })
+        original_toast(body, icon=icon)
+    st.toast = chronicle_toast
+    main()
+                
+                # --- NEW: Pantheon of Genes Section ---
+                st.markdown("---")
+                st.markdown("### 🏛️ The Pantheon of Genes")
+                st.markdown("A hall of fame for the most impactful genetic 'ideas' of your exhibit. This analyzes the entire fossil record to identify the components and rule strategies that defined success.")
+
+                gene_archive = st.session_state.get('gene_archive', [])
+                if not gene_archive:
+                    st.info("The gene archive is empty. Run a simulation to populate the fossil record.")
+                else:
+                    pantheon_col1, pantheon_col2 = st.columns(2)
+
+                    with pantheon_col1:
+                        st.markdown("#### The Component Pantheon")
+                        
+                        # --- Analysis ---
+                        all_components = {}
+                        for genotype in gene_archive:
+                            for comp_name, comp_gene in genotype.component_genes.items():
+                                if comp_name not in all_components:
+                                    all_components[comp_name] = {
+                                        'gene': comp_gene,
+                                        'first_gen': genotype.generation,
+                                        'inventor_lineage': genotype.lineage_id,
+                                        'fitness_sum': 0,
+                                        'usage_count': 0,
+                                        'prevalence_history': Counter()
+                                    }
+                                all_components[comp_name]['fitness_sum'] += genotype.fitness
+                                all_components[comp_name]['usage_count'] += 1
+                                all_components[comp_name]['prevalence_history'][genotype.generation] += 1
+
+                        # Calculate scores
+                        scored_components = []
+                        for name, data in all_components.items():
+                            avg_fitness = data['fitness_sum'] / data['usage_count'] if data['usage_count'] > 0 else 0
+                            longevity = history_df['generation'].max() - data['first_gen']
+                            final_prevalence = sum(1 for g in population if name in g.component_genes) if population else 0
+                            
+                            score = (avg_fitness * 100) + (longevity * 0.1) + (final_prevalence * 1)
+                            data['score'] = score
+                            scored_components.append(data)
+
+                        # Display top components
+                        for i, comp_data in enumerate(sorted(scored_components, key=lambda x: x['score'], reverse=True)[:5]):
+                            comp_gene = comp_data['gene']
+                            with st.expander(f"**{i+1}. {comp_gene.name}** (Score: {comp_data['score']:.0f})", expanded=(i<2)):
+                                st.markdown(f"Invented in **Epoch {comp_data['first_gen']}** by Dynasty `{comp_data['inventor_lineage']}`")
+                                st.code(f"[{comp_gene.color}] Base: {comp_gene.base_kingdom}, Mass: {comp_gene.mass:.2f}, Struct: {comp_gene.structural:.2f}, E.Store: {comp_gene.energy_storage:.2f}", language="text")
+                                
+                                # Prevalence plot
+                                history = comp_data['prevalence_history']
+                                prevalence_df = pd.DataFrame(list(history.items()), columns=['generation', 'count']).sort_values('generation')
+                                fig_prevalence = px.area(prevalence_df, x='generation', y='count', title="Prevalence Over Time")
+                                fig_prevalence.update_layout(height=200, margin=dict(l=0, r=0, t=30, b=0))
+                                st.plotly_chart(fig_prevalence, width='stretch', key=f"pantheon_prevalence_{comp_gene.id}")
+
+                    with pantheon_col2:
+                        st.markdown("#### The Lawgivers: Elite Genetic Strategies")
+                        
+                        # Find elite specimens
+                        elites = []
+                        if population:
+                            sorted_pop = sorted(population, key=lambda x: x.fitness, reverse=True)
+                            seen_kingdoms = set()
+                            for org in sorted_pop:
+                                if org.kingdom_id not in seen_kingdoms:
+                                    elites.append(org)
+                                    seen_kingdoms.add(org.kingdom_id)
+                        
+                        if not elites:
+                            st.info("No elite organisms found to analyze.")
+                        else:
+                            # Analyze rule actions and conditions
+                            elite_actions = Counter()
+                            elite_conditions = Counter()
+                            for elite in elites:
+                                elite_actions.update(r.action_type for r in elite.rule_genes)
+                                for r in elite.rule_genes:
+                                    elite_conditions.update(c['source'] for c in r.conditions)
+
+                            action_df = pd.DataFrame(elite_actions.items(), columns=['Action', 'Count']).sort_values('Count', ascending=False)
+                            cond_df = pd.DataFrame(elite_conditions.items(), columns=['Condition', 'Count']).sort_values('Count', ascending=False)
+
+                            fig_actions = px.bar(action_df, x='Action', y='Count', title="Elite Strategic Blueprint (GRN Actions)")
+                            fig_actions.update_layout(height=250, margin=dict(l=0, r=0, t=40, b=0))
+                            st.plotly_chart(fig_actions, width='stretch', key="pantheon_elite_actions")
+
+                            fig_conds = px.bar(cond_df, x='Condition', y='Count', title="Elite Sensory Profile (GRN Conditions)")
+                            fig_conds.update_layout(height=250, margin=dict(l=0, r=0, t=40, b=0))
+                            st.plotly_chart(fig_conds, width='stretch', key="pantheon_elite_conditions")
+
+
+        with tab_analytics_lab:
+            if st.session_state.analytics_lab_visible:
+                st.header("📊 Custom Analytics Lab")
+                st.markdown("A flexible laboratory for generating custom 2D plots to explore the relationships within your exhibit's evolutionary history. Configure the number of plots in the sidebar.")
+                st.markdown("---")
+
+                num_plots = s.get('num_custom_plots', 4)
+                
+                plot_functions = [
+                    plot_fitness_vs_complexity,
+                    plot_lifespan_vs_cell_count,
+                    plot_energy_dynamics,
+                    plot_complexity_density,
+                    plot_fitness_violin_by_kingdom,
+                    plot_complexity_vs_lifespan,
+                    plot_energy_efficiency_over_time,
+                    plot_cell_count_dist_by_kingdom,
+                    plot_lifespan_dist_by_kingdom,
+                    plot_complexity_vs_energy_prod,
+                    plot_fitness_scatter_over_time,
+                    plot_elite_parallel_coords
+                ]
+
+                cols = st.columns(2)
+                for i in range(num_plots):
+                    with cols[i % 2]:
+                        if i < len(plot_functions):
+                            plot_func = plot_functions[i]
+                            fig = plot_func(history_df, key=f"custom_plot_{i}")
+                            st.plotly_chart(fig, width='stretch', key=f"custom_plotly_chart_{i}")
+                
+                st.markdown("---")
+                if st.button("Clear & Hide Analytics Lab", key="hide_analytics_lab_button"):
+                    st.session_state.analytics_lab_visible = False
+                    st.rerun()
+
+            else:
+                st.info("This tab renders custom plots. It is paused to save memory.")
+                if st.button("📊 Render Custom Analytics Lab", key="render_analytics_lab_button"):
+                    st.session_state.analytics_lab_visible = True
+                    st.rerun()
+        
+        
+        
+        st.markdown("---")
+        
+        try:
+            final_grid_state = {}
+            if 'exhibit_grid' in st.session_state and st.session_state.exhibit_grid is not None:
+                final_grid_state = {name: arr.tolist() for name, arr in st.session_state.exhibit_grid.resource_map.items()}
+
+            download_data = {
+                "settings": st.session_state.settings,
+                "history": st.session_state.history,
+                "evolutionary_metrics": st.session_state.evolutionary_metrics,
+                "genesis_events": st.session_state.get('genesis_events', []),
+                "final_population_genotypes": [asdict(g) for g in population] if population else [],
+                "full_gene_archive": [asdict(g) for g in st.session_state.get('gene_archive', [])],
+                "final_physics_constants": CHEMICAL_BASES_REGISTRY,
+                "final_evolved_senses": st.session_state.get('evolvable_condition_sources', []),
+                "final_grid_state": final_grid_state
+            }
+            
+            zip_buffer = io.BytesIO()
+
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
+                json_string = json.dumps(download_data, indent=4, cls=GenotypeJSONEncoder)
+                
+                file_name_in_zip = f"exhibit_archive_{s.get('experiment_name', 'run').replace(' ', '_')}.json"
+                zf.writestr(file_name_in_zip, json_string.encode('utf-8'))
+
+            st.download_button(
+                label="📥 Download Exhibit Archive as .zip",
+                data=zip_buffer.getvalue(),
+                file_name=f"exhibit_archive_{s.get('experiment_name', 'run').replace(' ', '_')}.zip",
+                mime="application/zip",
+                help="Download the complete exhibit state (settings, history, gene archive) as a compressed ZIP file."
+            )
+            
+        except Exception as e:
+            st.error(f"Could not prepare data for download: {e}")
+            st.exception(e)
+        
+
+if __name__ == "__main__":
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    original_toast = st.toast
+    def chronicle_toast(body, icon=None):
+        if "New component" in body:
+            lineage_id = None
+            if "lineage:" in body:
+                parts = body.split(" lineage:")
+                body = parts[0]
+                lineage_id = parts[1]
+            st.session_state.genesis_events.append({
+                'generation': st.session_state.history[-1]['generation'] if st.session_state.history else 0,
+                'type': 'Component Innovation', 'title': f"New Component: {body.split('**')[1]}",
+                'description': f"A new cellular component, '{body.split('**')[1]}', was invented, expanding the chemical and functional possibilities for life.", 'icon': '💡',
+                'lineage_id': lineage_id
+            })
+        if "new sense" in body:
+            st.session_state.genesis_events.append({
+                'generation': st.session_state.history[-1]['generation'] if st.session_state.history else 0,
+                'type': 'Sense Innovation', 'title': f"New Sense: {body.split('**')[1]}",
+                'description': f"Life has evolved a new way to perceive its environment: '{body.split('**')[1]}'. This opens up entirely new evolutionary pathways.", 'icon': '🧠'
+            })
+        original_toast(body, icon=icon)
+    st.toast = chronicle_toast
+    main()
