@@ -2059,7 +2059,7 @@ def main():
         initial_sidebar_state="expanded"
     )
 
-    # --- DARK BLUE/PURPLE/GREEN "NEBULA" THEME ---
+    # --- DARK GREEN/BROWN/WHITE "TERRA" THEME ---
     st.markdown("""
         <style>
             /* --- Core App Styling --- */
@@ -2072,29 +2072,29 @@ def main():
 
             /* --- Glassmorphism Containers --- */
             .block-container, [data-testid="stSidebar"], [data-testid="stExpander"], [data-testid="stTabs"] {
-                background: rgba(13, 17, 23, 0.65); /* Dark blue-black tint */
+                background: rgba(15, 25, 15, 0.65); /* Dark green-black tint */
                 backdrop-filter: blur(12px);
                 -webkit-backdrop-filter: blur(12px);
                 border-radius: 15px;
-                border: 1px solid rgba(148, 103, 255, 0.15); /* Subtle purple border */
+                border: 1px solid rgba(67, 83, 52, 0.25); /* Subtle dark green/brown border */
                 box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             }
 
             [data-testid="stSidebar"] {
-                border-right: 1px solid rgba(148, 103, 255, 0.25);
+                border-right: 1px solid rgba(67, 83, 52, 0.35);
             }
 
             [data-testid="stExpander"] {
                 margin-bottom: 10px;
-                border-color: rgba(148, 103, 255, 0.1);
+                border-color: rgba(67, 83, 52, 0.2);
             }
 
             /* --- Text & Titles --- */
             h1, h2, h3, h4, h5, h6 {
-                background: -webkit-linear-gradient(45deg, #2B32B2, #9467FF, #00642E); /* Blue -> Purple -> Green */
+                background: -webkit-linear-gradient(45deg, #435334, #9E7676, #FAF3E3); /* Dark Green -> Brown -> Off-White */
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
-                text-shadow: 0 0 8px rgba(148, 103, 255, 0.15);
+                text-shadow: 0 0 8px rgba(250, 243, 227, 0.1);
             }
 
             p, div, span, li, label, .st-emotion-cache-16idsys p {
@@ -2105,15 +2105,15 @@ def main():
             /* --- Interactive Elements --- */
             .stButton>button {
                 border-radius: 10px;
-                border: 1px solid rgba(148, 103, 255, 0.4);
-                background-color: rgba(148, 103, 255, 0.1);
-                color: #9467FF; /* Purple accent */
+                border: 1px solid rgba(67, 83, 52, 0.7);
+                background-color: rgba(67, 83, 52, 0.2);
+                color: #9EB384; /* Muted green accent */
                 transition: all 0.3s ease;
             }
             .stButton>button:hover {
-                background-color: rgba(148, 103, 255, 0.25);
-                border-color: #9467FF;
-                box-shadow: 0 0 15px rgba(148, 103, 255, 0.4);
+                background-color: rgba(67, 83, 52, 0.4);
+                border-color: #9EB384;
+                box-shadow: 0 0 15px rgba(158, 179, 132, 0.3);
             }
 
         </style>
@@ -3822,8 +3822,7 @@ def main():
     if not st.session_state.history:
         st.info("This exhibit hall is empty. Adjust the physical laws in the Curator's Console and press '🚀 Curate New Exhibit' to populate it with life.")
         st.markdown("""
-            <div style="border-left: 3px solid #9467FF; padding-left: 15px; margin-top: 20px; border-radius: 3px;">
-            
+            <div style="border-left: 3px solid #9E7676; padding-left: 15px; margin-top: 20px; border-radius: 3px;">
             ### The Museum of Universal Life: An Essay
 
             The universe is a vast, dark ocean of possibility, and the desire to explore it is boundless. This is the conceptual blueprint for an imaginary institution equal to that vastness: a museum dedicated to showcasing every potential form of life. Such a museum would not be a simple collection of curiosities but a profound study of how the universal laws of physics and chemistry sculpt biology in staggeringly different ways. This museum would be divided into two fundamental wings: "Life As We Know It" and the far more speculative, "Life As We Don't Know It."
@@ -4386,7 +4385,7 @@ def main():
                     log_container = st.container(height=400)
                     for event in sorted(filtered_events, key=lambda x: x['generation']):
                         log_container.markdown(f"""
-                        <div style="border-left: 3px solid #9467FF; padding-left: 10px; margin-bottom: 15px; border-radius: 3px;">
+                        <div style="border-left: 3px solid #9E7676; padding-left: 10px; margin-bottom: 15px; border-radius: 3px;">
                             <small>Epoch {event['generation']}</small><br>
                             <strong>{event['icon']} {event['title']}</strong>
                             <p style="font-size: 0.9em; color: #ccc;">{event['description']}</p>
@@ -4579,7 +4578,7 @@ def main():
                         fig_tree, ax_tree = plt.subplots(figsize=(5, 4))
                         pos = nx.spring_layout(phylogeny_graph, seed=42, k=0.9)
                         labels = nx.get_node_attributes(phylogeny_graph, 'label')
-                        nx.draw(phylogeny_graph, pos, labels=labels, with_labels=True, node_size=3000, node_color='#9467FF', font_size=8, font_color='white', arrowsize=20, ax=ax_tree)
+                        nx.draw(phylogeny_graph, pos, labels=labels, with_labels=True, node_size=3000, node_color='#9E7676', font_size=8, font_color='white', arrowsize=20, ax=ax_tree)
                         ax_tree.set_title("Phylogeny of Kingdoms")
                         st.pyplot(fig_tree)
                         plt.clf()
