@@ -2053,9 +2053,9 @@ class RedQueenParasite:
 
 def main():
     st.set_page_config(
-        page_title="Museum of Universal Life",
+        page_title="LIFE BEYOND II: The Museum of Alien Life",
         layout="wide",
-        page_icon="🏛️",
+        page_icon="🪐",
         initial_sidebar_state="expanded"
     )
 
@@ -2180,31 +2180,31 @@ def main():
     # --- THE "CURATOR'S CONSOLE" SIDEBAR ---
     # ===============================================
     
-    st.sidebar.markdown('<h1 style="text-align: center; color: #00aaff;">🏛️<br>Museum of Universal Life</h1>', unsafe_allow_html=True)
+    st.sidebar.markdown('<h1 style="text-align: center; color: #7F7FFF;">🏛️<br>LIFE BEYOND II</h1>', unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
     s = copy.deepcopy(st.session_state.settings)
 
-    if st.sidebar.button("Reset Console to Defaults", width='stretch', key="reset_defaults_button"):
+    if st.sidebar.button("Reset Curator's Console to Defaults", width='stretch', key="reset_defaults_button"):
         st.session_state.settings.clear()
         st.toast("Curator's Console reset to defaults!", icon="⚙️")
         time.sleep(1)
         st.rerun()
 
-    if st.sidebar.button("Decommission Museum & Restart", width='stretch', key="clear_state_button"):
+    if st.sidebar.button("Decommission Exhibit & Restart", width='stretch', key="clear_state_button"):
         db.truncate()
         st.session_state.clear()
-        st.toast("Cleared all archived data. The museum has been reset.", icon="🗑️")
+        st.toast("Cleared all archived data. The exhibit has been reset.", icon="🗑️")
         time.sleep(1)
         st.rerun()
         
-    with st.sidebar.expander("🌠 Exhibit Hall Manager (Your Personal Collections)", expanded=True):
+    with st.sidebar.expander("🌠 Exhibit Hall Manager (Your Curated Collections)", expanded=True):
         presets = st.session_state.exhibit_presets
         preset_names = ["<Select a Collection to Load>"] + list(presets.keys())
         
         c1, c2 = st.columns(2)
         with c1:
-            new_preset_name = st.text_input("New Collection Name", placeholder="e.g., 'High-Gravity Worlds'")
+            new_preset_name = st.text_input("New Collection Name", placeholder="e.g., 'Titan Methane Seas'")
         with c2:
             st.write(" ") # Spacer
             if st.button("💾 Archive Current Exhibit", width='stretch'):
@@ -2238,7 +2238,7 @@ def main():
                 else:
                     st.warning("Please enter a name for your collection.")
 
-        selected_preset = st.selectbox("Load from Personal Collection", options=preset_names, index=0)
+        selected_preset = st.selectbox("Load from Curated Collection", options=preset_names, index=0)
         
         if selected_preset != "<Select a Collection to Load>":
             c1, c2 = st.columns(2)
@@ -2297,9 +2297,9 @@ def main():
                 st.rerun()
                     
         st.sidebar.markdown("---")
-        st.sidebar.markdown("#### 💾 Load Exhibit from Archive File")
+        st.sidebar.markdown("#### 💾 Load Exhibit from Archive")
         uploaded_file = st.sidebar.file_uploader(
-            "Upload your 'exhibit_archive.json' or .zip file", 
+            "Upload your 'exhibit_archive.zip' file", 
             type=["json", "zip"],
             key="checkpoint_uploader"
         )
@@ -2390,8 +2390,7 @@ def main():
                             - **Final Population:** {len(st.session_state.current_population)} organisms
                             - **Fossil Record:** {len(st.session_state.gene_archive)} genotypes
                             - **Evolved Senses:** {len(st.session_state.evolvable_condition_sources)}
-                            
-                            You are ready to click **'🧬 Extend Simulation'** to proceed from Epoch {last_gen + 1}.
+                            <br><br>You are ready to click **'🧬 Extend Exhibit Simulation'** to proceed from Epoch {last_gen + 1}.
                             """
                         )
                         
@@ -2405,32 +2404,32 @@ def main():
             else:
                 st.warning("Please upload a file first.")
         
-    st.sidebar.markdown("### 🌍 Gallery Physics & Astrobiology")
-    with st.sidebar.expander("Fundamental Physical Constants", expanded=False):
-        st.markdown("Set the fundamental, unchanging laws of this gallery.")
+    st.sidebar.markdown("### 🪐 Wing 3: The Sculpting Hand of Environment")
+    with st.sidebar.expander("Fundamental Physical Laws", expanded=False):
+        st.markdown("Set the fundamental, unchanging laws of this exhibit's environment.")
         s['gravity'] = st.slider("Gravity", 0.0, 20.0, s.get('gravity', 9.8), 0.1, help="Influences motility cost.")
         s['em_coupling'] = st.slider("Electromagnetic Coupling", 0.1, 2.0, s.get('em_coupling', 1.0), 0.05, help="Scales energy from light (photosynthesis).")
         s['thermo_efficiency'] = st.slider("Thermodynamic Efficiency", 0.1, 1.0, s.get('thermo_efficiency', 0.25), 0.01, help="Base energy loss from all actions (entropy).")
         s['planck_scale'] = st.slider("Computational Planck Scale", 1, 10, s.get('planck_scale', 1), 1, help="Minimum 'granularity' of computation (conceptual).")
         s['cosmic_radiation'] = st.slider("Cosmic Radiation (Mutation)", 0.0, 1.0, s.get('cosmic_radiation', 0.1), 0.01, help="Baseline environmental mutation pressure.")
-        s['universe_age_factor'] = st.slider("Universe Age Factor", 0.1, 10.0, s.get('universe_age_factor', 1.0), 0.1, help="Scales how fast resources change or decay.")
+        s['universe_age_factor'] = st.slider("Environmental Age Factor", 0.1, 10.0, s.get('universe_age_factor', 1.0), 0.1, help="Scales how fast resources change or decay.")
         s['dark_energy_pressure'] = st.slider("Dark Energy Pressure (Grid Expansion)", -1.0, 1.0, s.get('dark_energy_pressure', 0.0), 0.01, help="Conceptual: Positive values push organisms apart.")
         s['information_density_limit'] = st.slider("Information Density Limit", 1, 100, s.get('information_density_limit', 50), 1, help="Max complexity per cell (conceptual).")
         s['fundamental_constant_drift'] = st.slider("Fundamental Constant Drift", 0.0, 0.01, s.get('fundamental_constant_drift', 0.0), 0.0001, help="Rate at which constants like 'gravity' slowly change over eons.")
         
-    with st.sidebar.expander("Grid & Resource Distribution", expanded=False):
+    with st.sidebar.expander("Exhibit Environment & Resources", expanded=False):
         st.markdown("Define the exhibit environment itself.")
         s['grid_width'] = st.slider("Grid Width", 50, 500, s.get('grid_width', 100), 10)
         s['grid_height'] = st.slider("Grid Height", 50, 500, s.get('grid_height', 100), 10)
         s['light_intensity'] = st.slider("Light Energy Intensity", 0.0, 5.0, s.get('light_intensity', 1.0), 0.1)
         s['mineral_richness'] = st.slider("Mineral Richness", 0.0, 5.0, s.get('mineral_richness', 1.0), 0.1)
         s['water_abundance'] = st.slider("Water Abundance", 0.0, 5.0, s.get('water_abundance', 1.0), 0.1)
-        s['temp_equator'] = st.slider("Equator Temperature (°C)", 0, 100, s.get('temp_equator', 30), 1)
-        s['temp_pole'] = st.slider("Pole Temperature (°C)", -100, 0, s.get('temp_pole', -20), 1)
+        s['temp_equator'] = st.slider("Equator Temperature (°C)", -100, 200, s.get('temp_equator', 30), 1)
+        s['temp_pole'] = st.slider("Pole Temperature (°C)", -200, 100, s.get('temp_pole', -20), 1)
         s['resource_diffusion_rate'] = st.slider("Resource Diffusion Rate", 0.0, 0.5, s.get('resource_diffusion_rate', 0.01), 0.005)
         
-    st.sidebar.markdown("### 🌱 Primordial Soup & Seeding")
-    with st.sidebar.expander("Initial Life & Complexity", expanded=False):
+    st.sidebar.markdown("### 🌱 Wing 1: The Carbon Gallery (Seeding)")
+    with st.sidebar.expander("The Primordial Soup", expanded=False):
         s['initial_population'] = st.slider("Initial Population Size", 10, 500, s.get('initial_population', 50), 10)
         s['zygote_energy'] = st.slider("Initial Zygote Energy", 1.0, 100.0, s.get('zygote_energy', 10.0), 1.0)
         s['new_cell_energy'] = st.slider("New Cell Energy", 0.1, 5.0, s.get('new_cell_energy', 1.0), 0.1, help="Energy given to a newly grown cell.")
@@ -2444,13 +2443,13 @@ def main():
         else:
             default_selection = saved_bases
 
-        s['chemical_bases'] = st.multiselect("Allowed Chemical Bases (Kingdoms)", 
+        s['chemical_bases'] = st.multiselect("Allowed Chemistries (Kingdoms)", 
                                              all_bases, 
                                              default_selection)
 
     
     st.sidebar.markdown("### ⚖️ Fundamental Pressures of Life")
-    with st.sidebar.expander("Multi-Objective Fitness Weights", expanded=False):
+    with st.sidebar.expander("Defining 'Fitness' for this Exhibit", expanded=False):
         st.markdown("Define what 'success' means for an exhibit. (Normalized)")
         s['w_lifespan'] = st.slider("Weight: Longevity", 0.0, 1.0, s.get('w_lifespan', 0.4), 0.01)
         s['w_efficiency'] = st.slider("Weight: Energy Efficiency", 0.0, 1.0, s.get('w_efficiency', 0.3), 0.01)
@@ -2461,8 +2460,8 @@ def main():
         s['reproduction_energy_threshold'] = st.slider("Reproduction Energy Threshold", 10.0, 200.0, s.get('reproduction_energy_threshold', 50.0))
         s['reproduction_bonus'] = st.slider("Reproduction Bonus", 0.0, 2.0, s.get('reproduction_bonus', 0.5))
 
-    st.sidebar.markdown("### ⚙️ Simulation Mechanics & Genetics")
-    with st.sidebar.expander("Core Genetic Operators", expanded=True):
+    st.sidebar.markdown("### 🧬 The Rules of Evolution")
+    with st.sidebar.expander("Genetic Operators", expanded=True):
         st.number_input(
                 "Epochs to Simulate",
                 min_value=10,
@@ -2481,7 +2480,7 @@ def main():
         s['meta_innovation_rate'] = st.slider("Meta-Innovation Rate (Sensor)", 0.0, 0.01, s.get('meta_innovation_rate', 0.005), 0.0001, help="Rate of inventing new *types* of senses.")
         s['max_rule_conditions'] = st.slider("Max Rule Conditions", 1, 5, s.get('max_rule_conditions', 3), 1)
 
-    with st.sidebar.expander("Speciation & Ecosystem Dynamics", expanded=False):
+    with st.sidebar.expander("Ecosystem & Speciation Dynamics", expanded=False):
         s['enable_speciation'] = st.checkbox("Enable Speciation", s.get('enable_speciation', True), help="Group similar organisms into 'species' to protect innovation.")
         s['compatibility_threshold'] = st.slider("Compatibility Threshold", 1.0, 50.0, s.get('compatibility_threshold', 10.0), 0.5, help="Genomic distance to be in the same species.")
         s['niche_competition_factor'] = st.slider("Niche Competition", 0.0, 5.0, s.get('niche_competition_factor', 1.5), 0.1, help="How strongly members of the same species compete (fitness sharing).")
@@ -2489,19 +2488,19 @@ def main():
         s['reintroduction_rate'] = st.slider("Fossil Record Reintroduction", 0.0, 0.5, s.get('reintroduction_rate', 0.05), 0.01, help="Chance to reintroduce an ancient genotype from the archive.")
         s['max_archive_size'] = st.slider("Max Gene Archive Size", 1000, 1000000, s.get('max_archive_size', 100000), 5000)
     
-    with st.sidebar.expander("Advanced Biological Dynamics", expanded=False):
+    with st.sidebar.expander("Advanced Biological Principles", expanded=False):
         s['enable_baldwin'] = st.checkbox("Enable Baldwin Effect (Learning)", s.get('enable_baldwin', True), help="Organisms can 'learn' (e.g., adapt to local temp) in their lifetime. Favors adaptable genotypes.")
         s['enable_epigenetics'] = st.checkbox("Enable Epigenetic Inheritance", s.get('enable_epigenetics', True), help="Learned adaptations are partially passed to offspring (Lamarckian).")
         s['enable_endosymbiosis'] = st.checkbox("Enable Endosymbiosis (Merging)", s.get('enable_endosymbiosis', True), help="Rare event where one organism absorbs another, merging their genomes.")
         s['endosymbiosis_rate'] = st.slider("Endosymbiosis Rate", 0.0, 0.1, s.get('endosymbiosis_rate', 0.005), 0.001)
 
-    with st.sidebar.expander("🌋 Environmental & Cataclysmic Events", expanded=False):
+    with st.sidebar.expander("🌋 Environmental Events & Cataclysms", expanded=False):
         s['enable_cataclysms'] = st.checkbox("Enable Cataclysms", s.get('enable_cataclysms', True), help="Enable rare, random mass extinction events.")
         s['cataclysm_probability'] = st.slider("Cataclysm Probability", 0.0, 0.5, s.get('cataclysm_probability', 0.01), 0.005, help="Per-epoch chance of a cataclysm.")
         s['cataclysm_extinction_severity'] = st.slider("Extinction Severity", 0.1, 1.0, s.get('cataclysm_extinction_severity', 0.9), 0.05, help="Percentage of population wiped out.")
         s['cataclysm_landscape_shift_magnitude'] = st.slider("Landscape Shift Magnitude", 0.0, 1.0, s.get('cataclysm_landscape_shift_magnitude', 0.5), 0.05, help="How drastically resource maps change.")
         s['post_cataclysm_hypermutation_multiplier'] = st.slider("Hypermutation Multiplier", 1.0, 10.0, s.get('post_cataclysm_hypermutation_multiplier', 2.0), 0.5, help="Mutation spike after cataclysm (adaptive radiation).")
-        s['post_cataclysm_hypermutation_duration'] = st.slider("Hypermutation Duration (Epochs)", 0, 50, s.get('post_cataclysm_hypermutation_duration', 10), 1)
+        s['post_cataclysm_hypermutation_duration'] = st.slider("Hypermutation Duration (Epochs)", 0, 50, s.get('post_cataclysm_hypermutation_duration', 10), 1, help="Number of epochs the mutation spike lasts.")
         s['enable_red_queen'] = st.checkbox("Enable Red Queen (Co-evolution)", s.get('enable_red_queen', True), help="A co-evolving 'parasite' targets the most common organism type, forcing an arms race.")
         s['red_queen_virulence'] = st.slider("Parasite Virulence", 0.0, 1.0, s.get('red_queen_virulence', 0.15), 0.05, help="Fitness penalty inflicted by the parasite.")
         s['red_queen_adaptation_speed'] = st.slider("Parasite Adaptation Speed", 0.0, 1.0, s.get('red_queen_adaptation_speed', 0.2), 0.05)
@@ -2670,7 +2669,7 @@ def main():
         s['num_ranks_to_display'] = st.slider("Number of Elite Ranks to Display", 1, 10, s.get('num_ranks_to_display', 3))
 
     with st.sidebar.expander("📊 Custom Analytics Lab", expanded=False):
-        st.markdown("Configure the custom analytics tab.")
+        st.markdown("Configure the custom analytics laboratory.")
         s['num_custom_plots'] = st.slider("Number of Custom Plots", 0, 12, s.get('num_custom_plots', 1), 1)
         
     st.sidebar.markdown("---")
@@ -2957,13 +2956,13 @@ def main():
 
     if st.session_state.history:
         last_gen = st.session_state.history[-1]['generation']
-        st.sidebar.info(f"**Status:** Loaded archive at **Epoch {last_gen}**. Ready to extend simulation.", icon="ℹ️")
+        st.sidebar.info(f"**Status:** Loaded archive at **Epoch {last_gen}**. Ready to extend exhibit simulation.", icon="ℹ️")
     else:
-        st.sidebar.info("**Status:** Ready for a new simulation.", icon="ℹ️")
+        st.sidebar.info("**Status:** Ready to curate a new exhibit.", icon="ℹ️")
 
     col1, col2 = st.sidebar.columns(2)
     
-    if col1.button("🚀 BEGIN SIMULATION", type="primary", width='stretch', key="initiate_evolution_button"):
+    if col1.button("🚀 Curate New Exhibit", type="primary", width='stretch', key="initiate_evolution_button"):
         st.session_state.history = []
         st.session_state.evolutionary_metrics = []
         st.session_state.genesis_events = []
@@ -2971,7 +2970,7 @@ def main():
         st.session_state.seen_kingdoms = set()
         st.session_state.crossed_complexity_thresholds = set()
         st.session_state.last_dominant_kingdom = None
-        st.session_state.has_logged_colonial_emergence = False
+        st.session_state.has_logged_colonial_emergence = False # type: ignore
         st.session_state.has_logged_philosophy_divergence = False
         st.session_state.has_logged_computation_dawn = False
         st.session_state.has_logged_first_communication = False
@@ -3022,7 +3021,7 @@ def main():
         complexity_thresholds_to_log = [10, 25, 50, 100, 200, 500]
 
         for gen in range(s.get('num_generations', 200)):
-            status_text.markdown(f"### 🏛️ Simulating Epoch {gen + 1}/{s.get('num_generations', 200)}")
+            status_text.markdown(f"### <p style='color:#7F7FFF;'>🏛️ Simulating Epoch {gen + 1}/{s.get('num_generations', 200)}</p>", unsafe_allow_html=True)
             
             fitness_scores = []
             for genotype in population:
@@ -3350,13 +3349,13 @@ def main():
                 early_stop_counter += 1
                 
             if s.get('enable_early_stopping', True) and early_stop_counter > s.get('early_stopping_patience', 25):
-                st.success(f"**EARLY STOPPING:** Simulation converged after {gen + 1} epochs.")
+                st.success(f"**EARLY STOPPING:** Exhibit simulation converged after {gen + 1} epochs.")
                 break
                 
             progress_container.progress((gen + 1) / s.get('num_generations', 200))
         
         st.session_state.current_population = population
-        status_text.markdown("### ✅ Simulation Complete! Results archived.")
+        status_text.markdown("### ✅ Exhibit Curation Complete! Results archived.")
         
         results_to_save = {
             'history': st.session_state.history,
@@ -3367,9 +3366,9 @@ def main():
         else:
             results_table.insert(results_to_save)
 
-    if col2.button("🧬 EXTEND SIMULATION", width='stretch', key="continue_evolution_button"):
+    if col2.button("🧬 Extend Exhibit Simulation", width='stretch', key="continue_evolution_button"):
         if not st.session_state.current_population:
-            st.error("Cannot continue: No population found. Load an archive or 'Begin' a new simulation first.")
+            st.error("Cannot continue: No population found. Load an archive or 'Curate' a new exhibit first.")
             st.stop()
         
         population = st.session_state.current_population
@@ -3382,7 +3381,7 @@ def main():
         num_generations_to_run = s.get('num_generations', 200)
         end_gen = start_gen + num_generations_to_run
 
-        st.toast(f"Extending simulation from Epoch {start_gen} to {end_gen}...")
+        st.toast(f"Extending exhibit simulation from Epoch {start_gen} to {end_gen}...")
 
         if s.get('random_seed', 42) != -1:
             random.seed(s.get('random_seed', 42))
@@ -3412,7 +3411,7 @@ def main():
                     red_queen.target_kingdom_id = kingdom_counts.most_common(1)[0][0]
         
         for gen in range(start_gen, end_gen):
-            status_text.markdown(f"### 🏛️ Simulating Epoch {gen + 1}/{end_gen}")
+            status_text.markdown(f"### <p style='color:#7F7FFF;'>🏛️ Simulating Epoch {gen + 1}/{end_gen}</p>", unsafe_allow_html=True)
             
             fitness_scores = []
             for genotype in population:
@@ -3741,7 +3740,7 @@ def main():
                 early_stop_counter += 1
                 
             if s.get('enable_early_stopping', True) and early_stop_counter > s.get('early_stopping_patience', 25):
-                st.success(f"**EARLY STOPPING:** Simulation converged after {gen + 1} epochs.")
+                st.success(f"**EARLY STOPPING:** Exhibit simulation converged after {gen + 1} epochs.")
                 break
             
             progress_container.progress((gen - start_gen + 1) / num_generations_to_run)
@@ -3758,10 +3757,10 @@ def main():
         else:
             results_table.insert(results_to_save)
 
-    st.markdown('<h1 class="main-header">Museum of Universal Life: Exhibit Results</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header" style="color: #7F7FFF;">🏛️ Exhibit Hall: Simulation Results</h1>', unsafe_allow_html=True)
     
     if not st.session_state.history:
-        st.info("This exhibit is empty. Adjust the physical constants in the Curator's Console and press '🚀 BEGIN SIMULATION' to populate it.")
+        st.info("This exhibit hall is empty. Adjust the physical laws in the Curator's Console and press '🚀 Curate New Exhibit' to populate it.")
     else:
         history_df = pd.DataFrame(st.session_state.history)
         metrics_df = pd.DataFrame(st.session_state.evolutionary_metrics)
@@ -3769,7 +3768,7 @@ def main():
         
         tab_list = [
             "📈 Simulation Dashboard", 
-            "🔬 Specimen Viewer", 
+            "🔬 Specimen Gallery", 
             "🧬 Elite Lineage Analysis",
             "🌌 The Genesis Chronicle",
             "📊 Custom Analytics Lab"
@@ -3778,9 +3777,9 @@ def main():
         
         with tab_dashboard:
             if st.session_state.dashboard_visible:
-                st.header("Simulation Trajectory Dashboard")
+                st.header("Exhibit Trajectory Dashboard")
                 st.plotly_chart(
-                    create_simulation_dashboard(history_df, metrics_df),
+                    create_simulation_dashboard(history_df, metrics_df), # This function name is fine
                     width='stretch',
                     key="main_dashboard_plot_museum"
                 )
@@ -3793,12 +3792,12 @@ def main():
             
             else:
                 st.info("This tab renders the main dashboard with large plots. It is paused to save memory.")
-                if st.button("📈 Render Simulation Dashboard", key="render_dashboard_button"):
+                if st.button("📈 Render Exhibit Dashboard", key="render_dashboard_button"):
                     st.session_state.dashboard_visible = True
                     st.rerun()
 
         with tab_viewer:
-            st.header("🔬 Specimen Viewer")
+            st.header("🔬 Specimen Gallery")
             st.markdown("Observe the phenotypes (body plans) of the organisms that evolved. This is the **shape of life** your exhibit created.")
             
             if population:
@@ -4152,7 +4151,7 @@ def main():
                         else:
                             st.info("No GRN to display.")
 
-            else:
+            else: # This is the case where `if population:` is false
                 st.warning("No population data available to view specimens. Run a simulation.")
 
         with tab_elites:
@@ -4244,7 +4243,7 @@ def main():
                     st.rerun()
 
         with tab_genesis:
-            st.header("🌌 The Genesis Chronicle")
+            st.header("🌌 The Chronicle of Genesis")
             st.markdown("This is the historical record of your exhibit, chronicling the pivotal moments of creation, innovation, and environmental change. These events are the sparks that drive 'truly infinite' evolution.")
 
             events = st.session_state.get('genesis_events', [])
@@ -4279,7 +4278,7 @@ def main():
                     log_container = st.container(height=400)
                     for event in sorted(filtered_events, key=lambda x: x['generation']):
                         log_container.markdown(f"""
-                        <div style="border-left: 3px solid #00aaff; padding-left: 10px; margin-bottom: 15px;">
+                        <div style="border-left: 3px solid #7F7FFF; padding-left: 10px; margin-bottom: 15px;">
                             <small>Epoch {event['generation']}</small><br>
                             <strong>{event['icon']} {event['title']}</strong>
                             <p style="font-size: 0.9em; color: #ccc;">{event['description']}</p>
@@ -4287,7 +4286,7 @@ def main():
                         """, unsafe_allow_html=True)
 
                 st.markdown("---")
-                st.markdown("### 🏆 Gallery of Innovation")
+                st.markdown("### 🏆 Hall of Innovation")
                 st.markdown("A showcase of the most novel organisms that emerged directly after key evolutionary leaps.")
 
                 innovation_events = [e for e in filtered_events if e['type'] in ['Component Innovation', 'Sense Innovation', 'Endosymbiosis', 'Genesis', 'Complexity Leap', 'Major Transition', 'Cognitive Leap']]
@@ -4367,7 +4366,7 @@ def main():
                             st.markdown("---")
                 
                 # --- NEW: Epochs & Phylogeny Section ---
-                st.markdown("---")
+                st.markdown("---") # Separator
                 st.markdown("### 📖 Epochs & Phylogeny")
                 st.markdown("A macro-level analysis of your exhibit's history, identifying distinct eras and visualizing the evolutionary tree of its kingdoms.")
 
@@ -4473,7 +4472,7 @@ def main():
                         pos = nx.spring_layout(phylogeny_graph, seed=42, k=0.9)
                         labels = nx.get_node_attributes(phylogeny_graph, 'label')
                         nx.draw(phylogeny_graph, pos, labels=labels, with_labels=True, node_size=3000, node_color='#00aaff', font_size=8, font_color='white', arrowsize=20, ax=ax_tree)
-                        ax_tree.set_title("Kingdom Phylogeny")
+                        ax_tree.set_title("Phylogeny of Kingdoms")
                         st.pyplot(fig_tree)
                         plt.clf()
                 
@@ -4482,7 +4481,7 @@ def main():
                 st.markdown("### 👑 Dynastic Histories")
                 st.markdown("Trace the complete story of the most influential lineages in your exhibit. Select a dynasty to view its rise, its peak, and its eventual fate.")
 
-                # Identify major lineages (e.g., from apex predators of each epoch)
+                # Identify major lineages from apex predators of each epoch
                 major_lineages = {}
                 if len(sorted_breaks) > 1:
                     for i in range(len(sorted_breaks) - 1):
@@ -4518,7 +4517,7 @@ def main():
                         c1.metric("Founded in Epoch", f"{founder['generation']}")
                         c2.metric("Founder's Kingdom", founder['kingdom_id'])
                         c3.metric("Peak Fitness", f"{peak['fitness']:.3f}")
-                        c4.metric("Epochs Survived", f"{survived_gens}")
+                        c4.metric("Epochs of Dominance", f"{survived_gens}")
 
                         # --- 2. Performance Chart ---
                         fig_lineage = go.Figure()
@@ -4597,7 +4596,7 @@ def main():
                 
                 # --- NEW: Pantheon of Genes Section ---
                 st.markdown("---")
-                st.markdown("### 🏛️ The Pantheon of Genes")
+                st.markdown("### 🏛️ The Pantheon of Life")
                 st.markdown("A hall of fame for the most impactful genetic 'ideas' of your exhibit. This analyzes the entire fossil record to identify the components and rule strategies that defined success.")
 
                 gene_archive = st.session_state.get('gene_archive', [])
@@ -4607,7 +4606,7 @@ def main():
                     pantheon_col1, pantheon_col2 = st.columns(2)
 
                     with pantheon_col1:
-                        st.markdown("#### The Component Pantheon")
+                        st.markdown("#### The Pantheon of Components")
                         
                         # --- Analysis ---
                         all_components = {}
@@ -4644,7 +4643,7 @@ def main():
                                 st.markdown(f"Invented in **Epoch {comp_data['first_gen']}** by Dynasty `{comp_data['inventor_lineage']}`")
                                 st.code(f"[{comp_gene.color}] Base: {comp_gene.base_kingdom}, Mass: {comp_gene.mass:.2f}, Struct: {comp_gene.structural:.2f}, E.Store: {comp_gene.energy_storage:.2f}", language="text")
                                 
-                                # Prevalence plot
+                                # Prevalence Plot
                                 history = comp_data['prevalence_history']
                                 prevalence_df = pd.DataFrame(list(history.items()), columns=['generation', 'count']).sort_values('generation')
                                 fig_prevalence = px.area(prevalence_df, x='generation', y='count', title="Prevalence Over Time")
@@ -4690,7 +4689,7 @@ def main():
         with tab_analytics_lab:
             if st.session_state.analytics_lab_visible:
                 st.header("📊 Custom Analytics Lab")
-                st.markdown("A flexible laboratory for generating custom 2D plots to explore the relationships within your exhibit's evolutionary history. Configure the number of plots in the sidebar.")
+                st.markdown("A flexible laboratory for generating custom 2D plots to explore relationships within your exhibit's history. Configure the number of plots in the Curator's Console.")
                 st.markdown("---")
 
                 num_plots = s.get('num_custom_plots', 4)
@@ -4759,10 +4758,10 @@ def main():
                 zf.writestr(file_name_in_zip, json_string.encode('utf-8'))
 
             st.download_button(
-                label="📥 Download Exhibit Archive as .zip",
+                label="📥 Download Exhibit Archive (.zip)",
                 data=zip_buffer.getvalue(),
                 file_name=f"exhibit_archive_{s.get('experiment_name', 'run').replace(' ', '_')}.zip",
-                mime="application/zip",
+                mime="application/zip", # Correct MIME type for zip
                 help="Download the complete exhibit state (settings, history, gene archive) as a compressed ZIP file."
             )
             
