@@ -2053,65 +2053,67 @@ class RedQueenParasite:
 
 def main():
     st.set_page_config(
-        page_title="LIFE BEYOND II: Museum of Alien Life",
+        page_title="LIFE BEYOND II: The Museum of Alien Life",
         layout="wide",
-        page_icon="🪐",
+        page_icon="🏛️",
         initial_sidebar_state="expanded"
     )
 
-    # --- MODERN GLASSMORPHISM STYLING ---
+    # --- DARK GREEN "DEEP SPACE" THEME ---
     st.markdown("""
         <style>
-            /* --- General & Background --- */
+            /* --- Core App Styling --- */
             .stApp {
-                background-image: url("https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80");
+                background-color: #0D1117; /* Near-black */
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%231A202C' fill-opacity='0.4'%3E%3Cpath d='M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41zM0 1.4l2.83 2.83 1.41-1.41L1.41 0H0v1.41zM38.59 40l-2.83-2.83 1.41-1.41L40 38.59V40h-1.41zM40 1.41l-2.83 2.83-1.41-1.41L38.59 0H40v1.41zM20 18.6l2.83-2.83 1.41 1.41L21.41 20l2.83 2.83-1.41 1.41L20 21.41l-2.83 2.83-1.41-1.41L18.59 20l-2.83-2.83 1.41-1.41L20 18.59z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
                 background-size: cover;
                 background-attachment: fixed;
             }
 
             /* --- Glassmorphism Containers --- */
             .block-container, [data-testid="stSidebar"], [data-testid="stExpander"], [data-testid="stTabs"] {
-                background: rgba(15, 25, 15, 0.6); /* Dark green tint */
+                background: rgba(10, 25, 15, 0.6); /* Very dark green tint */
                 backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px); /* For Safari */
+                -webkit-backdrop-filter: blur(12px);
                 border-radius: 15px;
-                border: 1px solid rgba(0, 255, 100, 0.15);
+                border: 1px solid rgba(0, 255, 65, 0.15); /* Subtle dark green border */
                 box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             }
 
             [data-testid="stSidebar"] {
-                border-right: 1px solid rgba(0, 255, 100, 0.25);
+                border-right: 1px solid rgba(0, 255, 65, 0.25);
             }
 
             [data-testid="stExpander"] {
                 margin-bottom: 10px;
+                border-color: rgba(0, 255, 65, 0.1);
             }
 
             /* --- Text & Titles --- */
             h1, h2, h3, h4, h5, h6 {
-                background: -webkit-linear-gradient(45deg, #00FF66, #00FFAA, #00DDFF);
+                background: -webkit-linear-gradient(45deg, #00FF41, #008F11); /* Dark Green Gradient */
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
-                text-shadow: 0 0 10px rgba(0, 255, 150, 0.2);
+                text-shadow: 0 0 8px rgba(0, 255, 65, 0.15);
             }
 
             p, div, span, li, label, .st-emotion-cache-16idsys p {
-                color: #E0E0E0 !important; /* Off-white for readability */
+                color: #E2E8F0 !important; /* Light gray text for readability */
                 text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
             }
             
             /* --- Interactive Elements --- */
             .stButton>button {
                 border-radius: 10px;
-                border: 1px solid rgba(0, 255, 100, 0.3);
-                background-color: rgba(0, 255, 100, 0.1);
-                color: #00FF66;
+                border: 1px solid rgba(0, 255, 65, 0.4);
+                background-color: rgba(0, 255, 65, 0.1);
+                color: #00FF41;
                 transition: all 0.3s ease;
             }
             .stButton>button:hover {
-                background-color: rgba(0, 255, 100, 0.3);
-                border-color: #00FF66;
-                box-shadow: 0 0 15px rgba(0, 255, 100, 0.5);
+                background-color: rgba(0, 255, 65, 0.25);
+                border-color: #00FF41;
+                box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
             }
 
         </style>
@@ -4336,7 +4338,7 @@ def main():
                     log_container = st.container(height=400)
                     for event in sorted(filtered_events, key=lambda x: x['generation']):
                         log_container.markdown(f"""
-                        <div style="border-left: 3px solid #00FF66; padding-left: 10px; margin-bottom: 15px; border-radius: 3px;">
+                        <div style="border-left: 3px solid #00FF41; padding-left: 10px; margin-bottom: 15px; border-radius: 3px;">
                             <small>Epoch {event['generation']}</small><br>
                             <strong>{event['icon']} {event['title']}</strong>
                             <p style="font-size: 0.9em; color: #ccc;">{event['description']}</p>
@@ -4529,7 +4531,7 @@ def main():
                         fig_tree, ax_tree = plt.subplots(figsize=(5, 4))
                         pos = nx.spring_layout(phylogeny_graph, seed=42, k=0.9)
                         labels = nx.get_node_attributes(phylogeny_graph, 'label')
-                        nx.draw(phylogeny_graph, pos, labels=labels, with_labels=True, node_size=3000, node_color='#00FF66', font_size=8, font_color='white', arrowsize=20, ax=ax_tree)
+                        nx.draw(phylogeny_graph, pos, labels=labels, with_labels=True, node_size=3000, node_color='#00FF41', font_size=8, font_color='white', arrowsize=20, ax=ax_tree)
                         ax_tree.set_title("Phylogeny of Kingdoms")
                         st.pyplot(fig_tree)
                         plt.clf()
