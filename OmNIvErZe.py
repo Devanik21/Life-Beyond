@@ -2061,21 +2061,20 @@ def main():
 
     # --- DARK GREEN/BROWN/WHITE "TERRA" THEME ---
     # --- MASTER TERRA THEME CSS ---
+    # --- MASTER TERRA THEME CSS (FINAL) ---
     st.markdown("""
         <style>
         
         /* === 1. CORE APP & HEADER === */
-
-            /* --- Transparent Header --- */
+            /* Transparent Header */
             header[data-testid="stHeader"] {
                 background: transparent;
             }
-            /* --- Hide Header Decoration Line --- */
+            /* Hide Header Decoration Line */
             [data-testid="stDecoration"] {
                 display: none;
             }
-
-            /* --- Main App Background --- */
+            /* Main App Background */
             .stApp {
                 background-color: #0D1117; /* Near-black */
                 background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%231A202C' fill-opacity='0.4'%3E%3Cpath d='M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41zM0 1.4l2.83 2.83 1.41-1.41L1.41 0H0v1.41zM38.59 40l-2.83-2.83 1.41-1.41L40 38.59V40h-1.41zM40 1.41l-2.83 2.83-1.41-1.41L38.59 0H40v1.41zM20 18.6l2.83-2.83 1.41 1.41L21.41 20l2.83 2.83-1.41 1.41L20 21.41l-2.83 2.83-1.41-1.41L18.59 20l-2.83-2.83 1.41-1.41L20 18.59z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
@@ -2084,27 +2083,24 @@ def main():
             }
 
         /* === 2. CONTAINERS & LAYOUT === */
-
-            /* --- Glassmorphism Containers --- */
+            /* Glassmorphism Containers */
             .block-container, [data-testid="stSidebar"], [data-testid="stExpander"], [data-testid="stTabs"] {
-                background: rgba(15, 25, 15, 0.65); /* Dark green-black tint */
+                background: rgba(15, 25, 15, 0.75); /* Dark green-black tint */
                 backdrop-filter: blur(12px);
                 -webkit-backdrop-filter: blur(12px);
                 border-radius: 15px;
                 border: 1px solid rgba(67, 83, 52, 0.25); /* Subtle dark green/brown border */
                 box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             }
-
             [data-testid="stSidebar"] {
                 border-right: 1px solid rgba(67, 83, 52, 0.35);
             }
-
             [data-testid="stExpander"] {
                 margin-bottom: 10px;
                 border-color: rgba(67, 83, 52, 0.2);
             }
             
-            /* --- Tab Buttons --- */
+            /* Tab Buttons */
             [data-baseweb="tab"] {
                 color: #9EB384 !important; /* Muted green text */
                 transition: all 0.3s ease;
@@ -2115,44 +2111,37 @@ def main():
             }
             [data-baseweb="tab"][aria-selected="true"] { 
                 color: #FAF3E3 !important; 
+                background-color: rgba(67, 83, 52, 0.3);
                 border-bottom: 3px solid #9E7676 !important; /* Earthy Clay underline */
             }
 
         /* === 3. TEXT & TITLES === */
-
-            /* --- Gradient Titles --- */
+            /* Gradient Titles */
             h1, h2, h3, h4, h5, h6 {
                 background: -webkit-linear-gradient(45deg, #435334, #9E7676, #FAF3E3); /* Dark Green -> Brown -> Off-White */
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
                 text-shadow: 0 0 8px rgba(250, 243, 227, 0.1);
             }
-
-            /* --- Body Text --- */
+            /* Body Text */
             p, div, span, li, label, .st-emotion-cache-16idsys p, [data-testid="stMarkdown"] {
                 color: #E2E8F0 !important; /* Light gray text */
                 text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
             }
-            
-            /* --- Links --- */
+            /* Links */
             a { 
-                color: #9EB384 !important; /* Muted green */
+                color: #9EB384 !important; 
                 text-decoration: none; 
-                transition: all 0.3s ease;
             }
-            a:hover { 
-                color: #FAF3E3 !important; /* Off-white on hover */
-                text-decoration: underline; 
-            }
+            a:hover { color: #FAF3E3 !important; text-decoration: underline; }
 
-        /* === 4. BUTTONS & WIDGETS === */
-
-            /* --- Standard Buttons (Secondary) --- */
+        /* === 4. BUTTONS & WIDGETS (Earthy Overrides) === */
+            /* Secondary Buttons */
             button[kind="secondary"], [data-testid="stDownloadButton"] > button {
                 border-radius: 10px;
                 border: 1px solid rgba(67, 83, 52, 0.7) !important;
                 background-color: rgba(67, 83, 52, 0.2) !important;
-                color: #9EB384 !important; /* Muted green accent */
+                color: #9EB384 !important;
                 transition: all 0.3s ease;
             }
             button[kind="secondary"]:hover, [data-testid="stDownloadButton"] > button:hover {
@@ -2161,102 +2150,103 @@ def main():
                 color: #FAF3E3 !important;
                 box-shadow: 0 0 15px rgba(158, 179, 132, 0.3) !important;
             }
-
-            /* --- Primary Buttons (like "LOAD COLLECTION") --- */
+            /* Primary Buttons */
             button[kind="primary"] {
                 border-radius: 10px;
                 border: 1px solid #9EB384 !important;
-                background-color: #435334 !important; /* Deep Green */
+                background-color: #435334 !important; 
                 color: #FAF3E3 !important;
-                transition: all 0.3s ease;
             }
             button[kind="primary"]:hover {
+                background-color: #9E7676 !important; /* Earthy clay on hover */
                 border-color: #FAF3E3 !important;
                 box-shadow: 0 0 15px rgba(158, 179, 132, 0.5) !important;
             }
 
-            /* --- Sliders: Track --- */
+            /* Sliders: Track */
             div[data-baseweb="slider"] > div > div > div:first-child {
                 background-color: #9E7676 !important; /* Earthy Clay */
             }
-            /* --- Sliders: Handle --- */
+            /* Sliders: Handle */
             div[role="slider"] {
-                background-color: #FAF3E3 !important; /* Off-white */
-                border: 2px solid #9E7676 !important; /* Earthy Clay border */
+                background-color: #FAF3E3 !important; 
+                border: 2px solid #9E7676 !important; 
                 box-shadow: 0 0 5px rgba(0,0,0,0.5);
             }
 
-            /* --- Checkboxes --- */
+            /* Checkboxes */
             div[data-baseweb="checkbox"] div[aria-checked="true"] {
-                background-color: #9E7676 !important; /* Earthy Clay */
+                background-color: #9E7676 !important;
                 border-color: #9E7676 !important;
             }
 
-            /* --- Multiselect Tags ('Carbon', 'Silicon') --- */
+            /* Multiselect Tags */
             span[data-baseweb="tag"] {
-                background-color: rgba(67, 83, 52, 0.9) !important; /* Deep Green */
+                background-color: rgba(67, 83, 52, 0.9) !important;
                 border: 1px solid #9EB384 !important;
-                color: #FAF3E3 !important; /* Off-white text */
+                color: #FAF3E3 !important;
             }
             
-            /* --- Text/Number Input Focus --- */
+            /* Inputs Focus */
             div[data-baseweb="input"]:focus-within, 
             div[data-testid="stNumberInput"]:focus-within {
                 border-color: #9E7676 !important;
                 box-shadow: 0 0 0 0.2rem rgba(158, 118, 118, 0.25) !important;
             }
-            div[data-testid="stNumberInput"] button:hover {
-                color: #9E7676 !important;
-                border-color: #9E7676 !important;
+
+        /* === 5. ALERTS & MESSAGES (BANISHING THE BLUE) === */
+            
+            /* Info Box (The "Empty Exhibit" box) */
+            [data-testid="stInfo"] {
+                background-color: rgba(67, 83, 52, 0.3) !important; /* Deep Green background */
+                border: 1px solid #9EB384 !important;
+                color: #E2E8F0 !important;
+            }
+            /* Info Icon */
+            [data-testid="stInfo"] svg {
+                fill: #9EB384 !important; /* Green Icon */
+                color: #9EB384 !important;
             }
             
-            /* --- Progress Bar --- */
-            [data-testid="stProgressBar"] > div {
-                background-color: #9E7676 !important; /* Earthy Clay */
+            /* Success Box */
+            [data-testid="stSuccess"] {
+                background-color: rgba(158, 179, 132, 0.2) !important;
+                border: 1px solid #9EB384 !important;
+                color: #E2E8F0 !important;
             }
-
-        /* === 5. ALERTS & MESSAGES === */
-
-            /* --- Info Box --- */
-            [data-testid="stInfo"] {
-                background-color: rgba(158, 179, 132, 0.1);
-                border: 1px solid #9EB384;
-            }
-            /* --- Warning Box --- */
+            
+            /* Warning Box */
             [data-testid="stWarning"] {
-                background-color: rgba(158, 118, 118, 0.1);
-                border: 1px solid #9E7676;
+                background-color: rgba(158, 118, 118, 0.2) !important;
+                border: 1px solid #9E7676 !important;
+                color: #E2E8F0 !important;
             }
-            /* --- Error Box --- */
+            [data-testid="stWarning"] svg {
+                fill: #9E7676 !important;
+                color: #9E7676 !important;
+            }
+
+            /* Error Box */
             [data-testid="stError"] {
-                background-color: rgba(176, 50, 50, 0.1);
-                border: 1px solid #B03232;
+                background-color: rgba(100, 20, 20, 0.4) !important;
+                border: 1px solid #FF6B6B !important;
+                color: #E2E8F0 !important;
             }
 
         /* === 6. SCROLLBARS === */
-
-            /* --- Main Scrollbar --- */
-            ::-webkit-scrollbar {
-                width: 8px;
-            }
-            /* --- Scrollbar Track --- */
-            ::-webkit-scrollbar-track {
-                background: rgba(15, 25, 15, 0.1); /* Transparent green */
-            }
-            /* --- Scrollbar Handle --- */
+            ::-webkit-scrollbar { width: 8px; }
+            ::-webkit-scrollbar-track { background: rgba(15, 25, 15, 0.1); }
             ::-webkit-scrollbar-thumb {
-                background-color: #435334; /* Deep Green */
+                background-color: #435334; 
                 border-radius: 10px;
-                border: 2px solid transparent;
-                background-clip: content-box;
             }
-            /* --- Scrollbar Handle (Hover) --- */
-            ::-webkit-scrollbar-thumb:hover {
-                background-color: #9E7676; /* Earthy Clay on hover */
-            }
+            ::-webkit-scrollbar-thumb:hover { background-color: #9E7676; }
 
         </style>
     """, unsafe_allow_html=True)
+
+
+  
     if 'password_attempts' not in st.session_state:
         st.session_state.password_attempts = 0
     if 'password_correct' not in st.session_state:
