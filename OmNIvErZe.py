@@ -2140,7 +2140,7 @@ def main():
             }
             
             [data-testid="stSlider"] [data-baseweb="slider"] > div:nth-child(2) {
-                background: #9E7676; /* Filled part of the track */
+                background: #9EB384; /* Filled part of the track - Changed from pinkish-brown to green */
             }
 
             [data-testid="stSlider"] [data-baseweb="slider"] > div:nth-child(3) {
