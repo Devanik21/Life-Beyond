@@ -2053,7 +2053,6 @@ class RedQueenParasite:
 
 def main():
     st.set_page_config(
-        page_title="LIFE BEYOND II: The Museum of Alien Life",
         page_title="LIFE BEYOND II: Museum of Alien Life",
         layout="wide",
         page_icon="🪐",
@@ -2239,7 +2238,6 @@ def main():
     # --- THE "CURATOR'S CONSOLE" SIDEBAR ---
     # ===============================================
     
-    st.sidebar.markdown('<h1 style="text-align: center; color: #7F7FFF;">🏛️<br>LIFE BEYOND II</h1>', unsafe_allow_html=True)
     st.sidebar.markdown('<h1 style="text-align: center;">🏛️<br>LIFE BEYOND II</h1>', unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
@@ -3081,7 +3079,6 @@ def main():
         complexity_thresholds_to_log = [10, 25, 50, 100, 200, 500]
 
         for gen in range(s.get('num_generations', 200)):
-            status_text.markdown(f"### <p style='color:#7F7FFF;'>🏛️ Simulating Epoch {gen + 1}/{s.get('num_generations', 200)}</p>", unsafe_allow_html=True)
             status_text.markdown(f"### 🏛️ Simulating Epoch {gen + 1}/{s.get('num_generations', 200)}")
             
             fitness_scores = []
@@ -3472,7 +3469,6 @@ def main():
                     red_queen.target_kingdom_id = kingdom_counts.most_common(1)[0][0]
         
         for gen in range(start_gen, end_gen):
-            status_text.markdown(f"### <p style='color:#7F7FFF;'>🏛️ Simulating Epoch {gen + 1}/{end_gen}</p>", unsafe_allow_html=True)
             status_text.markdown(f"### 🏛️ Simulating Epoch {gen + 1}/{end_gen}")
             
             fitness_scores = []
@@ -3819,7 +3815,6 @@ def main():
         else:
             results_table.insert(results_to_save)
 
-    st.markdown('<h1 class="main-header" style="color: #7F7FFF;">🏛️ Exhibit Hall: Simulation Results</h1>', unsafe_allow_html=True)
     st.markdown('<h1>🏛️ Exhibit Hall: Simulation Results</h1>', unsafe_allow_html=True)
     
     if not st.session_state.history:
@@ -4341,7 +4336,6 @@ def main():
                     log_container = st.container(height=400)
                     for event in sorted(filtered_events, key=lambda x: x['generation']):
                         log_container.markdown(f"""
-                        <div style="border-left: 3px solid #7F7FFF; padding-left: 10px; margin-bottom: 15px;">
                         <div style="border-left: 3px solid #00FF66; padding-left: 10px; margin-bottom: 15px; border-radius: 3px;">
                             <small>Epoch {event['generation']}</small><br>
                             <strong>{event['icon']} {event['title']}</strong>
@@ -4535,7 +4529,6 @@ def main():
                         fig_tree, ax_tree = plt.subplots(figsize=(5, 4))
                         pos = nx.spring_layout(phylogeny_graph, seed=42, k=0.9)
                         labels = nx.get_node_attributes(phylogeny_graph, 'label')
-                        nx.draw(phylogeny_graph, pos, labels=labels, with_labels=True, node_size=3000, node_color='#00aaff', font_size=8, font_color='white', arrowsize=20, ax=ax_tree)
                         nx.draw(phylogeny_graph, pos, labels=labels, with_labels=True, node_size=3000, node_color='#00FF66', font_size=8, font_color='white', arrowsize=20, ax=ax_tree)
                         ax_tree.set_title("Phylogeny of Kingdoms")
                         st.pyplot(fig_tree)
