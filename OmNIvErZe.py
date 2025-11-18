@@ -3833,49 +3833,115 @@ def main():
         st.info("This exhibit hall is empty. Adjust the physical laws in the Curator's Console and press '🚀 Curate New Exhibit' to populate it with life.")
         st.markdown("""
             <div style="border-left: 3px solid #9E7676; padding-left: 15px; margin-top: 20px; border-radius: 3px;">
-            ### The Museum of Universal Life: An Essay
+            
+            ### The Museum of Universal Life: A Curator's Treatise
 
-            The universe is a vast, dark ocean of possibility, and the desire to explore it is boundless. This is the conceptual blueprint for an imaginary institution equal to that vastness: a museum dedicated to showcasing every potential form of life. Such a museum would not be a simple collection of curiosities but a profound study of how the universal laws of physics and chemistry sculpt biology in staggeringly different ways. This museum would be divided into two fundamental wings: "Life As We Know It" and the far more speculative, "Life As We Don't Know It."
+            What is the sound of a universe empty of all but our own voice? It is a silence that has haunted humanity since we first looked up, and it is the question that gives this institution its purpose. We are a species defined by our search for mirrors. We build grand instruments to listen for echoes in the static, and we write stories of beings we can only imagine. But what if we have been looking through the wrong end of the telescope?
 
-            #### Wing 1: Life As We Know It (The Carbon Gallery)
-            The first wing of the museum is dedicated to life built on the same foundation as our own. The central exhibit here is carbon, the "centerpiece in the molecular machinery of life."
+            The universe is a vast, dark ocean of possibility. We believe life is a miracle, a precious anomaly. But physics is universal, and chemistry is its inevitable consequence. Where the conditions are right, life may not be a miracle at all, but a *mandate*. An imperative. A chemical system that complexifies until it begins to *happen*.
 
-            **The Carbon-Based Standard:** This exhibit shows why carbon is so special. It is common throughout the universe and possesses a rare ability to form four-way bonds, linking to itself in long, stable chains. This versatility allows for the "huge complex molecules" necessary for biology. Even here, the diversity would be immense; scientists have identified over a million possible carbon-based alternatives to our own DNA.
+            This museum is not a collection of what *is*, but a laboratory of what *could be*. It is an interactive archive of every potential answer to that great, silent question. You are not a passive visitor. You are a Curator. Your task is not to observe, but to *sculpt*. You will set the fundamental laws—the strength of gravity, the richness of the elements, the very definition of "success"—and from the void, you will coax new realities.
 
-            **The Hall of Convergent Evolution:** This gallery explores a fascinating idea: even carbon-based life on other "Earth-like" planets might look familiar. It explains the concept of convergent evolution, where similar environmental pressures cause similar features to evolve independently. Exhibits show how features like eyesight and flight have appeared multiple times on Earth, suggesting that the "greatest hits of evolution" could be on repeat across the cosmos.
+            Your journey begins here. Welcome to the Museum of Universal Life.
 
-            #### Wing 2: Life As We Don't Know It (The Exotic Biochemistry Hall)
-            This is where the museum truly expands our concept of life itself. This wing houses beings that challenge our carbon-centric biases, built from exotic chemistries thriving in environments we would consider hellish.
+            ---
 
-            **The Silicon Contender:** The most prominent exhibit here is silicon-based life. At first glance, silicon seems a perfect alternative, as it also forms four-way bonds. However, the exhibit details its flaws: its bonds are weaker, and, crucially, in the presence of oxygen, it binds into solid rock.
+            ### Wing 1: The Gallery of the Familiar (Life As We Know It)
 
-            A diorama here might show the frigid world of Saturn's moon Titan. In this oxygen-free environment, with vast lakes of liquid methane, silicon-based beings could theoretically exist, perhaps with ultra-slow metabolisms and lifecycles lasting millions of years.
+            The first wing of the museum is dedicated to the foundation of our own biology, a testament to the staggering power of the one element that defines us: Carbon.
 
-            **The "Extreme" Exhibits:** Deeper in this wing, the truly bizarre possibilities are displayed. Speculations include lifeforms living inside molten silicate rock, self-organizing plasma crystals in cosmic dust that "resemble dna," and even theoretical "macronuclei" life evolving in the dense particle sea on the surface of a neutron star.
+            **The Carbon-Based Standard:**
+            This central exhibit showcases why carbon is the "centerpiece in the molecular machinery of life." It is common, stable, and uniquely promiscuous, forming four-way bonds that allow it to build the long, complex chains—the "molecular architecture"—of proteins and DNA. This is the "Carbon Gallery," a world that looks much like our own, teeming with life that, while alien, feels strangely familiar.
 
-            #### Wing 3: The Sculpting Hand of Environment
-            The final, and perhaps most dramatic, wing of the museum demonstrates how alien environments act as cosmic sculptors, shaping the bodies of both carbon-based and exotic life.
+            **The Archive of Convergent Forms:**
+            This gallery explores one of the most profound ideas in biology: convergent evolution. It poses that the "greatest hits of evolution" may be on repeat across the cosmos. The *problems* of life are finite: find energy, avoid being energy, reproduce. The *solutions* to these problems may be similarly finite. 
 
-            **The Gravity Gallery:** This exhibit directly illustrates gravity's immense power.
+            Here, you will see a thousand different eyes, all evolved independently on a thousand different worlds, all for the singular purpose of turning light into information. You will see wings of stretched membrane, of feathered bone, and of crystalline plates, all sculpted by the same universal laws of aerodynamics. This exhibit suggests that the *idea* of "the hunter" or "the tree" is a mold, and into it will be poured the flesh of countless different worlds, all taking a similar shape.
 
-            *   **High-Gravity Worlds:** One diorama, based on "super earths," would show a landscape of stunted plant life. The land animals here would be short, dense, and powerful, built with "large bones and muscle mass" and robust circulatory systems just to survive the crushing force.
+            **The Hall of Lost Progenitors:**
+            But even our own "familiar" biology is just one winning ticket from a planetary lottery. This gallery is a haunting 'what if' scenario, displaying the ghosts of Earth's potential. The 20-amino-acid set we use is not a mandate, but a survivor. This exhibit showcases life built on alternative amino acids, or with a different genetic code (perhaps ATGC-free), or life that uses Arsenic in place of Phosphorus. These are the "Lost Progenitors," carbon-based lifeforms that *could* have been, reminding us that even our own existence is but one branch on a colossal, unseeable tree.
 
-            *   **Low-Gravity Worlds:** The neighboring diorama would be a stunning contrast. On a low-gravity planet, plants could grow to "towering heights." The animals would be slender and graceful, with "body types that boggle the mind," free from the need for bulky skeletons.
+            ---
 
-            **The Hall of Senses:** Here, an exhibit shows how life adapts to the light of its star. Life on dimly lit planets would evolve "huge eyes to suck in extra light," much like our own nocturnal mammals.
+            ### Interlude: The Atrium of Inquiry (What *is* Life?)
 
-            **The "Alien Garden":** This final exhibit is a visually stunning display of alien botany, based on star color. Our plants are green because they reflect the green light from our yellow sun. This garden showcases the bizarre alternatives:
+            Before you can explore the truly alien, you must first unburden yourself of the definitions that bind you. In this central atrium, we challenge the very concept of "life."
 
-            *   Around dim red dwarf stars, the vegetation would appear "black," adapted to absorb every possible wavelength of faint light.
+            We present the "Seven Pillars of Biology"—Metabolism, Homeostasis, Growth, Reproduction, Response, Evolution, and Order. And beside them, we present their challengers.
 
-            *   Around hotter, bluer stars, plants "could appear redder," using different pigments for their own unique photosynthesis.
+            * **The Crystal:** Does not metabolize, but *grows*. It has order. It *reproduces* its own pattern. Is it not, in some way, alive?
+            * **The Fire:** It consumes fuel (metabolism), it responds to stimuli (wind), it grows, it "reproduces" (sparks). Why is it not alive?
+            * **The Plasma-Vortex Entity:** A diorama of a stellar nebula shows self-sustaining vortices of plasma, feeding on magnetic fields, maintaining their structure for millennia. They are ordered, they metabolize energy, they respond to their environment. 
 
-            A special display might feature a purple landscape. Earth itself may have once appeared purple due to a simpler pigment called retinol, leading to the speculation that purple, not green, "may be life's favorite color."
+            This exhibit has no answer. It is a question. It is a solvent, designed to dissolve your certainty, for you cannot recognize alien life if you cannot see past the shadow of your own.
 
-            Ultimately, this museum is a monument to imagination grounded in science. It teaches us that while the laws of physics are universal, the forms that life can take within those laws are limited only by the number of worlds on which it can arise.
+            ---
+
+            ### Wing 2: The Galleries of Unfettered Creation (Life As We Don't)
+
+            Here, we leave the comfortable and enter the bizarre. This wing houses beings that challenge our carbon-centric biases, built from exotic chemistries thriving in environments we would consider hellish.
+
+            **The Silicon Contender:**
+            The most famous exhibit. At first glance, silicon seems a perfect alternative, as it also forms four-way bonds. But its flaws are revealed: its bonds are weaker, and it "rusts" into solid rock (quartz) in the presence of oxygen. A diorama shows the frigid world of Saturn's moon Titan. In its -180°C, oxygen-free environment, with vast lakes of liquid methane, silicon-based beings (the "Silicoids") are shown with ultra-slow metabolisms, their lifecycles playing out over millions of years.
+
+            **The Aether Wing (Physics-Based Life):**
+            This is where chemistry itself is left behind.
+
+            * **The Plasma Atrium:** A stunning simulation of a nebula, where life has emerged not from atoms, but from organized electromagnetic fields. These "Plasmaforms" are living, self-sustaining patterns of superheated gas, their "thoughts" rippling as magnetic waves, their "bodies" entire stellar clouds.
+            * **The Geode-Mother (Crystalline Life):** A massive, slow-rotating geode is displayed. Its "metabolism" is the piezoelectric energy generated by geological stress. Its "growth" is the slow, millennia-long process of crystallization. Its "thoughts" are phonon vibrations, a song of pure, slow-moving stone.
+            * **The Umbra Exhibit (Void-Based Life):** A theoretical diorama of life based on "void" or "dark energy." We cannot show you this life. We can only show you the *absence* it leaves, the anomalous gravitational lensing around a patch of "empty" space where *something* is metabolizing the fabric of reality itself.
+            * **The Quantum Echo (Psionic Life):** The final, most abstract exhibit. A representation of life as pure, self-replicating *information*. This is not life *of* matter, but life that *uses* matter as a temporary substrate. These "Psionic" beings are patterns of quantum-entangled information, existing as a shared "consciousness" within a planet's crust or a star's core, their existence defined not by a body, but by a complex, self-aware idea.
+
+            ---
+
+            ### Wing 3: The Sculpting Hand (Environmental Architects)
+
+            This wing demonstrates how alien environments act as cosmic sculptors, shaping the bodies and biologies of all life, familiar or otherwise. The environment is the artist; the organism is the clay.
+
+            **The Gravity Gallery:**
+            This exhibit directly illustrates gravity's immense power.
+            * **High-Gravity Worlds:** A diorama of a "super-earth." The crushing force has sculpted a world of stunted, armored plants. The land animals are dense, six-legged, and powerful, built with robust circulatory systems just to stand.
+            * **Low-Gravity Worlds:** The neighboring diorama is a stunning contrast. On a low-gravity planet, plants tower to "impossible heights." The animals are slender, graceful, and fragile, with "body types that boggle the mind," free from the need for bulky skeletons.
+
+            **The Gallery of the Void (Cataclysm and Rebirth):**
+            This exhibit teaches a hard lesson: life's tapestry is not woven on an unbroken loom. It is punctuated by fire and ice. A vast, rotating display shows a planet suffering a mass extinction, a "cataclysm." The world is wiped clean. But in the quiet aftermath, the *survivors*—the small, the strange, the previously unsuccessful—emerge from the rubble. This gallery shows that extinction is not an end, but a *filter*. It is the engine of "adaptive radiation," the reset button that clears the board and allows for explosive, radical new forms of life to fill the empty stage.
+
+            **The Red Queen's Ballroom:**
+            A profound and unsettling exhibit. Two intricate, alien lifeforms—a predator and a prey, a host and a parasite—are shown in an endless, looping dance. This is the "Red Queen's Race." Life does not evolve in a vacuum; it evolves *against* other life. Here, you see that to stand still is to go extinct. Each new adaptation by the prey is a new "question" the predator must "answer." This co-evolutionary arms race, this "war of all against all," is shown to be the single greatest *driver* of complexity and intelligence in the universe. Boredom is a death sentence.
+
+            **The "Alien Garden":**
+            This final exhibit is a visually stunning display of alien botany, based on star color. Our plants are green because they reflect the green light from our yellow sun. This garden showcases the bizarre alternatives:
+            * Around dim red dwarf stars, the vegetation appears "black," adapted to absorb every possible wavelength of faint light.
+            * Around hotter, bluer stars, plants "could appear redder," using different pigments for their own unique photosynthesis.
+            A special display features a purple landscape. Earth itself may have once appeared purple due to a simpler pigment called retinol, leading to the speculation that purple, not green, "may be life's favorite color."
+
+            ---
+
+            ### The Final Wing: The Unseen Architects
+
+            You have seen life of all forms. You have seen the worlds that shaped them. This final, conceptual wing reveals the last and most powerful sculptors of all: the abstract laws of information, mathematics, and choice.
+
+            **The Genetic Engram:**
+            This hall is not a diorama, but a visualization. It shows the "code" of life—the Genetic Regulatory Network (GRN). It reveals that the body is just a *vehicle* for a deeper, more abstract entity: the self-replicating *program* that builds it. The exhibits here show how a simple, elegant set of rules can cascade into an organism of profound complexity, just as a few lines of code can generate a digital world. Life, it suggests, is computation.
+
+            **The Gallery of Intent (Autotelic Life):**
+            This gallery asks the deepest question: what is life's *goal*? We assume "survival" or "reproduction." But what if this, too, can evolve? This exhibit showcases theoretical "autotelic" life—organisms that have evolved their *own* objective.
+            * A diorama shows a "Philosopher" species that no longer reproduces, but has evolved to value *complexity* above all, spending its energy building intricate, beautiful, useless crystalline structures.
+            * Another shows a "Berserker" species that has evolved to value *only* reproduction, consuming itself in a suicidal frenzy to create.
+            This exhibit suggests that the "why" of life is not a constant, but the ultimate evolvable trait.
+
+            **The Curator's Mirror:**
+            There is one final exhibit. It is a simple, dark mirror. As you stand before it, you are identified as the final, "unseen architect."
+
+            Your choices in the Curator's Console—your decision to favor complexity, your selection of chemical bases, your choice to enable a "Red Queen" or a "Cataclysm"—are the "fundamental constants" of the reality you have chosen to observe. The life that emerges is not just a product of those laws, but a reflection of *your* intent, *your* biases, and *your* definition of "success."
+
+            You are not just a visitor. You are the "physics" of this pocket universe. You are the god of this small, glass world.
+
+            **The Grand Coda:**
+            This museum, in the end, is a mirror. It is a monument not to what we have *found*, but to what we can *imagine*. In this laboratory of the possible, every simulation is a new hypothesis, every new lifeform a new answer. It reflects the one thing we can truly know: the insatiable, god-like, and deeply human desire to *create*, to *understand*, and, in the vast, echoing silence, to not be alone.
 
             <br><br>
-            *<p style="font-size: 0.8em; text-align: right; color: #aaa;">Inspired by Melodysheep's "LIFE BEYOND II"</p>*
+            *<p style="font-size: 0.8em; text-align: right; color: #aaa;">Inspired by the works of Melodysheep, Stanisław Lem, and the endless frontiers of astrobiology.</p>*
             </div>
         """, unsafe_allow_html=True)
     else:
