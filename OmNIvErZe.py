@@ -2560,8 +2560,8 @@ def main():
         s['mutation_rate'] = st.slider("Base Mutation Rate (μ)", 0.01, 0.9, s.get('mutation_rate', 0.2), 0.01)
         s['crossover_rate'] = st.slider("Crossover Rate", 0.0, 1.0, s.get('crossover_rate', 0.7), 0.05)
         s['innovation_rate'] = st.slider("Rule Innovation Rate (σ)", 0.01, 0.5, s.get('innovation_rate', 0.05), 0.01, help="Rate of creating new GRN rules.")
-        s['component_innovation_rate'] = st.slider("Component Innovation Rate (α)", 0.0, 0.1, s.get('component_innovation_rate', 0.01), 0.001, help="Rate of inventing new chemical components.")
-        s['meta_innovation_rate'] = st.slider("Meta-Innovation Rate (Sensor)", 0.0, 0.01, s.get('meta_innovation_rate', 0.005), 0.0001, help="Rate of inventing new *types* of senses.")
+       # s['component_innovation_rate'] = st.slider("Component Innovation Rate (α)", 0.0, 0.1, s.get('component_innovation_rate', 0.01), 0.001, help="Rate of inventing new chemical components.")
+       # s['meta_innovation_rate'] = st.slider("Meta-Innovation Rate (Sensor)", 0.0, 0.01, s.get('meta_innovation_rate', 0.005), 0.0001, help="Rate of inventing new *types* of senses.")
         s['max_rule_conditions'] = st.slider("Max Rule Conditions", 1, 5, s.get('max_rule_conditions', 3), 1)
 
     with st.sidebar.expander("Ecosystem & Speciation Dynamics", expanded=False):
