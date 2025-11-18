@@ -2054,10 +2054,69 @@ class RedQueenParasite:
 def main():
     st.set_page_config(
         page_title="LIFE BEYOND II: The Museum of Alien Life",
+        page_title="LIFE BEYOND II: Museum of Alien Life",
         layout="wide",
         page_icon="🪐",
         initial_sidebar_state="expanded"
     )
+
+    # --- MODERN GLASSMORPHISM STYLING ---
+    st.markdown("""
+        <style>
+            /* --- General & Background --- */
+            .stApp {
+                background-image: url("https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80");
+                background-size: cover;
+                background-attachment: fixed;
+            }
+
+            /* --- Glassmorphism Containers --- */
+            .block-container, [data-testid="stSidebar"], [data-testid="stExpander"], [data-testid="stTabs"] {
+                background: rgba(15, 25, 15, 0.6); /* Dark green tint */
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px); /* For Safari */
+                border-radius: 15px;
+                border: 1px solid rgba(0, 255, 100, 0.15);
+                box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            }
+
+            [data-testid="stSidebar"] {
+                border-right: 1px solid rgba(0, 255, 100, 0.25);
+            }
+
+            [data-testid="stExpander"] {
+                margin-bottom: 10px;
+            }
+
+            /* --- Text & Titles --- */
+            h1, h2, h3, h4, h5, h6 {
+                background: -webkit-linear-gradient(45deg, #00FF66, #00FFAA, #00DDFF);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                text-shadow: 0 0 10px rgba(0, 255, 150, 0.2);
+            }
+
+            p, div, span, li, label, .st-emotion-cache-16idsys p {
+                color: #E0E0E0 !important; /* Off-white for readability */
+                text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+            }
+            
+            /* --- Interactive Elements --- */
+            .stButton>button {
+                border-radius: 10px;
+                border: 1px solid rgba(0, 255, 100, 0.3);
+                background-color: rgba(0, 255, 100, 0.1);
+                color: #00FF66;
+                transition: all 0.3s ease;
+            }
+            .stButton>button:hover {
+                background-color: rgba(0, 255, 100, 0.3);
+                border-color: #00FF66;
+                box-shadow: 0 0 15px rgba(0, 255, 100, 0.5);
+            }
+
+        </style>
+    """, unsafe_allow_html=True)
 
     if 'password_attempts' not in st.session_state:
         st.session_state.password_attempts = 0
@@ -2181,6 +2240,7 @@ def main():
     # ===============================================
     
     st.sidebar.markdown('<h1 style="text-align: center; color: #7F7FFF;">🏛️<br>LIFE BEYOND II</h1>', unsafe_allow_html=True)
+    st.sidebar.markdown('<h1 style="text-align: center;">🏛️<br>LIFE BEYOND II</h1>', unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
     s = copy.deepcopy(st.session_state.settings)
@@ -3022,6 +3082,7 @@ def main():
 
         for gen in range(s.get('num_generations', 200)):
             status_text.markdown(f"### <p style='color:#7F7FFF;'>🏛️ Simulating Epoch {gen + 1}/{s.get('num_generations', 200)}</p>", unsafe_allow_html=True)
+            status_text.markdown(f"### 🏛️ Simulating Epoch {gen + 1}/{s.get('num_generations', 200)}")
             
             fitness_scores = []
             for genotype in population:
@@ -3412,6 +3473,7 @@ def main():
         
         for gen in range(start_gen, end_gen):
             status_text.markdown(f"### <p style='color:#7F7FFF;'>🏛️ Simulating Epoch {gen + 1}/{end_gen}</p>", unsafe_allow_html=True)
+            status_text.markdown(f"### 🏛️ Simulating Epoch {gen + 1}/{end_gen}")
             
             fitness_scores = []
             for genotype in population:
@@ -3758,6 +3820,7 @@ def main():
             results_table.insert(results_to_save)
 
     st.markdown('<h1 class="main-header" style="color: #7F7FFF;">🏛️ Exhibit Hall: Simulation Results</h1>', unsafe_allow_html=True)
+    st.markdown('<h1>🏛️ Exhibit Hall: Simulation Results</h1>', unsafe_allow_html=True)
     
     if not st.session_state.history:
         st.info("This exhibit hall is empty. Adjust the physical laws in the Curator's Console and press '🚀 Curate New Exhibit' to populate it.")
@@ -4279,6 +4342,7 @@ def main():
                     for event in sorted(filtered_events, key=lambda x: x['generation']):
                         log_container.markdown(f"""
                         <div style="border-left: 3px solid #7F7FFF; padding-left: 10px; margin-bottom: 15px;">
+                        <div style="border-left: 3px solid #00FF66; padding-left: 10px; margin-bottom: 15px; border-radius: 3px;">
                             <small>Epoch {event['generation']}</small><br>
                             <strong>{event['icon']} {event['title']}</strong>
                             <p style="font-size: 0.9em; color: #ccc;">{event['description']}</p>
@@ -4472,6 +4536,7 @@ def main():
                         pos = nx.spring_layout(phylogeny_graph, seed=42, k=0.9)
                         labels = nx.get_node_attributes(phylogeny_graph, 'label')
                         nx.draw(phylogeny_graph, pos, labels=labels, with_labels=True, node_size=3000, node_color='#00aaff', font_size=8, font_color='white', arrowsize=20, ax=ax_tree)
+                        nx.draw(phylogeny_graph, pos, labels=labels, with_labels=True, node_size=3000, node_color='#00FF66', font_size=8, font_color='white', arrowsize=20, ax=ax_tree)
                         ax_tree.set_title("Phylogeny of Kingdoms")
                         st.pyplot(fig_tree)
                         plt.clf()
