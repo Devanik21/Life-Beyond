@@ -1252,6 +1252,57 @@ def evaluate_fitness(genotype: Genotype, grid: ExhibitGrid, settings: Dict) -> f
 #
 # ========================================================
 
+def crossover(parent1: Genotype, parent2: Genotype, settings: Dict) -> Genotype:
+    """
+    Sexual reproduction: Mixes genes from two parents to create a child.
+    """
+    # Create a base child from parent1 (inherits metadata structure)
+    child = parent1.copy()
+    child.id = f"geno_{uuid.uuid4().hex[:6]}"
+    child.parent_ids = [parent1.id, parent2.id]
+    child.age = 0
+    child.fitness = 0.0
+    
+    # --- 1. Component Crossover (The "Body" Mix) ---
+    # Child gets a mix of components from both parents
+    child.component_genes = {}
+    all_comp_names = set(parent1.component_genes.keys()) | set(parent2.component_genes.keys())
+    
+    for name in all_comp_names:
+        # If both have it, 50/50 chance
+        if name in parent1.component_genes and name in parent2.component_genes:
+            source = parent1 if random.random() < 0.5 else parent2
+            child.component_genes[name] = source.component_genes[name]
+        # If only one has it, chance to inherit (gene flow)
+        elif name in parent1.component_genes:
+            if random.random() < 0.8: # High chance to keep existing
+                child.component_genes[name] = parent1.component_genes[name]
+        elif name in parent2.component_genes:
+            if random.random() < 0.8:
+                child.component_genes[name] = parent2.component_genes[name]
+
+    # Ensure at least one component exists
+    if not child.component_genes:
+        child.component_genes = parent1.component_genes.copy()
+
+    # --- 2. Rule Crossover (The "Brain" Mix) ---
+    # Uniform crossover for rules
+    child.rule_genes = []
+    # Take roughly half from each, preserving relative order
+    p1_rules = [r for r in parent1.rule_genes if random.random() < 0.5]
+    p2_rules = [r for r in parent2.rule_genes if random.random() < 0.5]
+    child.rule_genes = p1_rules + p2_rules
+    
+    # --- 3. Parameter Averaging ---
+    if settings.get('enable_hyperparameter_evolution', False):
+        child.evolvable_mutation_rate = (parent1.evolvable_mutation_rate + parent2.evolvable_mutation_rate) / 2
+        child.evolvable_innovation_rate = (parent1.evolvable_innovation_rate + parent2.evolvable_innovation_rate) / 2
+
+    child.update_kingdom()
+    child.complexity = child.compute_complexity()
+    return child
+  
+
 def mutate(genotype: Genotype, settings: Dict) -> Genotype:
     """
     The core of "infinite" evolution. Mutates parameters,
@@ -4054,6 +4105,7 @@ def main():
                 parent1 = random.choice(survivors)
                 parent2 = random.choice(survivors)
 
+                # --- PATH A: Endosymbiosis (Rare, Genome Merging) ---
                 if s.get('enable_endosymbiosis', True) and random.random() < s.get('endosymbiosis_rate', 0.005):
                     host = parent1.copy()
                     symbiote = parent2.copy()
@@ -4073,7 +4125,6 @@ def main():
                     
                     child = mutate(host, s)
                     offspring.append(child)
-                    st.toast(f"🤝 ENDOSYMBIOSIS! Organisms merged into a new lifeform!", icon="🧬")
                     
                     event_desc = f"Two distinct organisms from lineages `{parent1.lineage_id}` and `{parent2.lineage_id}` have merged into a single, more complex entity, combining their genetic material."
                     st.session_state.genesis_events.append({
@@ -4083,7 +4134,16 @@ def main():
                         'description': event_desc,
                         'icon': '🧬'
                     })
+                    st.toast(f"🤝 ENDOSYMBIOSIS! Organisms merged!", icon="🧬")
 
+                # --- PATH B: Sexual Reproduction (Crossover) ---
+                elif random.random() < s.get('crossover_rate', 0.7):
+                    child = crossover(parent1, parent2, s)
+                    child = mutate(child, s) # Always mutate a little after crossover
+                    child.generation = gen + 1
+                    offspring.append(child)
+
+                # --- PATH C: Asexual Reproduction (Cloning) ---
                 else:
                     child = parent1.copy()
                     child = mutate(child, s)
