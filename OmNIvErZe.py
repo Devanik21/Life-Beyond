@@ -2060,8 +2060,18 @@ def main():
     )
 
     # --- DARK GREEN/BROWN/WHITE "TERRA" THEME ---
+    # --- DARK GREEN/BROWN/WHITE "TERRA" THEME ---
     st.markdown("""
         <style>
+            /* --- Remove Top Header Box --- */
+            header[data-testid="stHeader"] {
+                background: transparent;
+            }
+            /* Remove the colored top decoration line */
+            [data-testid="stDecoration"] {
+                display: none;
+            }
+
             /* --- Core App Styling --- */
             .stApp {
                 background-color: #0D1117; /* Near-black */
