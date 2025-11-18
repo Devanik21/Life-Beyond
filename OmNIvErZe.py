@@ -2059,7 +2059,7 @@ def main():
         initial_sidebar_state="expanded"
     )
 
-    # --- DARK GREEN "DEEP SPACE" THEME ---
+    # --- DARK BLUE/PURPLE/GREEN "NEBULA" THEME ---
     st.markdown("""
         <style>
             /* --- Core App Styling --- */
@@ -2072,29 +2072,29 @@ def main():
 
             /* --- Glassmorphism Containers --- */
             .block-container, [data-testid="stSidebar"], [data-testid="stExpander"], [data-testid="stTabs"] {
-                background: rgba(10, 25, 15, 0.6); /* Very dark green tint */
+                background: rgba(13, 17, 23, 0.65); /* Dark blue-black tint */
                 backdrop-filter: blur(12px);
                 -webkit-backdrop-filter: blur(12px);
                 border-radius: 15px;
-                border: 1px solid rgba(0, 255, 65, 0.15); /* Subtle dark green border */
+                border: 1px solid rgba(148, 103, 255, 0.15); /* Subtle purple border */
                 box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             }
 
             [data-testid="stSidebar"] {
-                border-right: 1px solid rgba(0, 255, 65, 0.25);
+                border-right: 1px solid rgba(148, 103, 255, 0.25);
             }
 
             [data-testid="stExpander"] {
                 margin-bottom: 10px;
-                border-color: rgba(0, 255, 65, 0.1);
+                border-color: rgba(148, 103, 255, 0.1);
             }
 
             /* --- Text & Titles --- */
             h1, h2, h3, h4, h5, h6 {
-                background: -webkit-linear-gradient(45deg, #00FF41, #008F11); /* Dark Green Gradient */
+                background: -webkit-linear-gradient(45deg, #2B32B2, #9467FF, #00642E); /* Blue -> Purple -> Green */
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
-                text-shadow: 0 0 8px rgba(0, 255, 65, 0.15);
+                text-shadow: 0 0 8px rgba(148, 103, 255, 0.15);
             }
 
             p, div, span, li, label, .st-emotion-cache-16idsys p {
@@ -2105,15 +2105,15 @@ def main():
             /* --- Interactive Elements --- */
             .stButton>button {
                 border-radius: 10px;
-                border: 1px solid rgba(0, 255, 65, 0.4);
-                background-color: rgba(0, 255, 65, 0.1);
-                color: #00FF41;
+                border: 1px solid rgba(148, 103, 255, 0.4);
+                background-color: rgba(148, 103, 255, 0.1);
+                color: #9467FF; /* Purple accent */
                 transition: all 0.3s ease;
             }
             .stButton>button:hover {
-                background-color: rgba(0, 255, 65, 0.25);
-                border-color: #00FF41;
-                box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
+                background-color: rgba(148, 103, 255, 0.25);
+                border-color: #9467FF;
+                box-shadow: 0 0 15px rgba(148, 103, 255, 0.4);
             }
 
         </style>
@@ -4338,7 +4338,7 @@ def main():
                     log_container = st.container(height=400)
                     for event in sorted(filtered_events, key=lambda x: x['generation']):
                         log_container.markdown(f"""
-                        <div style="border-left: 3px solid #00FF41; padding-left: 10px; margin-bottom: 15px; border-radius: 3px;">
+                        <div style="border-left: 3px solid #9467FF; padding-left: 10px; margin-bottom: 15px; border-radius: 3px;">
                             <small>Epoch {event['generation']}</small><br>
                             <strong>{event['icon']} {event['title']}</strong>
                             <p style="font-size: 0.9em; color: #ccc;">{event['description']}</p>
@@ -4531,7 +4531,7 @@ def main():
                         fig_tree, ax_tree = plt.subplots(figsize=(5, 4))
                         pos = nx.spring_layout(phylogeny_graph, seed=42, k=0.9)
                         labels = nx.get_node_attributes(phylogeny_graph, 'label')
-                        nx.draw(phylogeny_graph, pos, labels=labels, with_labels=True, node_size=3000, node_color='#00FF41', font_size=8, font_color='white', arrowsize=20, ax=ax_tree)
+                        nx.draw(phylogeny_graph, pos, labels=labels, with_labels=True, node_size=3000, node_color='#9467FF', font_size=8, font_color='white', arrowsize=20, ax=ax_tree)
                         ax_tree.set_title("Phylogeny of Kingdoms")
                         st.pyplot(fig_tree)
                         plt.clf()
