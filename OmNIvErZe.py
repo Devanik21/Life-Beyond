@@ -57,7 +57,7 @@ import hashlib
 import colorsys
 import copy # Added for deep copying presets
 import zipfile
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import io
 
 # =================================================================
