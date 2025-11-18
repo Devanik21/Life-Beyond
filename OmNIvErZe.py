@@ -3822,48 +3822,52 @@ def main():
     if not st.session_state.history:
         st.info("This exhibit hall is empty. Adjust the physical laws in the Curator's Console and press '🚀 Curate New Exhibit' to populate it with life.")
         st.markdown("""
-            ---
+            <div style="border-left: 3px solid #9467FF; padding-left: 15px; margin-top: 20px; border-radius: 3px;">
             ### The Museum of Universal Life: An Essay
 
-            The universe is a vast, dark ocean of possibility, and the human desire to explore it is boundless. The video "LIFE BEYOND II: The Museum of Alien Life" [00:00] provides the conceptual blueprint for an imaginary institution equal to that vastness: a museum dedicated to showcasing every potential form of life. Such a museum would not be a simple collection of curiosities but a profound study of how the universal laws of physics and chemistry sculpt biology in staggeringly different ways. As the video outlines, this museum would be divided into two fundamental wings: "Life As We Know It" [03:28] and the far more speculative, "Life As We Don't Know It" [03:37].
+            The universe is a vast, dark ocean of possibility, and the desire to explore it is boundless. This is the conceptual blueprint for an imaginary institution equal to that vastness: a museum dedicated to showcasing every potential form of life. Such a museum would not be a simple collection of curiosities but a profound study of how the universal laws of physics and chemistry sculpt biology in staggeringly different ways. This museum would be divided into two fundamental wings: "Life As We Know It" and the far more speculative, "Life As We Don't Know It."
 
             #### Wing 1: Life As We Know It (The Carbon Gallery)
-            The first wing of the museum would be dedicated to life built on the same foundation as our own. The central exhibit here is carbon, an element the video describes as the "centerpiece in the molecular machinery of life" [04:54].
+            The first wing of the museum is dedicated to life built on the same foundation as our own. The central exhibit here is carbon, the "centerpiece in the molecular machinery of life."
 
-            **The Carbon-Based Standard:** This exhibit would show why carbon is so special. It is common throughout the universe [04:24] and possesses a rare ability to form four-way bonds, linking to itself in long, stable chains [04:37]. This versatility allows for the "huge complex molecules" [04:44] necessary for biology. Even here, the diversity would be immense; the video notes that scientists have identified over a million possible carbon-based alternatives to our own DNA [05:42].
+            **The Carbon-Based Standard:** This exhibit shows why carbon is so special. It is common throughout the universe and possesses a rare ability to form four-way bonds, linking to itself in long, stable chains. This versatility allows for the "huge complex molecules" necessary for biology. Even here, the diversity would be immense; scientists have identified over a million possible carbon-based alternatives to our own DNA.
 
-            **The Hall of Convergent Evolution:** This gallery would explore a fascinating idea: even carbon-based life on other "Earth-like" planets [06:19] might look familiar. The video explains the concept of convergent evolution, where similar environmental pressures cause similar features to evolve independently [07:12]. Exhibits would show how features like eyesight and flight have appeared multiple times on Earth [07:12], suggesting that the "greatest hits of evolution" [07:42] could be on repeat across the cosmos.
+            **The Hall of Convergent Evolution:** This gallery explores a fascinating idea: even carbon-based life on other "Earth-like" planets might look familiar. It explains the concept of convergent evolution, where similar environmental pressures cause similar features to evolve independently. Exhibits show how features like eyesight and flight have appeared multiple times on Earth, suggesting that the "greatest hits of evolution" could be on repeat across the cosmos.
 
             #### Wing 2: Life As We Don't Know It (The Exotic Biochemistry Hall)
-            This is where the museum truly expands our concept of life itself. This wing houses beings that challenge our carbon-centric biases, built from exotic chemistries thriving in environments we would consider hellish [21:39].
+            This is where the museum truly expands our concept of life itself. This wing houses beings that challenge our carbon-centric biases, built from exotic chemistries thriving in environments we would consider hellish.
 
-            **The Silicon Contender:** The most prominent exhibit here, as noted in the video, is silicon-based life [22:07]. At first glance, silicon seems a perfect alternative, as it also forms four-way bonds [22:07]. However, the exhibit would detail its flaws: its bonds are weaker [22:16], and, crucially, in the presence of oxygen, it binds into solid rock [23:01].
+            **The Silicon Contender:** The most prominent exhibit here is silicon-based life. At first glance, silicon seems a perfect alternative, as it also forms four-way bonds. However, the exhibit details its flaws: its bonds are weaker, and, crucially, in the presence of oxygen, it binds into solid rock.
 
-            A diorama here might show the frigid world of Saturn's moon Titan [23:12]. In this oxygen-free environment, with vast lakes of liquid methane [23:20], silicon-based beings could theoretically exist, perhaps with ultra-slow metabolisms and lifecycles lasting millions of years [24:01].
+            A diorama here might show the frigid world of Saturn's moon Titan. In this oxygen-free environment, with vast lakes of liquid methane, silicon-based beings could theoretically exist, perhaps with ultra-slow metabolisms and lifecycles lasting millions of years.
 
-            **The "Extreme" Exhibits:** Deeper in this wing, the truly bizarre possibilities are displayed. The video speculates on lifeforms living inside molten silicate rock [24:39], self-organizing plasma crystals in cosmic dust that "resemble dna" [26:05], and even theoretical "macronuclei" life [28:49] evolving in the dense particle sea on the surface of a neutron star [28:34].
+            **The "Extreme" Exhibits:** Deeper in this wing, the truly bizarre possibilities are displayed. Speculations include lifeforms living inside molten silicate rock, self-organizing plasma crystals in cosmic dust that "resemble dna," and even theoretical "macronuclei" life evolving in the dense particle sea on the surface of a neutron star.
 
             #### Wing 3: The Sculpting Hand of Environment
-            The final, and perhaps most dramatic, wing of the museum would demonstrate how alien environments act as cosmic sculptors, shaping the bodies of both carbon-based and exotic life.
+            The final, and perhaps most dramatic, wing of the museum demonstrates how alien environments act as cosmic sculptors, shaping the bodies of both carbon-based and exotic life.
 
-            **The Gravity Gallery:** This exhibit, as you noted, directly illustrates gravity's immense power.
+            **The Gravity Gallery:** This exhibit directly illustrates gravity's immense power.
 
-            *   **High-Gravity Worlds:** One diorama, based on "super earths" [13:02], would show a landscape of stunted plant life [14:01]. The land animals here would be short, dense, and powerful, built with "large bones and muscle mass" [13:51] and robust circulatory systems [14:01] just to survive the crushing force.
+            *   **High-Gravity Worlds:** One diorama, based on "super earths," would show a landscape of stunted plant life. The land animals here would be short, dense, and powerful, built with "large bones and muscle mass" and robust circulatory systems just to survive the crushing force.
 
-            *   **Low-Gravity Worlds:** The neighboring diorama would be a stunning contrast. On a low-gravity planet [15:26], plants could grow to "towering heights" [15:44]. The animals would be slender and graceful, with "body types that boggle the mind" [15:59], free from the need for bulky skeletons [15:59].
+            *   **Low-Gravity Worlds:** The neighboring diorama would be a stunning contrast. On a low-gravity planet, plants could grow to "towering heights." The animals would be slender and graceful, with "body types that boggle the mind," free from the need for bulky skeletons.
 
-            **The Hall of Senses:** Here, an exhibit would show how life adapts to the light of its star. As the video explains, life on dimly lit planets would evolve "huge eyes to suck in extra light" [07:56], much like our own nocturnal mammals.
+            **The Hall of Senses:** Here, an exhibit shows how life adapts to the light of its star. Life on dimly lit planets would evolve "huge eyes to suck in extra light," much like our own nocturnal mammals.
 
-            **The "Alien Garden":** This final exhibit would be a visually stunning display of alien botany, based on star color. The video explains that our plants are green because they reflect the green light from our yellow sun [09:34]. This garden would showcase the bizarre alternatives:
+            **The "Alien Garden":** This final exhibit is a visually stunning display of alien botany, based on star color. Our plants are green because they reflect the green light from our yellow sun. This garden showcases the bizarre alternatives:
 
-            *   Around dim red dwarf stars, the vegetation would appear "black" [10:16], adapted to absorb every possible wavelength of faint light.
+            *   Around dim red dwarf stars, the vegetation would appear "black," adapted to absorb every possible wavelength of faint light.
 
-            *   Around hotter, bluer stars, plants "could appear redder" [10:02], using different pigments for their own unique photosynthesis.
+            *   Around hotter, bluer stars, plants "could appear redder," using different pigments for their own unique photosynthesis.
 
-            A special display might feature a purple landscape. The video suggests Earth itself may have once appeared purple due to a simpler pigment called retinol [10:44], leading to the speculation that purple, not green, "may be life's favorite color" [11:03].
+            A special display might feature a purple landscape. Earth itself may have once appeared purple due to a simpler pigment called retinol, leading to the speculation that purple, not green, "may be life's favorite color."
 
-            Ultimately, the "Museum of Alien Life" described in the video is a monument to imagination grounded in science. It teaches us that while the laws of physics are universal [02:38], the forms that life can take within those laws are limited only by the number of worlds on which it can arise.
-        """)
+            Ultimately, this museum is a monument to imagination grounded in science. It teaches us that while the laws of physics are universal, the forms that life can take within those laws are limited only by the number of worlds on which it can arise.
+
+            <br><br>
+            *<p style="font-size: 0.8em; text-align: right; color: #aaa;">Inspired by Melodysheep's "LIFE BEYOND II"</p>*
+            </div>
+        """, unsafe_allow_html=True)
     else:
         history_df = pd.DataFrame(st.session_state.history)
         metrics_df = pd.DataFrame(st.session_state.evolutionary_metrics)
