@@ -2498,13 +2498,21 @@ def main():
         s['temp_pole'] = st.slider("Pole Temperature (°C)", -200, 100, s.get('temp_pole', -20), 1)
         s['resource_diffusion_rate'] = st.slider("Resource Diffusion Rate", 0.0, 0.5, s.get('resource_diffusion_rate', 0.01), 0.005)
         
+    # --- WING 1: POPULATION & EMBRYOGENY ---
     st.sidebar.markdown("### 🌱 Wing 1: The Carbon Gallery (Seeding)")
     with st.sidebar.expander("The Primordial Soup", expanded=False):
+        st.markdown("Set the initial conditions for your population.")
         s['initial_population'] = st.slider("Initial Population Size", 10, 500, s.get('initial_population', 50), 10)
         s['zygote_energy'] = st.slider("Initial Zygote Energy", 1.0, 100.0, s.get('zygote_energy', 10.0), 1.0)
         s['new_cell_energy'] = st.slider("New Cell Energy", 0.1, 5.0, s.get('new_cell_energy', 1.0), 0.1, help="Energy given to a newly grown cell.")
         s['development_steps'] = st.slider("Development Steps (Embryogeny)", 10, 200, s.get('development_steps', 50), 5)
         s['max_organism_lifespan'] = st.slider("Max Organism Lifespan (Epochs)", 50, 1000, s.get('max_organism_lifespan', 200), 10)
+
+    # --- WING 2: EXOTIC CHEMISTRY (MISSING WING ADDED) ---
+    st.sidebar.markdown("### 🧪 Wing 2: The Exotic Biochemistry Hall")
+    with st.sidebar.expander("Alien Chemistries & Innovation", expanded=True):
+        st.markdown("Define what materials life can build itself from.")
+        
         all_bases = list(CHEMICAL_BASES_REGISTRY.keys())
         saved_bases = s.get('chemical_bases')
 
@@ -2515,7 +2523,13 @@ def main():
 
         s['chemical_bases'] = st.multiselect("Allowed Chemistries (Kingdoms)", 
                                              all_bases, 
-                                             default_selection)
+                                             default_selection,
+                                             help="Select which chemical bases (Carbon, Silicon, Void, etc.) are available in the primordial soup.")
+        
+        st.markdown("---")
+        st.markdown("**The Engines of Novelty**")
+        s['component_innovation_rate'] = st.slider("Component Innovation Rate (α)", 0.0, 0.1, s.get('component_innovation_rate', 0.01), 0.001, help="Rate of inventing new chemical components.")
+        s['meta_innovation_rate'] = st.slider("Meta-Innovation Rate (Sensor)", 0.0, 0.01, s.get('meta_innovation_rate', 0.005), 0.0001, help="Rate of inventing new *types* of senses.")
 
     
     st.sidebar.markdown("### ⚖️ Fundamental Pressures of Life")
