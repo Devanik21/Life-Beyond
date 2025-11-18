@@ -2060,25 +2060,30 @@ def main():
     )
 
     # --- DARK GREEN/BROWN/WHITE "TERRA" THEME ---
-    # --- DARK GREEN/BROWN/WHITE "TERRA" THEME ---
+    # --- MASTER TERRA THEME CSS ---
     st.markdown("""
         <style>
-            /* --- Remove Top Header Box --- */
+        
+        /* === 1. CORE APP & HEADER === */
+
+            /* --- Transparent Header --- */
             header[data-testid="stHeader"] {
                 background: transparent;
             }
-            /* Remove the colored top decoration line */
+            /* --- Hide Header Decoration Line --- */
             [data-testid="stDecoration"] {
                 display: none;
             }
 
-            /* --- Core App Styling --- */
+            /* --- Main App Background --- */
             .stApp {
                 background-color: #0D1117; /* Near-black */
                 background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%231A202C' fill-opacity='0.4'%3E%3Cpath d='M0 38.59l2.83-2.83 1.41 1.41L1.41 40H0v-1.41zM0 1.4l2.83 2.83 1.41-1.41L1.41 0H0v1.41zM38.59 40l-2.83-2.83 1.41-1.41L40 38.59V40h-1.41zM40 1.41l-2.83 2.83-1.41-1.41L38.59 0H40v1.41zM20 18.6l2.83-2.83 1.41 1.41L21.41 20l2.83 2.83-1.41 1.41L20 21.41l-2.83 2.83-1.41-1.41L18.59 20l-2.83-2.83 1.41-1.41L20 18.59z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
                 background-size: cover;
                 background-attachment: fixed;
             }
+
+        /* === 2. CONTAINERS & LAYOUT === */
 
             /* --- Glassmorphism Containers --- */
             .block-container, [data-testid="stSidebar"], [data-testid="stExpander"], [data-testid="stTabs"] {
@@ -2098,8 +2103,24 @@ def main():
                 margin-bottom: 10px;
                 border-color: rgba(67, 83, 52, 0.2);
             }
+            
+            /* --- Tab Buttons --- */
+            [data-baseweb="tab"] {
+                color: #9EB384 !important; /* Muted green text */
+                transition: all 0.3s ease;
+            }
+            [data-baseweb="tab"]:hover {
+                color: #FAF3E3 !important;
+                background-color: rgba(158, 179, 132, 0.1);
+            }
+            [data-baseweb="tab"][aria-selected="true"] { 
+                color: #FAF3E3 !important; 
+                border-bottom: 3px solid #9E7676 !important; /* Earthy Clay underline */
+            }
 
-            /* --- Text & Titles --- */
+        /* === 3. TEXT & TITLES === */
+
+            /* --- Gradient Titles --- */
             h1, h2, h3, h4, h5, h6 {
                 background: -webkit-linear-gradient(45deg, #435334, #9E7676, #FAF3E3); /* Dark Green -> Brown -> Off-White */
                 -webkit-background-clip: text;
@@ -2107,55 +2128,135 @@ def main():
                 text-shadow: 0 0 8px rgba(250, 243, 227, 0.1);
             }
 
-            p, div, span, li, label, .st-emotion-cache-16idsys p {
-                color: #E2E8F0 !important; /* Light gray text for readability */
+            /* --- Body Text --- */
+            p, div, span, li, label, .st-emotion-cache-16idsys p, [data-testid="stMarkdown"] {
+                color: #E2E8F0 !important; /* Light gray text */
                 text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
             }
             
-            /* --- Buttons --- */
-            .stButton>button {
-                border-radius: 10px;
-                border: 1px solid rgba(67, 83, 52, 0.7);
-                background-color: rgba(67, 83, 52, 0.2);
-                color: #9EB384; /* Muted green accent */
+            /* --- Links --- */
+            a { 
+                color: #9EB384 !important; /* Muted green */
+                text-decoration: none; 
                 transition: all 0.3s ease;
             }
-            .stButton>button:hover {
-                background-color: rgba(67, 83, 52, 0.4);
-                border-color: #9EB384;
-                box-shadow: 0 0 15px rgba(158, 179, 132, 0.3);
+            a:hover { 
+                color: #FAF3E3 !important; /* Off-white on hover */
+                text-decoration: underline; 
             }
 
-            /* --- Widget Coloring (Earthy Overrides) --- */
-            
-            /* 1. Multiselect Tags (The 'Carbon', 'Silicon' chips) -> Deep Green */
+        /* === 4. BUTTONS & WIDGETS === */
+
+            /* --- Standard Buttons (Secondary) --- */
+            button[kind="secondary"], [data-testid="stDownloadButton"] > button {
+                border-radius: 10px;
+                border: 1px solid rgba(67, 83, 52, 0.7) !important;
+                background-color: rgba(67, 83, 52, 0.2) !important;
+                color: #9EB384 !important; /* Muted green accent */
+                transition: all 0.3s ease;
+            }
+            button[kind="secondary"]:hover, [data-testid="stDownloadButton"] > button:hover {
+                background-color: rgba(67, 83, 52, 0.4) !important;
+                border-color: #9EB384 !important;
+                color: #FAF3E3 !important;
+                box-shadow: 0 0 15px rgba(158, 179, 132, 0.3) !important;
+            }
+
+            /* --- Primary Buttons (like "LOAD COLLECTION") --- */
+            button[kind="primary"] {
+                border-radius: 10px;
+                border: 1px solid #9EB384 !important;
+                background-color: #435334 !important; /* Deep Green */
+                color: #FAF3E3 !important;
+                transition: all 0.3s ease;
+            }
+            button[kind="primary"]:hover {
+                border-color: #FAF3E3 !important;
+                box-shadow: 0 0 15px rgba(158, 179, 132, 0.5) !important;
+            }
+
+            /* --- Sliders: Track --- */
+            div[data-baseweb="slider"] > div > div > div:first-child {
+                background-color: #9E7676 !important; /* Earthy Clay */
+            }
+            /* --- Sliders: Handle --- */
+            div[role="slider"] {
+                background-color: #FAF3E3 !important; /* Off-white */
+                border: 2px solid #9E7676 !important; /* Earthy Clay border */
+                box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            }
+
+            /* --- Checkboxes --- */
+            div[data-baseweb="checkbox"] div[aria-checked="true"] {
+                background-color: #9E7676 !important; /* Earthy Clay */
+                border-color: #9E7676 !important;
+            }
+
+            /* --- Multiselect Tags ('Carbon', 'Silicon') --- */
             span[data-baseweb="tag"] {
-                background-color: rgba(67, 83, 52, 0.9) !important; 
+                background-color: rgba(67, 83, 52, 0.9) !important; /* Deep Green */
                 border: 1px solid #9EB384 !important;
                 color: #FAF3E3 !important; /* Off-white text */
             }
             
-            /* 2. Sliders - The Filled Track (Progress Bar) -> Earthy Clay/Brown */
-            div[data-baseweb="slider"] > div > div {
-                background-color: #9E7676 !important; 
-            }
-            
-            /* 3. Sliders - The Handle (Circle) -> Off-white with Brown Border */
-            div[role="slider"] {
-                background-color: #FAF3E3 !important;
-                border: 2px solid #9E7676 !important;
-                box-shadow: 0 0 5px rgba(0,0,0,0.5);
-            }
-            
-            /* 4. Focus Highlight (When clicking inputs) -> Brown Glow */
-            input:focus, textarea:focus, select:focus {
+            /* --- Text/Number Input Focus --- */
+            div[data-baseweb="input"]:focus-within, 
+            div[data-testid="stNumberInput"]:focus-within {
                 border-color: #9E7676 !important;
-                box-shadow: 0 0 5px rgba(158, 118, 118, 0.5) !important;
+                box-shadow: 0 0 0 0.2rem rgba(158, 118, 118, 0.25) !important;
+            }
+            div[data-testid="stNumberInput"] button:hover {
+                color: #9E7676 !important;
+                border-color: #9E7676 !important;
+            }
+            
+            /* --- Progress Bar --- */
+            [data-testid="stProgressBar"] > div {
+                background-color: #9E7676 !important; /* Earthy Clay */
+            }
+
+        /* === 5. ALERTS & MESSAGES === */
+
+            /* --- Info Box --- */
+            [data-testid="stInfo"] {
+                background-color: rgba(158, 179, 132, 0.1);
+                border: 1px solid #9EB384;
+            }
+            /* --- Warning Box --- */
+            [data-testid="stWarning"] {
+                background-color: rgba(158, 118, 118, 0.1);
+                border: 1px solid #9E7676;
+            }
+            /* --- Error Box --- */
+            [data-testid="stError"] {
+                background-color: rgba(176, 50, 50, 0.1);
+                border: 1px solid #B03232;
+            }
+
+        /* === 6. SCROLLBARS === */
+
+            /* --- Main Scrollbar --- */
+            ::-webkit-scrollbar {
+                width: 8px;
+            }
+            /* --- Scrollbar Track --- */
+            ::-webkit-scrollbar-track {
+                background: rgba(15, 25, 15, 0.1); /* Transparent green */
+            }
+            /* --- Scrollbar Handle --- */
+            ::-webkit-scrollbar-thumb {
+                background-color: #435334; /* Deep Green */
+                border-radius: 10px;
+                border: 2px solid transparent;
+                background-clip: content-box;
+            }
+            /* --- Scrollbar Handle (Hover) --- */
+            ::-webkit-scrollbar-thumb:hover {
+                background-color: #9E7676; /* Earthy Clay on hover */
             }
 
         </style>
     """, unsafe_allow_html=True)
-
     if 'password_attempts' not in st.session_state:
         st.session_state.password_attempts = 0
     if 'password_correct' not in st.session_state:
