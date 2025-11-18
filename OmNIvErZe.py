@@ -2055,7 +2055,7 @@ def main():
     st.set_page_config(
         page_title="LIFE BEYOND II: The Museum of Alien Life",
         layout="wide",
-        page_icon="🪐",
+        page_icon="🏛️",
         initial_sidebar_state="expanded"
     )
 
@@ -2240,7 +2240,7 @@ def main():
     # --- THE "CURATOR'S CONSOLE" SIDEBAR ---
     # ===============================================
     
-    st.sidebar.markdown('<h1 style="text-align: center;">🌌<br>LIFE BEYOND II</h1>', unsafe_allow_html=True)
+    st.sidebar.markdown('<h1 style="text-align: center;">♾️<br>LIFE BEYOND II</h1>', unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
     s = copy.deepcopy(st.session_state.settings)
