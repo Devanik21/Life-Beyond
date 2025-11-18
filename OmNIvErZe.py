@@ -3823,6 +3823,7 @@ def main():
         st.info("This exhibit hall is empty. Adjust the physical laws in the Curator's Console and press '🚀 Curate New Exhibit' to populate it with life.")
         st.markdown("""
             <div style="border-left: 3px solid #9467FF; padding-left: 15px; margin-top: 20px; border-radius: 3px;">
+            
             ### The Museum of Universal Life: An Essay
 
             The universe is a vast, dark ocean of possibility, and the desire to explore it is boundless. This is the conceptual blueprint for an imaginary institution equal to that vastness: a museum dedicated to showcasing every potential form of life. Such a museum would not be a simple collection of curiosities but a profound study of how the universal laws of physics and chemistry sculpt biology in staggeringly different ways. This museum would be divided into two fundamental wings: "Life As We Know It" and the far more speculative, "Life As We Don't Know It."
