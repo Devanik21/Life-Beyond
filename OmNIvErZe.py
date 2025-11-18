@@ -2112,7 +2112,7 @@ def main():
                 text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
             }
             
-            /* --- Interactive Elements --- */
+            /* --- Buttons --- */
             .stButton>button {
                 border-radius: 10px;
                 border: 1px solid rgba(67, 83, 52, 0.7);
@@ -2124,6 +2124,33 @@ def main():
                 background-color: rgba(67, 83, 52, 0.4);
                 border-color: #9EB384;
                 box-shadow: 0 0 15px rgba(158, 179, 132, 0.3);
+            }
+
+            /* --- Widget Coloring (Earthy Overrides) --- */
+            
+            /* 1. Multiselect Tags (The 'Carbon', 'Silicon' chips) -> Deep Green */
+            span[data-baseweb="tag"] {
+                background-color: rgba(67, 83, 52, 0.9) !important; 
+                border: 1px solid #9EB384 !important;
+                color: #FAF3E3 !important; /* Off-white text */
+            }
+            
+            /* 2. Sliders - The Filled Track (Progress Bar) -> Earthy Clay/Brown */
+            div[data-baseweb="slider"] > div > div {
+                background-color: #9E7676 !important; 
+            }
+            
+            /* 3. Sliders - The Handle (Circle) -> Off-white with Brown Border */
+            div[role="slider"] {
+                background-color: #FAF3E3 !important;
+                border: 2px solid #9E7676 !important;
+                box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            }
+            
+            /* 4. Focus Highlight (When clicking inputs) -> Brown Glow */
+            input:focus, textarea:focus, select:focus {
+                border-color: #9E7676 !important;
+                box-shadow: 0 0 5px rgba(158, 118, 118, 0.5) !important;
             }
 
         </style>
