@@ -2055,7 +2055,7 @@ def main():
     st.set_page_config(
         page_title="LIFE BEYOND II: The Museum of Alien Life",
         layout="wide",
-        page_icon="🏛️",
+        page_icon="🪐",
         initial_sidebar_state="expanded"
     )
 
@@ -2240,25 +2240,25 @@ def main():
     # --- THE "CURATOR'S CONSOLE" SIDEBAR ---
     # ===============================================
     
-    st.sidebar.markdown('<h1 style="text-align: center;">🏛️<br>LIFE BEYOND II</h1>', unsafe_allow_html=True)
+    st.sidebar.markdown('<h1 style="text-align: center;">🌌<br>LIFE BEYOND II</h1>', unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
     s = copy.deepcopy(st.session_state.settings)
 
     if st.sidebar.button("Reset Curator's Console to Defaults", width='stretch', key="reset_defaults_button"):
         st.session_state.settings.clear()
-        st.toast("Curator's Console reset to defaults!", icon="⚙️")
+        st.toast("Curator's Console reset to defaults!", icon="📡")
         time.sleep(1)
         st.rerun()
 
     if st.sidebar.button("Decommission Exhibit & Restart", width='stretch', key="clear_state_button"):
         db.truncate()
         st.session_state.clear()
-        st.toast("Cleared all archived data. The exhibit has been reset.", icon="🗑️")
+        st.toast("Cleared all archived data. The exhibit has been reset.", icon="💥")
         time.sleep(1)
         st.rerun()
         
-    with st.sidebar.expander("🌠 Exhibit Hall Manager (Your Curated Collections)", expanded=True):
+    with st.sidebar.expander("🔭 Exhibit Hall Manager (Your Curated Collections)", expanded=True):
         presets = st.session_state.exhibit_presets
         preset_names = ["<Select a Collection to Load>"] + list(presets.keys())
         
@@ -2267,7 +2267,7 @@ def main():
             new_preset_name = st.text_input("New Collection Name", placeholder="e.g., 'Titan Methane Seas'")
         with c2:
             st.write(" ") # Spacer
-            if st.button("💾 Archive Current Exhibit", width='stretch'):
+            if st.button("📦 Archive Current Exhibit", width='stretch'):
                 if new_preset_name:
                     current_settings_snapshot = s 
                     current_history = st.session_state.get('history', [])
@@ -2292,7 +2292,7 @@ def main():
                     presets[new_preset_name] = preset_data_to_save
                     exhibit_presets_table.upsert(preset_data_to_save, Query().name == new_preset_name)
                     
-                    st.toast(f"Collection '{new_preset_name}' (with results) archived!", icon="💾")
+                    st.toast(f"Collection '{new_preset_name}' (with results) archived!", icon="📦")
                     st.session_state.exhibit_presets = presets
                     st.rerun()
                 else:
@@ -2353,13 +2353,13 @@ def main():
                 del presets[selected_preset] 
                 exhibit_presets_table.remove(Query().name == selected_preset)
                 st.session_state.exhibit_presets = presets
-                st.toast(f"Deleted collection '{selected_preset}'.", icon="🗑️")
+                st.toast(f"Deleted collection '{selected_preset}'.", icon="🔥")
                 st.rerun()
                     
         st.sidebar.markdown("---")
-        st.sidebar.markdown("#### 💾 Load Exhibit from Archive")
+        st.sidebar.markdown("#### 📥 Load Exhibit from Archive")
         uploaded_file = st.sidebar.file_uploader(
-            "Upload your 'exhibit_archive.zip' file", 
+            "Upload your 'exhibit_archive.zip' file",
             type=["json", "zip"],
             key="checkpoint_uploader"
         )
@@ -2370,7 +2370,7 @@ def main():
                     data = None
                     
                     if uploaded_file.name.endswith('.zip'):
-                        st.toast("Unzipping archive... Please wait.", icon="📦")
+                        st.toast("Unzipping archive... Please wait.", icon="🗜️")
                         mem_zip = io.BytesIO(uploaded_file.getvalue())
                         
                         with zipfile.ZipFile(mem_zip, 'r') as zf:
@@ -2381,14 +2381,14 @@ def main():
                                     break
                             
                             if json_filename:
-                                st.toast(f"Found '{json_filename}' inside zip.", icon="📄")
+                                st.toast(f"Found '{json_filename}' inside zip.", icon="📑")
                                 with zf.open(json_filename) as f:
                                     data = json.load(f)
                             else:
                                 st.error("No .json file found inside the .zip archive.")
                     
                     elif uploaded_file.name.endswith('.json'):
-                        st.toast("Loading .json file...", icon="📄")
+                        st.toast("Loading .json file...", icon="📑")
                         data = json.loads(uploaded_file.getvalue())
                     
                     if data is not None:
@@ -2437,7 +2437,7 @@ def main():
                         else:
                             results_table.insert(results_to_save)
                         
-                        st.toast("✅ Archive Loaded! You can now 'Extend Simulation'.", icon="🎉")
+                        st.toast("✅ Archive Loaded! You can now 'Extend Simulation'.", icon="🛰️")
                         
                         last_gen = 0
                         if st.session_state.history:
@@ -2554,7 +2554,7 @@ def main():
         s['enable_endosymbiosis'] = st.checkbox("Enable Endosymbiosis (Merging)", s.get('enable_endosymbiosis', True), help="Rare event where one organism absorbs another, merging their genomes.")
         s['endosymbiosis_rate'] = st.slider("Endosymbiosis Rate", 0.0, 0.1, s.get('endosymbiosis_rate', 0.005), 0.001)
 
-    with st.sidebar.expander("🌋 Environmental Events & Cataclysms", expanded=False):
+    with st.sidebar.expander("☄️ Environmental Events & Cataclysms", expanded=False):
         s['enable_cataclysms'] = st.checkbox("Enable Cataclysms", s.get('enable_cataclysms', True), help="Enable rare, random mass extinction events.")
         s['cataclysm_probability'] = st.slider("Cataclysm Probability", 0.0, 0.5, s.get('cataclysm_probability', 0.01), 0.005, help="Per-epoch chance of a cataclysm.")
         s['cataclysm_extinction_severity'] = st.slider("Extinction Severity", 0.1, 1.0, s.get('cataclysm_extinction_severity', 0.9), 0.05, help="Percentage of population wiped out.")
@@ -2579,7 +2579,7 @@ def main():
         s['enable_physics_drift'] = st.checkbox("Enable Physics Co-evolution", s.get('enable_physics_drift', False), help="Allow the archetypes in the CHEMICAL_BASES_REGISTRY to 'mutate' over time.")
         s['physics_drift_rate'] = st.slider("Physics Drift Rate", 0.0, 0.01, s.get('physics_drift_rate', 0.001), 0.0001, help="Per-epoch chance of a random physical archetype mutating.")
 
-    with st.sidebar.expander("♾️ Deep Evolutionary Physics & Information Dynamics (EXPANDED)", expanded=False):
+    with st.sidebar.expander("🌠 Deep Evolutionary Physics & Information Dynamics (EXPANDED)", expanded=False):
         st.markdown("**THEORETICAL APEX:** Model deep physical and informational principles.")
         s['enable_deep_physics'] = st.checkbox("Enable Deep Physics Engine", s.get('enable_deep_physics', False))
         
@@ -2674,7 +2674,7 @@ def main():
         s['monad_structure_bonus'] = st.slider("Monad Structure Bonus", 0.0, 1.0, s.get('monad_structure_bonus', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
         s['sheaf_computation_consistency'] = st.slider("Sheaf Computation Consistency", 0.0, 1.0, s.get('sheaf_computation_consistency', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
 
-    with st.sidebar.expander("Alternate Deep Physics & Info-Dynamics (EXPERIMENTAL)", expanded=False):
+    with st.sidebar.expander("✨ Alternate Deep Physics & Info-Dynamics (EXPERIMENTAL)", expanded=False):
         st.markdown("**THEORETICAL APEX 2:** Model alternate deep physical principles.")
         s['enable_deep_physics_alt'] = st.checkbox("Enable Alternate Deep Physics", s.get('enable_deep_physics_alt', False))
         
@@ -2703,7 +2703,7 @@ def main():
         s['alt_wave_function_coherence_bonus'] = st.slider("Alt. Wave Function Coherence Bonus", 0.0, 1.0, s.get('alt_wave_function_coherence_bonus', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
         s['alt_zpf_extraction_rate'] = st.slider("Alt. Zero-Point Field Extraction Rate", 0.0, 1.0, s.get('alt_zpf_extraction_rate', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
 
-    with st.sidebar.expander("🛰️ Co-evolution & Embodiment Dynamics", expanded=False):
+    with st.sidebar.expander("👽 Co-evolution & Embodiment Dynamics", expanded=False):
         st.markdown("Simulate arms races and the evolution of 'bodies'.")
         s['enable_adversarial_coevolution'] = st.checkbox("Enable Adversarial Critic Population", s.get('enable_adversarial_coevolution', False))
         s['critic_population_size'] = st.slider("Critic Population Size", 5, 100, s.get('critic_population_size', 10), 5)
@@ -2713,7 +2713,7 @@ def main():
         s['bilateral_symmetry_bonus'] = st.slider("Bilateral Symmetry Bonus", 0.0, 0.5, s.get('bilateral_symmetry_bonus', 0.0), 0.01)
         s['segmentation_bonus'] = st.slider("Segmentation Bonus", 0.0, 0.5, s.get('segmentation_bonus', 0.0), 0.01)
 
-    with st.sidebar.expander("👑 Multi-Level Selection (Major Transitions)", expanded=False):
+    with st.sidebar.expander("✨ Multi-Level Selection (Major Transitions)", expanded=False):
         st.markdown("Evolve colonies and 'superorganisms'.")
         s['enable_multi_level_selection'] = st.checkbox("Enable Multi-Level Selection (MLS)", s.get('enable_multi_level_selection', False))
         s['colony_size'] = st.slider("Colony Size", 5, 50, s.get('colony_size', 10), 5)
@@ -2721,7 +2721,7 @@ def main():
         s['selfishness_suppression_cost'] = st.slider("Selfishness Suppression Cost", 0.0, 0.2, s.get('selfishness_suppression_cost', 0.05), 0.01)
         s['caste_specialization_bonus'] = st.slider("Caste Specialization Bonus", 0.0, 0.5, s.get('caste_specialization_bonus', 0.1), 0.01)
 
-    with st.sidebar.expander("🗂️ Exhibit Management", expanded=False):
+    with st.sidebar.expander("🗄️ Curation & Archive Management", expanded=False):
         s['experiment_name'] = st.text_input("Exhibit Name", s.get('experiment_name', 'Primordial Run'))
         s['random_seed'] = st.number_input("Random Seed", -1, value=s.get('random_seed', 42), help="-1 for random.")
         s['enable_early_stopping'] = st.checkbox("Enable Early Stopping", s.get('enable_early_stopping', True))
@@ -3016,9 +3016,9 @@ def main():
 
     if st.session_state.history:
         last_gen = st.session_state.history[-1]['generation']
-        st.sidebar.info(f"**Status:** Loaded archive at **Epoch {last_gen}**. Ready to extend exhibit simulation.", icon="ℹ️")
+        st.sidebar.info(f"**Status:** Loaded archive at **Epoch {last_gen}**. Ready to extend exhibit simulation.", icon="⏳")
     else:
-        st.sidebar.info("**Status:** Ready to curate a new exhibit.", icon="ℹ️")
+        st.sidebar.info("**Status:** Ready to curate a new exhibit.", icon="✨")
 
     col1, col2 = st.sidebar.columns(2)
     
@@ -3041,7 +3041,7 @@ def main():
         if s.get('random_seed', 42) != -1:
             random.seed(s.get('random_seed', 42))
             np.random.seed(s.get('random_seed', 42))
-            st.toast(f"Using fixed random seed: {s.get('random_seed', 42)}", icon="🎲")
+            st.toast(f"Using fixed random seed: {s.get('random_seed', 42)}", icon="🔢")
             
         population = []
         for _ in range(s.get('initial_population', 50)):
@@ -3081,7 +3081,7 @@ def main():
         complexity_thresholds_to_log = [10, 25, 50, 100, 200, 500]
 
         for gen in range(s.get('num_generations', 200)):
-            status_text.markdown(f"### 🏛️ Simulating Epoch {gen + 1}/{s.get('num_generations', 200)}")
+            status_text.markdown(f"### ⏳ Simulating Epoch {gen + 1}/{s.get('num_generations', 200)}")
             
             fitness_scores = []
             for genotype in population:
@@ -3099,14 +3099,14 @@ def main():
                     
                     if random.random() < s.get('red_queen_adaptation_speed', 0.2):
                         red_queen.target_kingdom_id = most_common_kingdom
-                        st.toast(f"👑 Red Queen Adapts! Parasite now targets **{most_common_kingdom}**.", icon="🦠")
+                        st.toast(f"👑 Red Queen Adapts! Parasite now targets **{most_common_kingdom}**.", icon="🎯")
                         event_desc = f"A co-evolving parasite has adapted, now specifically targeting the dominant **{most_common_kingdom}** kingdom. This forces an evolutionary arms race."
                         st.session_state.genesis_events.append({
                             'generation': gen,
                             'type': 'Red Queen',
                             'title': f"Parasite Adapts to {most_common_kingdom}",
                             'description': event_desc,
-                            'icon': '👑'
+                            'icon': '🎯'
                         })
 
                 for genotype in population:
@@ -3157,13 +3157,13 @@ def main():
                             'description': event_desc, 'icon': '🤝'
                         })
                         st.session_state.has_logged_colonial_emergence = True
-                        st.toast("🤝 Major Transition! Colonial life has emerged!", icon="🎉")
+                        st.toast("🤝 Major Transition! Colonial life has emerged!", icon="🚀")
 
             if hypermutation_duration > 0:
                 current_mutation_rate = s.get('mutation_rate', 0.2) * s.get('post_cataclysm_hypermutation_multiplier', 2.0)
                 hypermutation_duration -= 1
                 if hypermutation_duration == 0:
-                    st.toast("Hypermutation period has ended. Mutation rates returning to normal.", icon="📉")
+                    st.toast("Hypermutation period has ended. Mutation rates returning to normal.", icon="🧬")
             else:
                 current_mutation_rate = s.get('mutation_rate', 0.2)
 
@@ -3175,20 +3175,20 @@ def main():
                     'type': 'Cataclysm',
                     'title': 'Mass Extinction Event',
                     'description': event_desc,
-                    'icon': '🌋'
+                    'icon': '☄️'
                 })
                 
                 extinction_severity = s.get('cataclysm_extinction_severity', 0.9)
                 survivors_after_cataclysm = int(len(population) * (1.0 - extinction_severity))
                 population.sort(key=lambda x: x.fitness, reverse=True)
                 population = population[:survivors_after_cataclysm]
-                st.toast(f"Mass extinction! {extinction_severity*100:.0f}% of life has been wiped out.", icon="💀")
+                st.toast(f"Mass extinction! {extinction_severity*100:.0f}% of life has been wiped out.", icon="💥")
 
                 exhibit_grid = ExhibitGrid(s)
                 st.toast("The environment has been radically altered! Resource maps have shifted.", icon="🌍")
 
                 hypermutation_duration = s.get('post_cataclysm_hypermutation_duration', 10)
-                st.toast(f"Adaptive radiation begins! Hypermutation enabled for {hypermutation_duration} epochs.", icon="📈")
+                st.toast(f"Adaptive radiation begins! Hypermutation enabled for {hypermutation_duration} epochs.", icon="⚡")
 
                 while len(population) < s.get('initial_population', 50) and population:
                     parent = random.choice(population)
@@ -3256,7 +3256,7 @@ def main():
                             'description': event_desc, 'icon': '📜'
                         })
                         st.session_state.has_logged_philosophy_divergence = True
-                        st.toast("📜 Cognitive Leap! An organism evolved its own goals!", icon="🎉")
+                        st.toast("📜 Cognitive Leap! An organism evolved its own goals!", icon="🚀")
                         break
 
                 if not st.session_state.get('has_logged_computation_dawn', False):
@@ -3267,7 +3267,7 @@ def main():
                             'description': event_desc, 'icon': '⚙️'
                         })
                         st.session_state.has_logged_computation_dawn = True
-                        st.toast("⚙️ Complexity Leap! Life evolved a genetic switch!", icon="🎉")
+                        st.toast("⚙️ Complexity Leap! Life evolved a genetic switch!", icon="🚀")
                         break
 
                 if not st.session_state.get('has_logged_first_communication', False):
@@ -3278,7 +3278,7 @@ def main():
                             'description': event_desc, 'icon': '📡'
                         })
                         st.session_state.has_logged_first_communication = True
-                        st.toast("📡 Major Transition! Cells have learned to communicate!", icon="🎉")
+                        st.toast("📡 Major Transition! Cells have learned to communicate!", icon="🚀")
                         break
 
                 if not st.session_state.get('has_logged_memory_invention', False):
@@ -3289,7 +3289,7 @@ def main():
                             'description': event_desc, 'icon': '⏳'
                         })
                         st.session_state.has_logged_memory_invention = True
-                        st.toast("⏳ Cognitive Leap! An organism evolved internal timers!", icon="🎉")
+                        st.toast("⏳ Cognitive Leap! An organism evolved internal timers!", icon="🚀")
                         break
 
             for individual in population:
@@ -3372,7 +3372,7 @@ def main():
                     
                     child = mutate(host, s)
                     offspring.append(child)
-                    st.toast(f"💥 ENDOSYMBIOSIS! Organisms merged into a new lifeform!", icon="🧬")
+                    st.toast(f"🤝 ENDOSYMBIOSIS! Organisms merged into a new lifeform!", icon="🧬")
                     
                     event_desc = f"Two distinct organisms from lineages `{parent1.lineage_id}` and `{parent2.lineage_id}` have merged into a single, more complex entity, combining their genetic material."
                     st.session_state.genesis_events.append({
@@ -3415,7 +3415,7 @@ def main():
             progress_container.progress((gen + 1) / s.get('num_generations', 200))
         
         st.session_state.current_population = population
-        status_text.markdown("### ✅ Exhibit Curation Complete! Results archived.")
+        status_text.markdown("### ✅ Exhibit Simulation Complete! Results archived.")
         
         results_to_save = {
             'history': st.session_state.history,
@@ -3446,7 +3446,7 @@ def main():
         if s.get('random_seed', 42) != -1:
             random.seed(s.get('random_seed', 42))
             np.random.seed(s.get('random_seed', 42))
-            st.toast(f"Using fixed random seed: {s.get('random_seed', 42)}", icon="🎲")
+            st.toast(f"Using fixed random seed: {s.get('random_seed', 42)}", icon="🔢")
             
         exhibit_grid = ExhibitGrid(s)
         
@@ -3471,7 +3471,7 @@ def main():
                     red_queen.target_kingdom_id = kingdom_counts.most_common(1)[0][0]
         
         for gen in range(start_gen, end_gen):
-            status_text.markdown(f"### 🏛️ Simulating Epoch {gen + 1}/{end_gen}")
+            status_text.markdown(f"### ⏳ Simulating Epoch {gen + 1}/{end_gen}")
             
             fitness_scores = []
             for genotype in population:
@@ -3489,14 +3489,14 @@ def main():
                     
                     if random.random() < s.get('red_queen_adaptation_speed', 0.2):
                         red_queen.target_kingdom_id = most_common_kingdom
-                        st.toast(f"👑 Red Queen Adapts! Parasite now targets **{most_common_kingdom}**.", icon="🦠")
+                        st.toast(f"👑 Red Queen Adapts! Parasite now targets **{most_common_kingdom}**.", icon="🎯")
                         event_desc = f"A co-evolving parasite has adapted, now specifically targeting the dominant **{most_common_kingdom}** kingdom. This forces an evolutionary arms race."
                         st.session_state.genesis_events.append({
                             'generation': gen,
                             'type': 'Red Queen',
                             'title': f"Parasite Adapts to {most_common_kingdom}",
                             'description': event_desc,
-                            'icon': '👑'
+                            'icon': '🎯'
                         })
 
                 for genotype in population:
@@ -3547,13 +3547,13 @@ def main():
                             'description': event_desc, 'icon': '🤝'
                         })
                         st.session_state.has_logged_colonial_emergence = True
-                        st.toast("🤝 Major Transition! Colonial life has emerged!", icon="🎉")
+                        st.toast("🤝 Major Transition! Colonial life has emerged!", icon="🚀")
 
             if hypermutation_duration > 0:
                 current_mutation_rate = s.get('mutation_rate', 0.2) * s.get('post_cataclysm_hypermutation_multiplier', 2.0)
                 hypermutation_duration -= 1
                 if hypermutation_duration == 0:
-                    st.toast("Hypermutation period has ended. Mutation rates returning to normal.", icon="📉")
+                    st.toast("Hypermutation period has ended. Mutation rates returning to normal.", icon="🧬")
             else:
                 current_mutation_rate = s.get('mutation_rate', 0.2)
 
@@ -3565,20 +3565,20 @@ def main():
                     'type': 'Cataclysm',
                     'title': 'Mass Extinction Event',
                     'description': event_desc,
-                    'icon': '🌋'
+                    'icon': '☄️'
                 })
                 
                 extinction_severity = s.get('cataclysm_extinction_severity', 0.9)
                 survivors_after_cataclysm = int(len(population) * (1.0 - extinction_severity))
                 population.sort(key=lambda x: x.fitness, reverse=True)
                 population = population[:survivors_after_cataclysm]
-                st.toast(f"Mass extinction! {extinction_severity*100:.0f}% of life has been wiped out.", icon="💀")
+                st.toast(f"Mass extinction! {extinction_severity*100:.0f}% of life has been wiped out.", icon="💥")
 
                 exhibit_grid = ExhibitGrid(s)
                 st.toast("The environment has been radically altered! Resource maps have shifted.", icon="🌍")
 
                 hypermutation_duration = s.get('post_cataclysm_hypermutation_duration', 10)
-                st.toast(f"Adaptive radiation begins! Hypermutation enabled for {hypermutation_duration} epochs.", icon="📈")
+                st.toast(f"Adaptive radiation begins! Hypermutation enabled for {hypermutation_duration} epochs.", icon="⚡")
 
                 while len(population) < s.get('initial_population', 50) and population:
                     parent = random.choice(population)
@@ -3647,7 +3647,7 @@ def main():
                             'description': event_desc, 'icon': '📜'
                         })
                         st.session_state.has_logged_philosophy_divergence = True
-                        st.toast("📜 Cognitive Leap! An organism evolved its own goals!", icon="🎉")
+                        st.toast("📜 Cognitive Leap! An organism evolved its own goals!", icon="🚀")
                         break
 
                 if not st.session_state.get('has_logged_computation_dawn', False):
@@ -3658,7 +3658,7 @@ def main():
                             'description': event_desc, 'icon': '⚙️'
                         })
                         st.session_state.has_logged_computation_dawn = True
-                        st.toast("⚙️ Complexity Leap! Life evolved a genetic switch!", icon="🎉")
+                        st.toast("⚙️ Complexity Leap! Life evolved a genetic switch!", icon="🚀")
                         break
 
                 if not st.session_state.get('has_logged_first_communication', False):
@@ -3669,7 +3669,7 @@ def main():
                             'description': event_desc, 'icon': '📡'
                         })
                         st.session_state.has_logged_first_communication = True
-                        st.toast("📡 Major Transition! Cells have learned to communicate!", icon="🎉")
+                        st.toast("📡 Major Transition! Cells have learned to communicate!", icon="🚀")
                         break
 
                 if not st.session_state.get('has_logged_memory_invention', False):
@@ -3680,7 +3680,7 @@ def main():
                             'description': event_desc, 'icon': '⏳'
                         })
                         st.session_state.has_logged_memory_invention = True
-                        st.toast("⏳ Cognitive Leap! An organism evolved internal timers!", icon="🎉")
+                        st.toast("⏳ Cognitive Leap! An organism evolved internal timers!", icon="🚀")
                         break
 
             for individual in population:
@@ -3763,7 +3763,7 @@ def main():
                     
                     child = mutate(host, s)
                     offspring.append(child)
-                    st.toast(f"💥 ENDOSYMBIOSIS! Organisms merged into a new lifeform!", icon="🧬")
+                    st.toast(f"🤝 ENDOSYMBIOSIS! Organisms merged into a new lifeform!", icon="🧬")
                     
                     event_desc = f"Two distinct organisms from lineages `{parent1.lineage_id}` and `{parent2.lineage_id}` have merged into a single, more complex entity, combining their genetic material."
                     st.session_state.genesis_events.append({
@@ -3806,7 +3806,7 @@ def main():
             progress_container.progress((gen - start_gen + 1) / num_generations_to_run)
         
         st.session_state.current_population = population
-        status_text.markdown("### ✅ Simulation Complete! Results archived.")
+        status_text.markdown("### ✅ Exhibit Simulation Complete! Results archived.")
         
         results_to_save = {
             'history': st.session_state.history,
@@ -3817,7 +3817,7 @@ def main():
         else:
             results_table.insert(results_to_save)
 
-    st.markdown('<h1>🏛️ Exhibit Hall: Simulation Results</h1>', unsafe_allow_html=True)
+    st.markdown('<h1>🔭 Exhibit Hall: Simulation Results</h1>', unsafe_allow_html=True)
     
     if not st.session_state.history:
         st.info("This exhibit hall is empty. Adjust the physical laws in the Curator's Console and press '🚀 Curate New Exhibit' to populate it.")
@@ -3830,7 +3830,7 @@ def main():
             "📈 Simulation Dashboard", 
             "🔬 Specimen Gallery", 
             "🧬 Elite Lineage Analysis",
-            "🌌 The Genesis Chronicle",
+            "📜 The Genesis Chronicle",
             "📊 Custom Analytics Lab"
         ]
         tab_dashboard, tab_viewer, tab_elites, tab_genesis, tab_analytics_lab = st.tabs(tab_list)
@@ -4303,7 +4303,7 @@ def main():
                     st.rerun()
 
         with tab_genesis:
-            st.header("🌌 The Chronicle of Genesis")
+            st.header("📜 The Chronicle of Genesis")
             st.markdown("This is the historical record of your exhibit, chronicling the pivotal moments of creation, innovation, and environmental change. These events are the sparks that drive 'truly infinite' evolution.")
 
             events = st.session_state.get('genesis_events', [])
@@ -4346,7 +4346,7 @@ def main():
                         """, unsafe_allow_html=True)
 
                 st.markdown("---")
-                st.markdown("### 🏆 Hall of Innovation")
+                st.markdown("### 💡 Hall of Innovation")
                 st.markdown("A showcase of the most novel organisms that emerged directly after key evolutionary leaps.")
 
                 innovation_events = [e for e in filtered_events if e['type'] in ['Component Innovation', 'Sense Innovation', 'Endosymbiosis', 'Genesis', 'Complexity Leap', 'Major Transition', 'Cognitive Leap']]
@@ -4427,7 +4427,7 @@ def main():
                 
                 # --- NEW: Epochs & Phylogeny Section ---
                 st.markdown("---") # Separator
-                st.markdown("### 📖 Epochs & Phylogeny")
+                st.markdown("### ⏳ Epochs & Phylogeny")
                 st.markdown("A macro-level analysis of your exhibit's history, identifying distinct eras and visualizing the evolutionary tree of its kingdoms.")
 
                 col1, col2 = st.columns([2, 1])
@@ -4656,7 +4656,7 @@ def main():
                 
                 # --- NEW: Pantheon of Genes Section ---
                 st.markdown("---")
-                st.markdown("### 🏛️ The Pantheon of Life")
+                st.markdown("### 🔬 The Pantheon of Life")
                 st.markdown("A hall of fame for the most impactful genetic 'ideas' of your exhibit. This analyzes the entire fossil record to identify the components and rule strategies that defined success.")
 
                 gene_archive = st.session_state.get('gene_archive', [])
@@ -4846,14 +4846,14 @@ if __name__ == "__main__":
             st.session_state.genesis_events.append({
                 'generation': st.session_state.history[-1]['generation'] if st.session_state.history else 0,
                 'type': 'Component Innovation', 'title': f"New Component: {body.split('**')[1]}",
-                'description': f"A new cellular component, '{body.split('**')[1]}', was invented, expanding the chemical and functional possibilities for life.", 'icon': '💡',
+                'description': f"A new cellular component, '{body.split('**')[1]}', was invented, expanding the chemical and functional possibilities for life.", 'icon': '✨',
                 'lineage_id': lineage_id
             })
         if "new sense" in body:
             st.session_state.genesis_events.append({
                 'generation': st.session_state.history[-1]['generation'] if st.session_state.history else 0,
                 'type': 'Sense Innovation', 'title': f"New Sense: {body.split('**')[1]}",
-                'description': f"Life has evolved a new way to perceive its environment: '{body.split('**')[1]}'. This opens up entirely new evolutionary pathways.", 'icon': '🧠'
+                'description': f"Life has evolved a new way to perceive its environment: '{body.split('**')[1]}'. This opens up entirely new evolutionary pathways.", 'icon': '👁️'
             })
         original_toast(body, icon=icon)
     st.toast = chronicle_toast
