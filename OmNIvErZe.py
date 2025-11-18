@@ -2374,7 +2374,7 @@ def main():
     s = copy.deepcopy(st.session_state.settings)
 
     if st.sidebar.button("Reset Curator's Console to Defaults", width='stretch', key="reset_defaults_button"):
-        st.session_state.settings.clear()
+        st.session_state.settings = {}
         st.toast("Curator's Console reset to defaults!", icon="📡")
         time.sleep(1)
         st.rerun()
@@ -2683,7 +2683,7 @@ def main():
         s['max_rule_conditions'] = st.slider("Max Rule Conditions", 1, 5, s.get('max_rule_conditions', 3), 1)
 
     with st.sidebar.expander("Ecosystem & Speciation Dynamics", expanded=False):
-        s['enable_speciation'] = st.checkbox("Enable Speciation", value=s.get('enable_speciation', True), help="Group similar organisms into 'species' to protect innovation.")
+        s['enable_speciation'] = st.checkbox("Enable Speciation", s.get('enable_speciation', True), help="Group similar organisms into 'species' to protect innovation.")
         s['compatibility_threshold'] = st.slider("Compatibility Threshold", 1.0, 50.0, s.get('compatibility_threshold', 10.0), 0.5, help="Genomic distance to be in the same species.")
         s['niche_competition_factor'] = st.slider("Niche Competition", 0.0, 5.0, s.get('niche_competition_factor', 1.5), 0.1, help="How strongly members of the same species compete (fitness sharing).")
         s['gene_flow_rate'] = st.slider("Gene Flow (Hybridization)", 0.0, 0.2, s.get('gene_flow_rate', 0.01), 0.005, help="Chance for crossover between different species.")
@@ -2691,39 +2691,39 @@ def main():
         s['max_archive_size'] = st.slider("Max Gene Archive Size", 1000, 1000000, s.get('max_archive_size', 100000), 5000)
     
     with st.sidebar.expander("Advanced Biological Principles", expanded=False):
-        s['enable_baldwin'] = st.checkbox("Enable Baldwin Effect (Learning)", value=s.get('enable_baldwin', True), help="Organisms can 'learn' (e.g., adapt to local temp) in their lifetime. Favors adaptable genotypes.")
-        s['enable_epigenetics'] = st.checkbox("Enable Epigenetic Inheritance", value=s.get('enable_epigenetics', True), help="Learned adaptations are partially passed to offspring (Lamarckian).")
-        s['enable_endosymbiosis'] = st.checkbox("Enable Endosymbiosis (Merging)", value=s.get('enable_endosymbiosis', True), help="Rare event where one organism absorbs another, merging their genomes.")
+        s['enable_baldwin'] = st.checkbox("Enable Baldwin Effect (Learning)", s.get('enable_baldwin', True), help="Organisms can 'learn' (e.g., adapt to local temp) in their lifetime. Favors adaptable genotypes.")
+        s['enable_epigenetics'] = st.checkbox("Enable Epigenetic Inheritance", s.get('enable_epigenetics', True), help="Learned adaptations are partially passed to offspring (Lamarckian).")
+        s['enable_endosymbiosis'] = st.checkbox("Enable Endosymbiosis (Merging)", s.get('enable_endosymbiosis', True), help="Rare event where one organism absorbs another, merging their genomes.")
         s['endosymbiosis_rate'] = st.slider("Endosymbiosis Rate", 0.0, 0.1, s.get('endosymbiosis_rate', 0.005), 0.001)
 
     with st.sidebar.expander("☄️ Environmental Events & Cataclysms", expanded=False):
-        s['enable_cataclysms'] = st.checkbox("Enable Cataclysms", value=s.get('enable_cataclysms', True), help="Enable rare, random mass extinction events.")
+        s['enable_cataclysms'] = st.checkbox("Enable Cataclysms", s.get('enable_cataclysms', True), help="Enable rare, random mass extinction events.")
         s['cataclysm_probability'] = st.slider("Cataclysm Probability", 0.0, 0.5, s.get('cataclysm_probability', 0.01), 0.005, help="Per-epoch chance of a cataclysm.")
         s['cataclysm_extinction_severity'] = st.slider("Extinction Severity", 0.1, 1.0, s.get('cataclysm_extinction_severity', 0.9), 0.05, help="Percentage of population wiped out.")
         s['cataclysm_landscape_shift_magnitude'] = st.slider("Landscape Shift Magnitude", 0.0, 1.0, s.get('cataclysm_landscape_shift_magnitude', 0.5), 0.05, help="How drastically resource maps change.")
         s['post_cataclysm_hypermutation_multiplier'] = st.slider("Hypermutation Multiplier", 1.0, 10.0, s.get('post_cataclysm_hypermutation_multiplier', 2.0), 0.5, help="Mutation spike after cataclysm (adaptive radiation).")
         s['post_cataclysm_hypermutation_duration'] = st.slider("Hypermutation Duration (Epochs)", 0, 50, s.get('post_cataclysm_hypermutation_duration', 10), 1, help="Number of epochs the mutation spike lasts.")
-        s['enable_red_queen'] = st.checkbox("Enable Red Queen (Co-evolution)", value=s.get('enable_red_queen', True), help="A co-evolving 'parasite' targets the most common organism type, forcing an arms race.")
+        s['enable_red_queen'] = st.checkbox("Enable Red Queen (Co-evolution)", s.get('enable_red_queen', True), help="A co-evolving 'parasite' targets the most common organism type, forcing an arms race.")
         s['red_queen_virulence'] = st.slider("Parasite Virulence", 0.0, 1.0, s.get('red_queen_virulence', 0.15), 0.05, help="Fitness penalty inflicted by the parasite.")
         s['red_queen_adaptation_speed'] = st.slider("Parasite Adaptation Speed", 0.0, 1.0, s.get('red_queen_adaptation_speed', 0.2), 0.05)
         
     with st.sidebar.expander("🔬 Meta-Evolution & Self-Configuration (ADVANCED)", expanded=False):
         st.markdown("**DANGER:** Evolve the laws of evolution itself.")
-        s['enable_hyperparameter_evolution'] = st.checkbox("Enable Hyperparameter Co-evolution", value=s.get('enable_hyperparameter_evolution', False))
+        s['enable_hyperparameter_evolution'] = st.checkbox("Enable Hyperparameter Co-evolution", s.get('enable_hyperparameter_evolution', False))
         s['evolvable_params'] = st.multiselect("Evolvable Parameters", 
             ['mutation_rate', 'crossover_rate', 'innovation_rate', 'niche_competition_factor', 'selection_pressure', 'meta_innovation_rate'], 
             s.get('evolvable_params', ['mutation_rate']))
         s['hyper_mutation_rate'] = st.slider("Meta-Mutation Rate", 0.0, 0.2, s.get('hyper_mutation_rate', 0.05), 0.01)
-        s['enable_genetic_code_evolution'] = st.checkbox("Enable Genetic Code Evolution", value=s.get('enable_genetic_code_evolution', False), help="Allow invention of new *types* of rules and conditions.")
-        s['enable_objective_evolution'] = st.checkbox("Enable Objective Evolution (Autotelic)", value=s.get('enable_objective_evolution', False), help="Allow organisms to evolve their *own* fitness goals.")
+        s['enable_genetic_code_evolution'] = st.checkbox("Enable Genetic Code Evolution", s.get('enable_genetic_code_evolution', False), help="Allow invention of new *types* of rules and conditions.")
+        s['enable_objective_evolution'] = st.checkbox("Enable Objective Evolution (Autotelic)", s.get('enable_objective_evolution', False), help="Allow organisms to evolve their *own* fitness goals.")
         st.markdown("---")
         st.markdown("**THE TRUE INFINITE:** Evolve the laws of physics.")
-        s['enable_physics_drift'] = st.checkbox("Enable Physics Co-evolution", value=s.get('enable_physics_drift', False), help="Allow the archetypes in the CHEMICAL_BASES_REGISTRY to 'mutate' over time.")
+        s['enable_physics_drift'] = st.checkbox("Enable Physics Co-evolution", s.get('enable_physics_drift', False), help="Allow the archetypes in the CHEMICAL_BASES_REGISTRY to 'mutate' over time.")
         s['physics_drift_rate'] = st.slider("Physics Drift Rate", 0.0, 0.01, s.get('physics_drift_rate', 0.001), 0.0001, help="Per-epoch chance of a random physical archetype mutating.")
 
     with st.sidebar.expander("🌠 Deep Evolutionary Physics & Information Dynamics (EXPANDED)", expanded=False):
         st.markdown("**THEORETICAL APEX:** Model deep physical and informational principles.")
-        s['enable_deep_physics'] = st.checkbox("Enable Deep Physics Engine", value=s.get('enable_deep_physics', False))
+        s['enable_deep_physics'] = st.checkbox("Enable Deep Physics Engine", s.get('enable_deep_physics', False))
         
         st.markdown("##### 1. Information-Theoretic Dynamics")
         s['kolmogorov_pressure'] = st.slider("Kolmogorov Pressure (Simplicity)", 0.0, 1.0, s.get('kolmogorov_pressure', 0.0), 0.01, disabled=not s['enable_deep_physics'])
@@ -2768,7 +2768,7 @@ def main():
         s['symbol_grounding_constraint'] = st.slider("Symbol Grounding Constraint", 0.0, 1.0, s.get('symbol_grounding_constraint', 0.0), 0.01, disabled=not s['enable_deep_physics'])
 
     with st.sidebar.expander("🌌 Advanced Algorithmic Frameworks (EXPANDED)", expanded=False):
-        s['enable_advanced_frameworks'] = st.checkbox("Enable Advanced Frameworks Engine", value=s.get('enable_advanced_frameworks', False), help="DANGER: Apply priors from abstract math and logic.")
+        s['enable_advanced_frameworks'] = st.checkbox("Enable Advanced Frameworks Engine", s.get('enable_advanced_frameworks', False), help="DANGER: Apply priors from abstract math and logic.")
         st.markdown("##### 1. Computational Logic & Metamathematics")
         s['chaitin_omega_bias'] = st.slider("Chaitin's Omega Bias", 0.0, 1.0, s.get('chaitin_omega_bias', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
         s['godel_incompleteness_penalty'] = st.slider("Gödelian Incompleteness Penalty", 0.0, 1.0, s.get('godel_incompleteness_penalty', 0.0), 0.01, disabled=not s['enable_advanced_frameworks'])
@@ -2818,7 +2818,7 @@ def main():
 
     with st.sidebar.expander("✨ Alternate Deep Physics & Info-Dynamics (EXPERIMENTAL)", expanded=False):
         st.markdown("**THEORETICAL APEX 2:** Model alternate deep physical principles.")
-        s['enable_deep_physics_alt'] = st.checkbox("Enable Alternate Deep Physics", value=s.get('enable_deep_physics_alt', False))
+        s['enable_deep_physics_alt'] = st.checkbox("Enable Alternate Deep Physics", s.get('enable_deep_physics_alt', False))
         
         st.markdown("##### 1. Alternate Info-Theoretic Dynamics")
         s['alt_kolmogorov_pressure'] = st.slider("Alt. Kolmogorov Pressure", 0.0, 1.0, s.get('alt_kolmogorov_pressure', 0.0), 0.01, disabled=not s['enable_deep_physics_alt'])
@@ -2847,17 +2847,17 @@ def main():
 
     with st.sidebar.expander("👽 Co-evolution & Embodiment Dynamics", expanded=False):
         st.markdown("Simulate arms races and the evolution of 'bodies'.")
-        s['enable_adversarial_coevolution'] = st.checkbox("Enable Adversarial Critic Population", value=s.get('enable_adversarial_coevolution', False))
+        s['enable_adversarial_coevolution'] = st.checkbox("Enable Adversarial Critic Population", s.get('enable_adversarial_coevolution', False))
         s['critic_population_size'] = st.slider("Critic Population Size", 5, 100, s.get('critic_population_size', 10), 5)
         s['adversarial_fitness_weight'] = st.slider("Adversarial Fitness Weight", 0.0, 1.0, s.get('adversarial_fitness_weight', 0.2), 0.05)
-        s['enable_morphological_coevolution'] = st.checkbox("Enable Morphological Co-evolution", value=s.get('enable_morphological_coevolution', False))
+        s['enable_morphological_coevolution'] = st.checkbox("Enable Morphological Co-evolution", s.get('enable_morphological_coevolution', False))
         s['cost_per_module'] = st.slider("Metabolic Cost per Cell", 0.0, 0.1, s.get('cost_per_module', 0.01), 0.001)
         s['bilateral_symmetry_bonus'] = st.slider("Bilateral Symmetry Bonus", 0.0, 0.5, s.get('bilateral_symmetry_bonus', 0.0), 0.01)
         s['segmentation_bonus'] = st.slider("Segmentation Bonus", 0.0, 0.5, s.get('segmentation_bonus', 0.0), 0.01)
 
     with st.sidebar.expander("✨ Multi-Level Selection (Major Transitions)", expanded=False):
         st.markdown("Evolve colonies and 'superorganisms'.")
-        s['enable_multi_level_selection'] = st.checkbox("Enable Multi-Level Selection (MLS)", value=s.get('enable_multi_level_selection', False))
+        s['enable_multi_level_selection'] = st.checkbox("Enable Multi-Level Selection (MLS)", s.get('enable_multi_level_selection', False))
         s['colony_size'] = st.slider("Colony Size", 5, 50, s.get('colony_size', 10), 5)
         s['group_fitness_weight'] = st.slider("Group Fitness Weight (Altruism)", 0.0, 1.0, s.get('group_fitness_weight', 0.3), 0.05)
         s['selfishness_suppression_cost'] = st.slider("Selfishness Suppression Cost", 0.0, 0.2, s.get('selfishness_suppression_cost', 0.05), 0.01)
@@ -2866,7 +2866,7 @@ def main():
     with st.sidebar.expander("🗄️ Curation & Archive Management", expanded=False):
         s['experiment_name'] = st.text_input("Exhibit Name", s.get('experiment_name', 'Primordial Run'))
         s['random_seed'] = st.number_input("Random Seed", -1, value=s.get('random_seed', 42), help="-1 for random.")
-        s['enable_early_stopping'] = st.checkbox("Enable Early Stopping", value=s.get('enable_early_stopping', True))
+        s['enable_early_stopping'] = st.checkbox("Enable Early Stopping", s.get('enable_early_stopping', True))
         s['early_stopping_patience'] = st.slider("Early Stopping Patience", 5, 100, s.get('early_stopping_patience', 25))
         s['num_ranks_to_display'] = st.slider("Number of Elite Ranks to Display", 1, 10, s.get('num_ranks_to_display', 3))
 
@@ -3149,12 +3149,14 @@ def main():
     st.sidebar.markdown("---")
 
     if s != st.session_state.settings:
-        st.session_state.settings = copy.deepcopy(s)
+        # This is the crucial change: update the session state with the new values
+        st.session_state.settings.update(s)
         if settings_table.get(doc_id=1):
-            settings_table.update(s, doc_ids=[1])
+            settings_table.update(st.session_state.settings, doc_ids=[1])
         else:
-            settings_table.insert(s)
+            settings_table.insert(st.session_state.settings)
         st.toast("Exhibit constants saved.", icon="⚙️")
+        st.rerun() # Force an immediate rerun to reflect the changes
 
     if st.session_state.history:
         last_gen = st.session_state.history[-1]['generation']
@@ -5114,4 +5116,3 @@ if __name__ == "__main__":
     st.toast = chronicle_toast
     main()
               
-
